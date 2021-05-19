@@ -1,9 +1,9 @@
 
 
 process vcfsplit {
-    cpus 2
-    memory '4 GB'
-    time '6 h'
+    cpus 1
+    memory '2 GB'
+    time '1 h'
     container 'bahlolab/mps-geno:latest'
     publishDir "output/vcfsplit", mode: 'copy'
 
@@ -17,7 +17,6 @@ process vcfsplit {
     out_id = "$id-$i"
     out_vcf = "${out_id}.vcf.gz"
     """
-    set -o pipefail
     split_variants_parallel.py $vcf $i $params.n_split --mode u  | \\
         bcftools view --no-version -Oz -o $out_vcf
     """

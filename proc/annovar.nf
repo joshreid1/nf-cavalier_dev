@@ -6,7 +6,7 @@ params.ANNOVAR_HUMANDB_DIR ="$params.ANNOVAR_DIR/humandb/"
 process annovar {
     cpus 1
     memory '2 GB'
-    time '4 h'
+    time '1 h'
     module 'perl/5.22.2:htslib/1.12'
     publishDir "output/annovar", mode: 'copy'
 
@@ -25,7 +25,8 @@ process annovar {
         -vcfinput -out $out_base -remove \\
         -protocol refGene,genomicSuperDups,exac03,gnomad_exome,gnomad_genome,avsnp150,dbnsfp35a,clinvar_20180603 -operation g,r,f,f,f,f,f,f -nastring . \\
         -arg '-exonicsplicing -splicing 8',,,,,,,
-    bgzip ${out_base}.hg19_multianno.vcf
+    sed 's:avsnp150:avsnp147:g' ${out_base}.hg19_multianno.vcf | \\
+        bgzip > $out_vcf
     tabix -p vcf $out_vcf
     gzip ${out_base}.avinput
     gzip ${out_base}.hg19_multianno.txt
