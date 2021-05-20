@@ -7,6 +7,8 @@ params.id = ''
 params.n_split = 100
 
 include { vcfsplit } from './proc/vcfsplit'
+include { vep } from './proc/vep'
+include { vep_filter } from './proc/vep_filter'
 include { vcfanno } from './proc/vcfanno'
 include { annovar } from './proc/annovar'
 include { cavalier_prep } from './proc/cavalier_prep'
@@ -17,7 +19,17 @@ workflow {
     data = Channel.fromList([[params.id, file(params.vcf_input, checkIfExists:true)]])
         .flatMap { (1..params.n_split).collect { i -> [i] + it } }
 
-    data | vcfsplit | vcfanno | annovar | cavalier_prep
+    data |
+        vcfsplit |
+        ( vcfanno & vep )
 
-    cavalier_prep.out.toSortedList().map { [params.id, it]} | cavalier_merge
+    vcfanno.out |
+        annovar |
+        cavalier_prep |
+        toSortedList |
+        map { [params.id, it]} |
+        cavalier_merge
+
+    vep.out |
+        vep_filter
 }
