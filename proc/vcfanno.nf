@@ -3,12 +3,11 @@ params.VCFANNO_EXEC='/stornext/Bioinf/data/lab_bahlo/software/apps/vcfanno/vcfan
 params.VCFANNO_TOML='/stornext/Bioinf/data/lab_bahlo/software/apps/vcfanno/config/conf_gnomADv2.1.toml'
 
 process vcfanno {
-    cpus 8
+    cpus 2
     memory '4 GB'
     time '6 h'
     module 'htslib/1.12'
     publishDir "output/vcfanno", mode: 'copy'
-    maxForks 20
 
     input:
     tuple val(id), file(vcf)

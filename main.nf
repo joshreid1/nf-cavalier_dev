@@ -5,12 +5,13 @@ nextflow.enable.dsl=2
 params.vcf_input = ''
 params.id = ''
 params.n_split = 100
+params.ped = 'samples.ped'
 
-include { vcfsplit } from './proc/vcfsplit'
 include { vcf_split } from './proc/vcf_split'
 include { vep } from './proc/vep'
 include { vep_filter } from './proc/vep_filter'
 include { vcf_merge } from './proc/vcf_merge'
+include { vcf_sample_subset } from './proc/vcf_sample_subset'
 include { vcfanno } from './proc/vcfanno'
 include { annovar } from './proc/annovar'
 include { cavalier_prep } from './proc/cavalier_prep'
@@ -24,12 +25,7 @@ workflow {
          file(params.vcf_input + '.tbi', checkIfExists:true)]
     ])
 
-
-//    data |
-//        map { it.dropRight(1) } |
-//        flatMap { (1..params.n_split).collect { i -> [i] + it } } |
-//        vcfsplit |
-//        ( vcfanno & vep )
+    samples = Channel.fromPath(params.ped).splitCsv(sep: '\t').map { it[1] }
 
     data |
         vcf_split |
@@ -50,5 +46,8 @@ workflow {
         transpose |
         toList |
         map { [params.id, it[1], it[2]] } |
-        vcf_merge
+        vcf_merge |
+        map { it[1] } |
+        combine(samples) |
+        vcf_sample_subset
 }

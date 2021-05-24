@@ -14,7 +14,7 @@ Options:
 " 
 opts <- docopt(doc)
 
-MAF <- 0.1
+MAF <- 0.05
 
 region_include <- c("exonic", "splicing", "exonic;splicing")
 change_exclude <- c("synonymous SNV")

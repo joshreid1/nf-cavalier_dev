@@ -1,5 +1,5 @@
 
-params.max_af = 0.10
+params.max_af = 0.01
 params.vep_impact = ['MODERATE', 'HIGH']
 
 process vep_filter {
