@@ -7,8 +7,10 @@ params.id = ''
 params.n_split = 100
 
 include { vcfsplit } from './proc/vcfsplit'
+include { vcf_split } from './proc/vcf_split'
 include { vep } from './proc/vep'
 include { vep_filter } from './proc/vep_filter'
+include { vcf_merge } from './proc/vcf_merge'
 include { vcfanno } from './proc/vcfanno'
 include { annovar } from './proc/annovar'
 include { cavalier_prep } from './proc/cavalier_prep'
@@ -16,11 +18,23 @@ include { cavalier_merge } from './proc/cavalier_merge'
 
 
 workflow {
-    data = Channel.fromList([[params.id, file(params.vcf_input, checkIfExists:true)]])
-        .flatMap { (1..params.n_split).collect { i -> [i] + it } }
+    data = Channel.fromList([
+        [params.id,
+         file(params.vcf_input, checkIfExists:true),
+         file(params.vcf_input + '.tbi', checkIfExists:true)]
+    ])
+
+
+//    data |
+//        map { it.dropRight(1) } |
+//        flatMap { (1..params.n_split).collect { i -> [i] + it } } |
+//        vcfsplit |
+//        ( vcfanno & vep )
 
     data |
-        vcfsplit |
+        vcf_split |
+        flatten |
+        map { [it.name.replaceFirst(params.id + '-', '').replaceFirst('.vcf.gz', ''), it] } |
         ( vcfanno & vep )
 
     vcfanno.out |
@@ -31,5 +45,10 @@ workflow {
         cavalier_merge
 
     vep.out |
-        vep_filter
+        vep_filter |
+        toSortedList |
+        transpose |
+        toList |
+        map { [params.id, it[1], it[2]] } |
+        vcf_merge
 }

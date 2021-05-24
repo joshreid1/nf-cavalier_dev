@@ -20,7 +20,6 @@ process vep_filter {
     """
     filter_vep --input_file $vcf  \\
         --format vcf \\
-        --vcf_info_field ANN \\
         --only_matched \\
         --filter "MAX_AF < $params.max_af or not MAX_AF" \\
         --filter "IMPACT in ${params.vep_impact.join(',')}" |  \\

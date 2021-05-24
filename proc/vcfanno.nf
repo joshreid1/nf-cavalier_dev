@@ -8,7 +8,7 @@ process vcfanno {
     time '6 h'
     module 'htslib/1.12'
     publishDir "output/vcfanno", mode: 'copy'
-    maxForks 10
+    maxForks 20
 
     input:
     tuple val(id), file(vcf)

@@ -24,7 +24,6 @@ process vep {
         --offline \\
         --everything \\
         --max_af \\
-        --vcf_info_field ANN \\
         --allele_number \\
         --variant_class \\
         --dont_skip \\

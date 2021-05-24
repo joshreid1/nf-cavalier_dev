@@ -23,4 +23,4 @@ qualvars$homRef <-
   select(contains('genotype')) %>%
   apply(1, function(x) sum(x %in% c('0/0', '0|0'), na.rm = T))
 
-saveRDS(qualvars, output)
+saveRDS(qualvars, opts$output)
