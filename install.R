@@ -1,5 +1,5 @@
 
-cran_pkgs <- c('tidyverse', 'matrixStats', 'BiocManager', 'devtools')
+cran_pkgs <- c('tidyverse', 'matrixStats', 'BiocManager', 'devtools', 'shiny')
 
 install.packages(cran_pkgs,
                  repos='https://cloud.r-project.org',
