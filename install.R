@@ -1,5 +1,5 @@
 
-cran_pkgs <- c('cowplot', 'ggforce', 'matrixStats', 'BiocManager')
+cran_pkgs <- c('tidyverse', 'matrixStats', 'BiocManager')
 
 install.packages(cran_pkgs, repos='https://cloud.r-project.org')
 
