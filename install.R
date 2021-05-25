@@ -1,7 +1,11 @@
 
-cran_pkgs <- c('tidyverse', 'matrixStats', 'BiocManager')
+cran_pkgs <- c('tidyverse', 'matrixStats', 'BiocManager', 'devtools')
 
-install.packages(cran_pkgs, repos='https://cloud.r-project.org')
+install.packages(cran_pkgs,
+                 repos='https://cloud.r-project.org',
+                 clean = TRUE,
+                 verbose = FALSE,
+                 quiet = TRUE)
 
 BiocManager::install('org.Hs.eg.db')
 
