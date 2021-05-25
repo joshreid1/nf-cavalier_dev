@@ -19,3 +19,7 @@ RUN apt-get update \
 # Install the R packages (cavalier)
 COPY install.R /
 RUN Rscript install.R --vanilla
+
+# Instruct R processes to use these empty files instead of clashing with a local version (from nfcore/base)
+RUN touch .Rprofile
+RUN touch .Renviron
