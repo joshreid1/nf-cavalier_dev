@@ -1,4 +1,4 @@
 
 BiocManager::install('org.Hs.eg.db')
 
-devtools::install_github('bahlolab/cavalier', force = TRUE)
+devtools::install_github('jemunro/cavalier@latest', force = TRUE)

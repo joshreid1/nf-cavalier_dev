@@ -1,6 +1,6 @@
 
 params.GTEx_median_rpkm_file = '/stornext/Bioinf/data/lab_bahlo/public_datasets/GTEx/GTEx_Analysis_2016-01-15_v7_RNASeQCv1.1.8_gene_median_tpm.gct.gz'
-params.OMIM_genemap2_file = '/wehisan/bioinf/lab_bahlo/ref_db/human/OMIM/OMIM_2019-05-04/genemap2.txt'
+params.OMIM_genemap2_file = '/stornext/Bioinf/data/lab_bahlo/ref_db/human/OMIM/OMIM_2019-05-04/genemap2.txt'
 
 process cavalier_prep {
     cpus 1

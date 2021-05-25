@@ -23,7 +23,7 @@ samples <-
   colnames((vcfR::read.vcfR(opts$vcf, nrows = 1))@gt)[-1] %>% 
   { setNames(as.list(.), .) }
 
-vars <- load_annovar_vcf(opts$vcf, samples)
+vars <- (opts$vcf, samples)
 
 qualvars <- 
   quality_filter_variants(vars) %>% 
