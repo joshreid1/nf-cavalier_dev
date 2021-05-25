@@ -21,6 +21,10 @@ RUN apt-get update \
         zlib1g-dev \
         libxml2-dev \
         libssl-dev \
+        gfortran \
+        libblas-dev \
+        liblapack-dev \
+        libpng-dev \
     && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9 \
     && add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu xenial-cran35/' \
     && apt-get update \
