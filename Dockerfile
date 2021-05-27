@@ -44,3 +44,5 @@ RUN Rscript --vanilla install_packages.R CRAN:cran_packages.txt BIOC:bioc_packag
 # Install cavalier R package
 COPY inst/github_packages.txt /
 RUN Rscript --vanilla install_packages.R GITHUB:github_packages.txt
+
+ENV R_LIBS_USER /usr/local/lib/R/site-library

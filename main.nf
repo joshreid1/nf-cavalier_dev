@@ -34,7 +34,6 @@ workflow {
     ])
     // list of family members, starting with proband
     // ultimately will extract from pedigree, for now only working on singletons
-//    families = Channel.fromPath(params.ped).splitCsv(sep: '\t').map { [[it[1]]] }
     families = Channel.from(sample_manifest).map { [[it.sample]] }
     samples = Channel.from(sample_manifest)
         .map {
