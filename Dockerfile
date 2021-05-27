@@ -37,8 +37,10 @@ RUN apt-get update \
 # Instruct R processes to use these empty files instead of clashing with a local version (from nfcore/base)
 RUN touch .Rprofile .Renviron
 
-# Install the R packages (cavalier)
-COPY inst/ /
+# Install required R packages
+COPY inst/install_packages.R  inst/cran_packages.txt inst/bioc_packages.txt /
 RUN Rscript --vanilla install_packages.R CRAN:cran_packages.txt BIOC:bioc_packages.txt
-RUN Rscript --vanilla install_packages.R GITHUB:github_packages.txt
 
+# Install cavalier R package
+COPY inst/github_packages.txt /
+RUN Rscript --vanilla install_packages.R GITHUB:github_packages.txt

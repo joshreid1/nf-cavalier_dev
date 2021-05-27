@@ -1,6 +1,4 @@
 
-params.max_cohort_ac = 1
-
 process vcf_family_subset {
     cpus 2
     memory '1 GB'
@@ -12,13 +10,13 @@ process vcf_family_subset {
     tuple file(vcf), val(samples)
 
     output:
-    tuple val(samples), file(out_vcf), file("${out_vcf}.tbi")
+    tuple val(sample), file(out_vcf)
 
     script:
     out_vcf = "${samples[0]}.subset.vcf.gz"
+    sample = samples[0]
     """
     bcftools view --no-version $vcf -Ou -s ${samples.join(',')} | 
-        bcftools view --no-version -i "GT[0]='alt' & AC<=$params.max_cohort_ac" -Oz -o $out_vcf
-    bcftools index -t --threads 2 $out_vcf
+        bcftools view --no-version -i "GT[0]='alt'" -Oz -o $out_vcf
     """
 }
