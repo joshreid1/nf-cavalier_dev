@@ -7,7 +7,7 @@ cran_pkgs <-
     lapply(args[grepl('^CRAN:', args)],
            function(x) scan(gsub('^CRAN:', '', x), what = character())))
 
-if (length(cran_pkgs)){
+if (length(cran_pkgs)) {
   install.packages(cran_pkgs,
                    repos='https://cloud.r-project.org',
                    clean = TRUE,
@@ -22,7 +22,7 @@ bioc_packages <-
     lapply(args[grepl('^BIOC:', args)],
            function(x) scan(gsub('^BIOC:', '', x), what = character())))
 
-if (length(bioc_packages)){
+if (length(bioc_packages)) {
   if (!'BiocManager' %in% rownames(installed.packages())){
     install.packages('BiocManager',
                      repos='https://cloud.r-project.org',
@@ -49,7 +49,8 @@ if (length(github_packages)) {
                      quiet = TRUE)
   }
   devtools::install_github(github_packages, force = TRUE)
-  stopifnot(all(github_packages %in% rownames(installed.packages())))
+  stopifnot(all(gsub('@.+$', '', gsub('^[^/]+/', '', github_packages)) %in%
+                  rownames(installed.packages())))
 }
 
 
