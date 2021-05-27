@@ -9,4 +9,6 @@ install.packages(cran_pkgs,
 
 BiocManager::install('org.Hs.eg.db')
 
-devtools::install_github('jemunro/cavalier@latest', force = TRUE)
+devtools::install_github('jemunro/cavalier@latest',
+                         ref = '1b6d8f0b52c7b045383aa2d93899ef1b6603ba2c',
+                         force = TRUE)

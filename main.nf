@@ -11,7 +11,8 @@ include { vcf_split } from './proc/vcf_split'
 include { vep } from './proc/vep'
 include { vep_filter } from './proc/vep_filter'
 include { vcf_merge } from './proc/vcf_merge'
-include { vcf_sample_subset } from './proc/vcf_sample_subset'
+include { vcf_flatten_multi } from './proc/vcf_flatten_multi'
+include { vcf_family_subset } from './proc/vcf_family_subset'
 include { vcfanno } from './proc/vcfanno'
 include { annovar } from './proc/annovar'
 include { cavalier_prep } from './proc/cavalier_prep'
@@ -24,23 +25,16 @@ workflow {
          file(params.vcf_input, checkIfExists:true),
          file(params.vcf_input + '.tbi', checkIfExists:true)]
     ])
-
-    samples = Channel.fromPath(params.ped).splitCsv(sep: '\t').map { it[1] }
+    // list of family members, starting with proband
+    // for now only tested on singletons
+    families = Channel.fromPath(params.ped).splitCsv(sep: '\t').map { [[it[1]]] }
 
     data |
         vcf_split |
         flatten |
         map { [it.name.replaceFirst(params.id + '-', '').replaceFirst('.vcf.gz', ''), it] } |
-        ( vcfanno & vep )
-
-    vcfanno.out |
-        annovar |
-        cavalier_prep |
-        toSortedList |
-        map { [params.id, it]} |
-        cavalier_merge
-
-    vep.out |
+        vcf_flatten_multi |
+        vep |
         vep_filter |
         toSortedList |
         transpose |
@@ -48,6 +42,14 @@ workflow {
         map { [params.id, it[1], it[2]] } |
         vcf_merge |
         map { it[1] } |
-        combine(samples) |
-        vcf_sample_subset
+        combine(families) |
+        vcf_family_subset
+
+//    vcfanno |
+//        annovar |
+//        cavalier_prep |
+//        toSortedList |
+//        map { [params.id, it]} |
+//        cavalier_merge
+
 }

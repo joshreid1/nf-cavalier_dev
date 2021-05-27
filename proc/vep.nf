@@ -31,8 +31,11 @@ process vep {
         --cache_version 101 \\
         --dir $params.vep_cache \\
         --allow_non_variant \\
-        --output_file STDOUT |
+        --flag_pick_allele_gene \\
+        --output_file STDOUT | \\
         bcftools view --no-version -Oz -o $out_vcf
     bcftools index -t $out_vcf
     """
+    // added --pick option to VEP, this will pick single best annotation per variant
+    // this makes it simpler for cavalier
 }
