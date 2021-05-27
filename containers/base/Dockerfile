@@ -36,7 +36,8 @@ RUN apt-get update \
 
 # Install R packages
 COPY install.R /
-RUN Rscript install.R --vanilla
+RUN Rscript install.R --vanilla CRAN:cran_packages.txt BIOC:bioc_packages.txt
+RUN Rscript install.R --vanilla GITHUB:github_packages.txt
 
 # Instruct R processes to use these empty files instead of clashing with a local version (from nfcore/base)
 RUN touch .Rprofile

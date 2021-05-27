@@ -6,7 +6,7 @@ LABEL \
   maintainer="Bahlo Lab"
 
 # Install procps so that Nextflow can poll CPU usage and
-# Install recent version of r from cran repo
+# Install recent version of r from cran repo, and r package dependencies
 # deep clean the apt cache to reduce image/layer size (from nfcore/base)
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -34,10 +34,11 @@ RUN apt-get update \
         r-recommended \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
-# Install the R packages (cavalier)
-COPY install.R /
-RUN Rscript install.R --vanilla
-
 # Instruct R processes to use these empty files instead of clashing with a local version (from nfcore/base)
-RUN touch .Rprofile
-RUN touch .Renviron
+RUN touch .Rprofile .Renviron
+
+# Install the R packages (cavalier)
+COPY inst/ /
+RUN Rscript --vanilla install_packages.R CRAN:cran_packages.txt BIOC:bioc_packages.txt
+RUN Rscript --vanilla install_packages.R GITHUB:github_packages.txt
+

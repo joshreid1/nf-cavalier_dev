@@ -1,0 +1,3 @@
+tidyverse
+matrixStats
+shiny
