@@ -22,13 +22,14 @@ Options:
   --omim-genemap2=<f>         Path to OMIM_genemap2_file.
 "
 
-opts <- 
-  docopt(doc, c('/stornext/HPCScratch/home/munro.j/runs/udp/cav/output/vcf_family_subset/S33843_1.subset.vcf.gz',
-                'out', 
-                'S33843_1=/bam/file',
-                '--gene-lists', '~/analyses/udp/gene_lists/ataxia_superpanel.txt',
-                '--gtex-rpkm', '/stornext/Bioinf/data/lab_bahlo/public_datasets/GTEx/GTEx_Analysis_2016-01-15_v7_RNASeQCv1.1.8_gene_median_tpm.gct.gz',
-                '--omim-genemap2', '/stornext/Bioinf/data/lab_bahlo/ref_db/human/OMIM/OMIM_2019-05-04/genemap2.txt'))
+opts <- docopt(doc)
+# opts <- 
+#   docopt(doc, c('/stornext/HPCScratch/home/munro.j/runs/udp/cav/output/vcf_family_subset/S33843_1.subset.vcf.gz',
+#                 'out', 
+#                 'S33843_1=/bam/file',
+#                 '--gene-lists', '~/analyses/udp/gene_lists/ataxia_superpanel.txt',
+#                 '--gtex-rpkm', '/stornext/Bioinf/data/lab_bahlo/public_datasets/GTEx/GTEx_Analysis_2016-01-15_v7_RNASeQCv1.1.8_gene_median_tpm.gct.gz',
+#                 '--omim-genemap2', '/stornext/Bioinf/data/lab_bahlo/ref_db/human/OMIM/OMIM_2019-05-04/genemap2.txt'))
 message('Using options:')
 print(opts)
 
