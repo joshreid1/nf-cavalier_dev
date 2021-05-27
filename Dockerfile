@@ -34,10 +34,6 @@ RUN apt-get update \
         r-recommended \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
-# Instruct R processes to use these empty files instead of clashing with a local version (from nfcore/base)
-RUN touch .Rprofile .Renviron
-ENV R_LIBS_USER /usr/local/lib/R/site-library
-
 # Install required R packages
 COPY inst/install_packages.R  inst/cran_packages.txt inst/bioc_packages.txt /
 RUN Rscript --vanilla install_packages.R CRAN:cran_packages.txt BIOC:bioc_packages.txt
@@ -45,3 +41,7 @@ RUN Rscript --vanilla install_packages.R CRAN:cran_packages.txt BIOC:bioc_packag
 # Install cavalier R package
 COPY inst/github_packages.txt /
 RUN Rscript --vanilla install_packages.R GITHUB:github_packages.txt
+
+# Instruct R processes to use these empty files instead of clashing with a local version (from nfcore/base)
+RUN touch .Rprofile .Renviron
+ENV R_LIBS_USER=/usr/local/lib/R/site-library TZ=Etc/UTC

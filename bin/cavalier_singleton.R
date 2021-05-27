@@ -33,13 +33,13 @@ opts <- docopt(doc)
 message('Using options:')
 print(opts)
 
-sample_id = str_extract(opts$sample_bam, '^[^=]+')
-sample_bam = str_extract(opts$sample_bam, '[^=]+$')
+sample_id <- str_extract(opts$sample_bam, '^[^=]+')
+sample_bam <- str_extract(opts$sample_bam, '[^=]+$')
 sampleID <- list("proband") %>% setNames(sample_id)
 inheritance_MAF <- list("individual dominant"  = as.numeric(opts$maf_dom),
                         "individual recessive" = as.numeric(opts$maf_rec),
                         "individual comp het"  = as.numeric(opts$maf_comp_het))
-output_dir <- opts$out
+dir.create(opts$out)
 
 vars <- 
   load_vep_vcf_2(opts$vcf, sampleID) %>% 
@@ -56,7 +56,7 @@ filtvars <-
   filter_variants(sampleID, inheritance_MAF, MAF_column="MAF_gnomAD") %>% 
   as_tibble()
 
-if (opts$gene_list) {
+if (!is.null(opts$gene_lists)) {
   gene_lists <-
     tibble(fn = c(str_split(opts$gene_lists, ',', simplify = TRUE))) %>% 
     mutate(gene_list = basename(fn) %>% str_remove('\\.txt'),
@@ -87,5 +87,3 @@ filtvars %>%
                            genemap2 = opts$omim_genemap2, 
                            GTEx_median_rpkm = opts$gtex_rpkm) 
   })
-
-  
