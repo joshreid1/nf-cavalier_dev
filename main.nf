@@ -1,13 +1,10 @@
 #!/usr/bin/env nextflow
-
 nextflow.enable.dsl=2
 
 params.vcf_input = ''
 params.id = ''
 params.n_split = 100
 params.sample_manifest = 'sample_manifest.tsv'
-
-
 
 include { read_tsv } from './functions.nf'
 
@@ -18,8 +15,6 @@ include { vep_filter } from './tasks/vep_filter'
 include { vcf_merge } from './tasks/vcf_merge'
 include { vcf_family_subset } from './tasks/vcf_family_subset'
 include { cavalier_singleton } from './tasks/cavalier_singleton'
-
-
 
 workflow {
     data = Channel.fromList([
