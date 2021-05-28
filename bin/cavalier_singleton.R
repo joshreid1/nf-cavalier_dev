@@ -21,19 +21,6 @@ Options:
   --gtex-rpkm=<f>             Path to GTEx_median_rpkm_file.
   --omim-genemap2=<f>         Path to OMIM_genemap2_file.
 "
-# debugging
-# args <- ("
-# S33843_1.subset.vcf.gz S33843_1 S33843_1=S33843_1.merged.bam \
-#     --gene-lists ataxia_superpanel.txt \
-#     --maf-dom 0.0001 \
-#     --maf-rec 0.01 \
-#     --maf-comp-het 0.01 \
-#     --gtex-rpkm /stornext/Bioinf/data/lab_bahlo/public_datasets/GTEx/GTEx_Analysis_2016-01-15_v7_RNASeQCv1.1.8_gene_median_tpm.gct.gz \
-#     --omim-genemap2 /stornext/Bioinf/data/lab_bahlo/ref_db/human/OMIM/OMIM_2019-05-04/genemap2.txt
-# ") %>% 
-#   str_split('\\s+', simplify = T) %>% 
-#   c() %>% keep(~nchar(.)> 0)
-# opts <- docopt(doc, args)
 opts <- docopt(doc)
 # print options
 message('Using options:')
@@ -87,15 +74,15 @@ if (!is.null(opts$gene_lists)) {
 
 # create cavalier output if any variants remain
 if (nrow(filtvars)) {
-  filtvars <-
-    create_igv_snapshots(filtvars, sample_bam, "hg19", 'igv') %>%
-      mutate(sample_id = sample_id)
-
-  output_cols <- c("sample_id", "gene_list", 'inheritance model', "chromosome", "position", "reference", "alternate",
-                   "gene", "region", "change", "MAF_gnomAD", "SIFT", "Polyphen2", "Grantham", "RVIS")
-
-  filtvars %>%
-    as.data.frame() %>% 
+  output_cols <- c("sample_id", "gene_list", 'inheritance model', "variant", "amino_acid", "change",
+                   "gene", "MAF_gnomAD", "SIFT", "Polyphen2", "Grantham", "RVIS")
+  create_igv_snapshots(filtvars, sample_bam, "hg19", 'igv') %>%
+    mutate(sample_id = sample_id,
+           variant = str_c(chromosome, ':', position, ':', reference, '>', alternate),
+           amino_acid = str_replace(Amino_acids, '/', '>'),
+           Polyphen2 = str_c(Polyphen2, ' (', Polyphen2_score, ')'),
+           SIFT = str_c(SIFT, ' (', SIFT_score, ')')) %>%
+    as.data.frame() %>%
     split.data.frame(.$gene_list) %>%
     walk2(names(.), ., function(list_name, list_vars) {
       create_cavalier_output(list_vars, file.path(opts$out, list_name), sampleID, output_cols,
