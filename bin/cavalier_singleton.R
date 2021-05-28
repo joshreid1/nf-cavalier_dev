@@ -23,15 +23,12 @@ Options:
 "
 
 opts <- docopt(doc)
-# opts <- 
-#   docopt(doc, c('/stornext/HPCScratch/home/munro.j/runs/udp/cav/output/vcf_family_subset/S33843_1.subset.vcf.gz',
-#                 'out', 
-#                 'S33843_1=/bam/file',
-#                 '--gene-lists', '~/analyses/udp/gene_lists/ataxia_superpanel.txt',
-#                 '--gtex-rpkm', '/stornext/Bioinf/data/lab_bahlo/public_datasets/GTEx/GTEx_Analysis_2016-01-15_v7_RNASeQCv1.1.8_gene_median_tpm.gct.gz',
-#                 '--omim-genemap2', '/stornext/Bioinf/data/lab_bahlo/ref_db/human/OMIM/OMIM_2019-05-04/genemap2.txt'))
+# print options
 message('Using options:')
-print(opts)
+opts[names(opts) %>% 
+       keep(~str_detect(., '^[:alpha:]'))] %>% 
+  { class(.) <- c('list', 'docopt'); .} %>% 
+  print()
 
 sample_id <- str_extract(opts$sample_bam, '^[^=]+')
 sample_bam <- str_extract(opts$sample_bam, '[^=]+$')
@@ -56,6 +53,7 @@ filtvars <-
   filter_variants(sampleID, inheritance_MAF, MAF_column="MAF_gnomAD") %>% 
   as_tibble()
 
+# add gene lists to variants
 if (!is.null(opts$gene_lists)) {
   gene_lists <-
     tibble(fn = c(str_split(opts$gene_lists, ',', simplify = TRUE))) %>% 
@@ -75,15 +73,20 @@ if (!is.null(opts$gene_lists)) {
   filtvars <- mutate(filtvars, gene_list = 'all')
 }
 
-filtvars <- create_igv_snapshots(filtvars, sample_bam, "hg19", 'igv')
+# create cavalier output if any variants remain
+if (nrow(filtvars)) {
+  filtvars <- create_igv_snapshots(filtvars, sample_bam, "hg19", 'igv')
 
-output_cols <- c("chromosome", "position", "reference", "alternate", "gene", "region", "change", "MAF_gnomAD", "SIFT", "Polyphen2", "Grantham", "RVIS")
+  output_cols <- c("chromosome", "position", "reference", "alternate", "gene", "region", "change", "MAF_gnomAD", "SIFT", "Polyphen2", "Grantham", "RVIS")
 
-filtvars %>% 
-  split.data.frame(.$gene_list) %>% 
-  walk2(names(.), ., function(list_name, list_vars) {
-    create_cavalier_output(list_vars, file.path(opts$out, list_name), sampleID, output_cols,
-                           hide_missing_igv = TRUE, layout = "individual", 
-                           genemap2 = opts$omim_genemap2, 
-                           GTEx_median_rpkm = opts$gtex_rpkm) 
-  })
+  filtvars %>%
+    split.data.frame(.$gene_list) %>%
+    walk2(names(.), ., function(list_name, list_vars) {
+      create_cavalier_output(list_vars, file.path(opts$out, list_name), sampleID, output_cols,
+                             hide_missing_igv = TRUE, layout = "individual",
+                             genemap2 = opts$omim_genemap2,
+                             GTEx_median_rpkm = opts$gtex_rpkm)
+    })
+}
+
+

@@ -36,6 +36,6 @@ process vep {
         bcftools view --no-version -Oz -o $out_vcf
     bcftools index -t $out_vcf
     """
-    // added --pick option to VEP, this will pick single best annotation per variant
+    // added --flag_pick_allele_gene option to VEP, this will pick single best annotation per variant
     // this makes it simpler for cavalier
 }

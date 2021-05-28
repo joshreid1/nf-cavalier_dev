@@ -7,6 +7,10 @@ params.id = ''
 params.n_split = 100
 params.sample_manifest = 'sample_manifest.tsv'
 
+
+
+include { read_tsv } from './functions.nf'
+
 include { vcf_split } from './tasks/vcf_split'
 include { vcf_flatten_multi } from './tasks/vcf_flatten_multi'
 include { vep } from './tasks/vep'
@@ -15,16 +19,7 @@ include { vcf_merge } from './tasks/vcf_merge'
 include { vcf_family_subset } from './tasks/vcf_family_subset'
 include { cavalier_singleton } from './tasks/cavalier_singleton'
 
-//include { vcfanno } from './tasks/vcfanno'
-//include { annovar } from './tasks/annovar'
-//include { cavalier_prep } from './tasks/cavalier_prep'
 
-header = ['sample', 'bam', 'lists']
-sample_manifest = file(params.sample_manifest, checkIfExists: true, type: 'file')
-    .toFile().readLines().with { lines ->
-        assert header == lines[0].split('\t')
-        lines.drop(1).collect { [header, it.split('\t')].transpose().collectEntries { k, v -> [(k): v] } }
-    }
 
 workflow {
     data = Channel.fromList([
@@ -32,6 +27,10 @@ workflow {
          file(params.vcf_input, checkIfExists:true),
          file(params.vcf_input + '.tbi', checkIfExists:true)]
     ])
+    sample_manifest = read_tsv(
+        file(params.sample_manifest, checkIfExists: true, type: 'file'),
+        ['sample', 'bam', 'lists']
+    )
     // list of family members, starting with proband
     // ultimately will extract from pedigree, for now only working on singletons
     families = Channel.from(sample_manifest).map { [[it.sample]] }
@@ -39,6 +38,7 @@ workflow {
         .map {
             [ it.sample,
               file(it.bam, checkIfExists:true, type: 'file'),
+              file(it.bam + '.bai', checkIfExists:true, type: 'file'),
               it.lists.split(',').collect {file(it, checkIfExists:true, type: 'file') }
             ]
         }
@@ -60,12 +60,4 @@ workflow {
         vcf_family_subset |
         join(samples) |
         cavalier_singleton
-
-//    vcfanno |
-//        annovar |
-//        cavalier_prep |
-//        toSortedList |
-//        map { [params.id, it]} |
-//        cavalier_merge
-
 }

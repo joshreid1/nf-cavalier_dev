@@ -13,7 +13,7 @@ process cavalier_singleton {
     publishDir "output/cavalier_singleton", mode: 'copy'
 
     input:
-    tuple val(sample), file(vcf), file(bam), file(lists)
+    tuple val(sample), file(vcf), file(bam), file(bai), file(lists)
 
     output:
     tuple val(sample), file(out)
@@ -27,7 +27,7 @@ process cavalier_singleton {
         --maf-rec $params.maf_rec \\
         --maf-comp-het $params.maf_comp_het \\
         --gtex-rpkm $params.gtex_rpkm \\
-        --omim-genemap2 $params.omim_genemap2 
+        --omim-genemap2 $params.omim_genemap2
     """
 }
 
