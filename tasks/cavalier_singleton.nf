@@ -1,6 +1,6 @@
 
 params.gtex_rpkm = '/stornext/Bioinf/data/lab_bahlo/public_datasets/GTEx/GTEx_Analysis_2016-01-15_v7_RNASeQCv1.1.8_gene_median_tpm.gct.gz'
-params.omim_genemap2 = '/stornext/Bioinf/data/lab_bahlo/ref_db/human/OMIM/OMIM_2019-05-04/genemap2.txt'
+params.omim_genemap2 = '/stornext/Bioinf/data/lab_bahlo/ref_db/human/OMIM/OMIM_2020-04-29/genemap2.txt'
 params.maf_dom = 0.0001
 params.maf_rec = 0.01
 params.maf_comp_het = 0.01
