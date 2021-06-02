@@ -3,3 +3,15 @@ matrixStats
 shiny
 docopt
 cowplot
+permute
+lazyeval
+vegan
+pinfsc50
+memuse
+ape
+crosstalk
+htmlwidgets
+vcfR
+png
+gridExtra
+DT
