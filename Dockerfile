@@ -1,4 +1,4 @@
-FROM stevekm/igv-snapshot-automator:20.11.1
+FROM jemunro/igv-snapshot-automator:latest
 
 LABEL \
   author="Jacob Munro" \
@@ -25,20 +25,13 @@ RUN apt-get update \
         libblas-dev \
         liblapack-dev \
         libpng-dev \
-    && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9 \
-    && add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu xenial-cran35/' \
+    && add-apt-repository 'deb https://cloud.r-project.org/bin/linux/debian buster-cran35/' \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
         r-base \
         r-base-core \
         r-recommended \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
-
-# get updated IGV version
-RUN wget http://data.broadinstitute.org/igv/projects/downloads/2.9/IGV_2.9.5.zip -O igv.zip \
-    && unzip igv.zip \
-    && rm -f igv.zip \
-    && ln -s /IGV_2.9.5/igv.jar
 
 # Install required R packages
 COPY inst/install_packages.R  inst/cran_packages.txt inst/bioc_packages.txt /
