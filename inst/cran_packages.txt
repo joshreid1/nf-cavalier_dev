@@ -3,4 +3,3 @@ matrixStats
 shiny
 docopt
 cowplot
-magick
