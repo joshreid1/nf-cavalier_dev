@@ -2,3 +2,5 @@ tidyverse
 matrixStats
 shiny
 docopt
+cowplot
+magick

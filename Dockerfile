@@ -34,6 +34,12 @@ RUN apt-get update \
         r-recommended \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
+# get updated IGV version
+RUN wget http://data.broadinstitute.org/igv/projects/downloads/2.9/IGV_2.9.5.zip -O igv.zip \
+    && unzip igv.zip \
+    && rm -f igv.zip \
+    && ln -s /IGV_2.9.5/igv.jar
+
 # Install required R packages
 COPY inst/install_packages.R  inst/cran_packages.txt inst/bioc_packages.txt /
 RUN Rscript --vanilla install_packages.R CRAN:cran_packages.txt BIOC:bioc_packages.txt
