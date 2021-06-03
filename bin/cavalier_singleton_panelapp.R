@@ -20,8 +20,8 @@ Options:
   --gtex-rpkm=<f>             Path to GTEx_median_rpkm_file.
   --omim-genemap2=<f>         Path to OMIM_genemap2_file.
 "
-# args <- ("S36412_1.subset.vcf.gz S36412_1 S36412_1=S36412_1.merged.bam \
-#     --gene-lists AGHA-0289 \
+# args <- ("S33843_1.subset.vcf.gz S33843_1 S33843_1=S33843_1.merged.bam \
+#     --gene-lists AGHA-0202,AGHA-0289 \
 #     --maf-dom 0.0001 \
 #     --maf-rec 0.01 \
 #     --maf-comp-het 0.01 \
@@ -30,7 +30,7 @@ Options:
 #  str_split('\\s+', simplify = T) %>%
 #  str_trim()
 # opts <- docopt(doc, args)
- opts <- docopt(doc)
+opts <- docopt(doc)
 # print options
 message('Using options:')
 opts[names(opts) %>% 
@@ -47,7 +47,7 @@ inheritance_MAF <- list("individual dominant"  = as.numeric(opts$maf_dom),
 dir.create(opts$out)
 
 primary_panels <- c(str_split(opts$gene_lists, ',', simplify = TRUE))
-min_sim <- 0.30
+min_sim <- 0.50
 panelapp_tbl <- read_rds('~/packages/panelapp/panel_app_table.rds') 
 panelapp_sim <- read_rds('~/packages/panelapp/panel_app_sim.rds')
 
@@ -66,10 +66,12 @@ secondary_panels <-
   }) %>% 
   filter(!is_subset) %>% 
   mutate(similar_to = str_c(id, ' (', format(sim, digits = 2), ')')) %>% 
-  select(panel_id = sim_id, similar_to) %>% 
-  group_by(panel_id) %>% 
-  summarise(similar_to = str_c(similar_to, collapse = ', '),
-            .groups = 'drop')
+  select(panel_id = sim_id) %>% 
+  distinct()
+  # group_by(panel_id) %>% 
+  # summarise(similar_to = str_c(similar_to, collapse = ', '),
+  #           .groups = 'drop') %>% 
+  # select(-similar_to)
 
 panels_tbl <- 
   panelapp_tbl %>% 
