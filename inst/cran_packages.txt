@@ -15,3 +15,5 @@ vcfR
 png
 gridExtra
 DT
+flextable
+officer
