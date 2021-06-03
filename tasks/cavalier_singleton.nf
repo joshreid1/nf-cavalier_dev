@@ -13,7 +13,7 @@ process cavalier_singleton {
     publishDir "output/cavalier_singleton", mode: 'copy'
 
     input:
-    tuple val(sample), file(vcf), file(bam), file(bai), file(lists)
+    tuple val(sample), file(vcf), file(bam), file(bai), val(lists)
 
     output:
     tuple val(sample), file(out)
@@ -21,8 +21,8 @@ process cavalier_singleton {
     script:
     out = "$sample"
     """
-    cavalier_singleton.R $vcf $out $sample=$bam \\
-        --gene-lists ${lists.join(',')} \\
+    cavalier_singleton_panelapp.R $vcf $out $sample=$bam \\
+        --gene-lists $lists \\
         --maf-dom $params.maf_dom \\
         --maf-rec $params.maf_rec \\
         --maf-comp-het $params.maf_comp_het \\
@@ -30,4 +30,29 @@ process cavalier_singleton {
         --omim-genemap2 $params.omim_genemap2
     """
 }
+//process cavalier_singleton {
+//    cpus 1
+//    memory '4 GB'
+//    time '4 h'
+//    container 'jemunro/cavalier:dev'
+//    publishDir "output/cavalier_singleton", mode: 'copy'
+//
+//    input:
+//    tuple val(sample), file(vcf), file(bam), file(bai), file(lists)
+//
+//    output:
+//    tuple val(sample), file(out)
+//
+//    script:
+//    out = "$sample"
+//    """
+//    cavalier_singleton.R $vcf $out $sample=$bam \\
+//        --gene-lists ${lists.join(',')} \\
+//        --maf-dom $params.maf_dom \\
+//        --maf-rec $params.maf_rec \\
+//        --maf-comp-het $params.maf_comp_het \\
+//        --gtex-rpkm $params.gtex_rpkm \\
+//        --omim-genemap2 $params.omim_genemap2
+//    """
+//}
 

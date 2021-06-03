@@ -4,7 +4,7 @@ nextflow.enable.dsl=2
 params.vcf_input = ''
 params.id = ''
 params.n_split = 100
-params.sample_manifest = 'sample_manifest.tsv'
+params.sample_manifest = 'sample_manifest2.tsv'
 
 include { read_tsv } from './functions.nf'
 
@@ -34,7 +34,7 @@ workflow {
             [ it.sample,
               file(it.bam, checkIfExists:true, type: 'file'),
               file(it.bam + '.bai', checkIfExists:true, type: 'file'),
-              it.lists.split(',').collect {file(it, checkIfExists:true, type: 'file') }
+              it.lists
             ]
         }
 

@@ -6,23 +6,22 @@ stopifnot(require(tidyverse),
 
 doc <- "
 Usage:
-  cavalier_singleton.R <vcf> <out> <sample_bam> [options]
+  cavalier_singleton_panelapp.R <vcf> <out> <sample_bam> [options]
 
 Options:
   vcf                         Input VEP vcf file.
   out                         Output directory.
   sample_bam                  Sample name and bam file in format name=/path/to/bam.
   --genome=<f>                Reference genome for IGV snapshot [default: hg19].
-  --gene-lists=<f>            Comma serparated list of gene list files.
-  --remainder                 When using gene lists, output variants not on any list as well.
+  --gene-lists=<f>            Comma serparated list of gene list names.
   --maf-dom=<f>               Maximum MAF for dominant [default: 0.0001].
   --maf-rec=<f>               Maximum MAF for recessive [default: 0.01].
   --maf-comp-het=<f>          Maximum MAF for compound het [default: 0.01].
   --gtex-rpkm=<f>             Path to GTEx_median_rpkm_file.
   --omim-genemap2=<f>         Path to OMIM_genemap2_file.
 "
-# args <- ("S35167_3.subset.vcf.gz S35167_3 S35167_3=S35167_3.merged.bam \
-#     --gene-lists differences_of_sex_development.txt,primary_ovarian_insufficiency_premature_ovarian_failure.txt \
+# args <- ("S36412_1.subset.vcf.gz S36412_1 S36412_1=S36412_1.merged.bam \
+#     --gene-lists AGHA-0289 \
 #     --maf-dom 0.0001 \
 #     --maf-rec 0.01 \
 #     --maf-comp-het 0.01 \
@@ -46,7 +45,37 @@ inheritance_MAF <- list("individual dominant"  = as.numeric(opts$maf_dom),
                         "individual recessive" = as.numeric(opts$maf_rec),
                         "individual comp het"  = as.numeric(opts$maf_comp_het))
 dir.create(opts$out)
-gene_lists <- 'AGHA-0289'
+
+primary_panels <- c(str_split(opts$gene_lists, ',', simplify = TRUE))
+min_sim <- 0.30
+panelapp_tbl <- read_rds('~/packages/panelapp/panel_app_table.rds') 
+panelapp_sim <- read_rds('~/packages/panelapp/panel_app_sim.rds')
+
+secondary_panels <-
+  panelapp_sim %>% 
+  filter(id %in% primary_panels,
+         !sim_id %in% primary_panels,
+         sim > min_sim,
+         !is_subset) %>% 
+  mutate(is_subset = {
+    xid <- sim_id
+    filter(panelapp_sim, id %in% xid, sim_id %in% xid) %>% 
+      filter(is_subset) %>% 
+      pull(sim_id) %>% 
+      { xid %in% .}
+  }) %>% 
+  filter(!is_subset) %>% 
+  mutate(similar_to = str_c(id, ' (', format(sim, digits = 2), ')')) %>% 
+  select(panel_id = sim_id, similar_to) %>% 
+  group_by(panel_id) %>% 
+  summarise(similar_to = str_c(similar_to, collapse = ', '),
+            .groups = 'drop')
+
+panels_tbl <- 
+  panelapp_tbl %>% 
+  filter(panel_id %in% c(primary_panels, secondary_panels$panel_id)) %>% 
+  left_join(secondary_panels, 'panel_id') %>% 
+  nest(panel_data=(-gene))
 
 vars <- 
   load_vep_vcf_2(opts$vcf, sampleID) %>% 
@@ -61,31 +90,12 @@ filtvars <-
          !is.na(gene)) %>% 
   as.data.frame() %>% 
   filter_variants(sampleID, inheritance_MAF, MAF_column="MAF_gnomAD") %>% 
-  as_tibble()
-
-# add gene lists to variants
-if (!is.null(opts$gene_lists)) {
-  gene_lists <-
-    tibble(fn = c(str_split(opts$gene_lists, ',', simplify = TRUE))) %>% 
-    mutate(gene_list = basename(fn) %>% str_remove('\\.txt'),
-           gene = map(fn, scan, what = character())) %>% 
-    unnest(gene) %>% 
-    select(gene_list, gene)
-  
-  if (opts$remainder) {
-    filtvars <- 
-      left_join(filtvars, gene_lists, by = "gene") %>% 
-      mutate(gene_list  = replace_na(gene_list, 'remainder'))
-  } else {
-    filtvars <- inner_join(filtvars, gene_lists, by = "gene")
-  }
-} else {
-  filtvars <- mutate(filtvars, gene_list = 'all')
-}
+  as_tibble() %>% 
+  inner_join(panels_tbl, by = "gene")
 
 # create cavalier output if any variants remain
 if (nrow(filtvars)) {
-  output_cols <- c("gene_list", 'inheritance model', "variant", "amino_acid", "change",
+  output_cols <- c('inheritance model', "variant", "amino_acid", "change",
                    "gene", "MAF_gnomAD", "SIFT", "Polyphen2", "Grantham", "RVIS")
   create_igv_snapshots(filtvars, sample_bam, "hg19", 'igv') %>%
     mutate(sample_id = sample_id,
@@ -93,18 +103,16 @@ if (nrow(filtvars)) {
            amino_acid = str_replace(Amino_acids, '/', '>'),
            Polyphen2 = str_c(Polyphen2, ' (', Polyphen2_score, ')'),
            SIFT = str_c(SIFT, ' (', SIFT_score, ')'),
-           title = str_c('sample: ', sample_id),
+           title = str_c('Sample: ', sample_id, ', Gene: ', gene),
     ) %>%
     as.data.frame() %>%
-    split.data.frame(.$gene_list) %>%
-    walk2(names(.), ., function(list_name, list_vars) {
-      create_cavalier_output(list_vars, file.path(opts$out, list_name), sampleID, output_cols,
-                             hide_missing_igv = TRUE, layout = "individual",
-                             genemap2 = opts$omim_genemap2,
-                             GTEx_median_rpkm = opts$gtex_rpkm,
-                             title_col = 'title'
-      )
-    })
+    create_cavalier_output(opts$out, sampleID, output_cols,
+                           hide_missing_igv = TRUE,
+                           layout = "individual",
+                           genemap2 = opts$omim_genemap2,
+                           GTEx_median_rpkm = opts$gtex_rpkm,
+                           title_col = 'title', 
+                           add_data_col = 'panel_data')
 }
 
 
