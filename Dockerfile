@@ -25,7 +25,7 @@ RUN apt-get update \
         libblas-dev \
         liblapack-dev \
         libpng-dev \
-        ibcairo2-dev \
+        libcairo2-dev \
         libfontconfig1-dev \
         libfreetype6-dev \
     && apt-key adv --keyserver keys.gnupg.net --recv-key 'E19F5F87128899B192B1A2C2AD5F960A256A04AF' \
