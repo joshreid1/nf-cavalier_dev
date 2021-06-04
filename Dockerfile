@@ -11,13 +11,17 @@ LABEL \
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         xvfb \
+        xauth \
         openjdk-11-jdk-headless \
         openjdk-11-jdk \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
-# Install IGV
+# Install IGV and download genomes
 RUN wget http://data.broadinstitute.org/igv/projects/downloads/2.9/IGV_2.9.5.zip -O IGV.zip \
-    && unzip IGV.zip && rm IGV.zip
+    && unzip IGV.zip \
+    && rm IGV.zip \
+    && printf 'new\ngenome hg19\ngenome hg38\nexit\n' > /genome.bat \
+    && xvfb-run --auto-servernum --server-num=1 /IGV_2.9.5/igv.sh -b /genome.bat
 
 # Install required R packages
 COPY inst/install_packages.R  inst/cran_packages.txt inst/bioc_packages.txt /
