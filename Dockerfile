@@ -17,8 +17,7 @@ RUN apt-get update \
 
 # Install IGV
 RUN wget http://data.broadinstitute.org/igv/projects/downloads/2.9/IGV_2.9.5.zip -O IGV.zip \
-    && unzip IGV.zip && rm -f IGV.zip
-ENV PATH="/IGV_2.9.5/:${PATH}"
+    && unzip IGV.zip && rm IGV.zip
 
 # Install required R packages
 COPY inst/install_packages.R  inst/cran_packages.txt inst/bioc_packages.txt /
@@ -30,4 +29,4 @@ RUN Rscript --vanilla install_packages.R GITHUB:github_packages.txt
 
 # Instruct R processes to use these empty files instead of clashing with a local version (from nfcore/base)
 RUN touch .Rprofile .Renviron
-ENV R_LIBS_USER=/usr/local/lib/R/site-library TZ=Etc/UTC
+ENV PATH="/IGV_2.9.5/:${PATH}" R_LIBS_USER=/usr/local/lib/R/site-library TZ=Etc/UTC
