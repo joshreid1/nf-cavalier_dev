@@ -16,10 +16,11 @@ RUN apt-get update \
         openjdk-11-jdk \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
-# Install IGV and download genomes
+# Install IGV
 RUN wget http://data.broadinstitute.org/igv/projects/downloads/2.9/IGV_2.9.5.zip -O IGV.zip \
     && unzip IGV.zip \
     && rm IGV.zip
+# # and download genomes
 #    && mkdir /igv \
 #    && printf '%s\n%s\n' '#!/bin/bash' '/IGV_2.9.5/igv.sh --igvDirectory /igv "$@"' > /igv/igv.sh \
 #    && chmod +x /igv/igv.sh \
