@@ -35,6 +35,7 @@ RUN Rscript --vanilla install_packages.R CRAN:cran_packages.txt BIOC:bioc_packag
 COPY inst/github_packages.txt /
 RUN Rscript --vanilla install_packages.R GITHUB:github_packages.txt
 
-# Instruct R processes to use these empty files instead of clashing with a local version (from nfcore/base)
-RUN touch .Rprofile .Renviron
-ENV PATH="/IGV_2.9.5:${PATH}" R_LIBS_USER=/usr/local/lib/R/site-library TZ=Etc/UTC
+# set R ENV variables and add IGV to R PATH
+RUN sed 's:^PATH=:PATH=/IGV_2.9.5\::' -i /usr/local/lib/R/etc/Renviron
+ENV PATH="/IGV_2.9.5:${PATH}" TZ=Etc/UTC \
+    R_HOME=/usr/local/lib/R/ R_ENVIRON=/usr/local/lib/R/etc/Renviron R_LIBS_USER=/usr/local/lib/R/site-library
