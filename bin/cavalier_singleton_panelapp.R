@@ -20,13 +20,14 @@ Options:
   --gtex-rpkm=<f>             Path to GTEx_median_rpkm_file.
   --omim-genemap2=<f>         Path to OMIM_genemap2_file.
 "
-# args <- ("S35167_3.subset.vcf.gz S35167_3 S35167_3=S35167_3.merged.bam \
-#     --gene-lists AGHA-0099,AGHA-3166 \
+# args <- ("S36412_1.subset.vcf.gz S36412_1 S36412_1=S36412_1.merged.bam \
+#     --gene-lists AGHA-0289 \
 #     --maf-dom 0.0001 \
 #     --maf-rec 0.01 \
 #     --maf-comp-het 0.01 \
 #     --gtex-rpkm /stornext/Bioinf/data/lab_bahlo/public_datasets/GTEx/GTEx_Analysis_2016-01-15_v7_RNASeQCv1.1.8_gene_median_tpm.gct.gz \
-#     --omim-genemap2 /stornext/Bioinf/data/lab_bahlo/ref_db/human/OMIM/OMIM_2020-04-29/genemap2.txt") %>%
+#     --omim-genemap2 /stornext/Bioinf/data/lab_bahlo/ref_db/human/OMIM/OMIM_2020-04-29/genemap2.txt
+# ") %>%
 #  str_split('\\s+', simplify = T) %>%
 #  str_trim()
 # opts <- docopt(doc, args)
@@ -51,7 +52,7 @@ min_sim <- 0.50
 panelapp_tbl <- read_rds('~/packages/panelapp/panel_app_table.rds') 
 panelapp_sim <- read_rds('~/packages/panelapp/panel_app_sim.rds')
 
-low_intol <- 5
+# low_intol <- 5
 
 secondary_panels <-
   panelapp_sim %>% 
@@ -82,7 +83,7 @@ panels_tbl <-
   nest(panel_data=(-gene))
 
 vars <- 
-  load_vep_vcf_2(opts$vcf, sampleID) %>% 
+  load_vep_vcf(opts$vcf, sampleID) %>% 
   mutate(Polyphen2 = if_else(Polyphen2 == 'unknown', NA_character_, Polyphen2)) %>% 
   mutate(is_tolerated = (SIFT == 'tolerated' & Polyphen2 == 'benign') |
            (SIFT == 'tolerated' & is.na(Polyphen2)) |
@@ -94,31 +95,35 @@ filtvars <-
          !is.na(gene)) %>% 
   as.data.frame() %>% 
   filter_variants(sampleID, inheritance_MAF, MAF_column="MAF_gnomAD") %>% 
-  as_tibble() %>% 
-  mutate(intolerant = GeVIR < low_intol & LOEUF < low_intol &
-           (!replace_na(is_tolerated, TRUE) | IMPACT == 'HIGH'))
+  as_tibble()
+  # mutate(intolerant = GeVIR < low_intol & LOEUF < low_intol &
+  #          (!replace_na(is_tolerated, TRUE) | IMPACT == 'HIGH'))
 
 
 candvars <-
   inner_join(filtvars, panels_tbl, by = "gene") %>% 
-  (function(x) {
-    filter(filtvars, intolerant) %>% 
-      anti_join(x, by = 'gene') %>% 
-      bind_rows(x)
-  })
+  arrange(gene, position)
+  # (function(x) {
+  #   filter(filtvars, intolerant) %>% 
+  #     anti_join(x, by = 'gene') %>% 
+  #     bind_rows(x)
+  # })
 
 # create cavalier output if any variants remain
 if (nrow(filtvars)) {
-  output_cols <- c('inheritance model', "variant", "amino_acid", "change",
-                   "gene", "MAF_gnomAD", "SIFT", "Polyphen2", "Grantham", "RVIS", "GeVIR")
-  create_igv_snapshots(filtvars, sample_bam, "hg19", 'igv') %>%
-    mutate(sample_id = sample_id,
-           variant = str_c(chromosome, ':', position, ':', reference, '>', alternate),
-           amino_acid = str_replace(Amino_acids, '/', '>'),
+  output_cols <- c('Inheritance', "Variant", "Amino acid", "change", "Depth (R,A)", "Cohort AC",
+                   "GnomAD MAF", "SIFT", "Polyphen2", "Grantham", "RVIS", "GeVIR")
+  create_igv_snapshots(candvars, sample_bam, "hg19", 'igv') %>%
+    mutate(Inheritance = `inheritance model`,
+           Variant = str_c(chromosome, ':', position, ':', reference, '>', alternate),
+           `Depth (R,A)` = `proband depth (R,A)`,
+           `Amino acid` = str_replace(Amino_acids, '/', '>'),
            Polyphen2 = str_c(Polyphen2, ' (', Polyphen2_score, ')'),
            SIFT = str_c(SIFT, ' (', SIFT_score, ')'),
            title = str_c('Sample: ', sample_id, ', Gene: ', gene),
+           `Cohort AC` = as.integer(AC) - 1,
     ) %>%
+    rename(`GnomAD MAF` = MAF_gnomAD) %>% 
     as.data.frame() %>%
     create_cavalier_output(opts$out, sampleID, output_cols,
                            hide_missing_igv = TRUE,

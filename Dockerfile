@@ -11,7 +11,7 @@ LABEL \
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         xvfb \
-        xauth \
+        xorg \
         openjdk-11-jdk-headless \
         openjdk-11-jdk \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
