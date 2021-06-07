@@ -20,8 +20,8 @@ Options:
   --gtex-rpkm=<f>             Path to GTEx_median_rpkm_file.
   --omim-genemap2=<f>         Path to OMIM_genemap2_file.
 "
-# args <- ("S33843_1.subset.vcf.gz S33843_1 S33843_1=S33843_1.merged.bam \
-#     --gene-lists AGHA-0202,AGHA-0289 \
+# args <- ("S35167_3.subset.vcf.gz S35167_3 S35167_3=S35167_3.merged.bam \
+#     --gene-lists AGHA-0099,AGHA-3166 \
 #     --maf-dom 0.0001 \
 #     --maf-rec 0.01 \
 #     --maf-comp-het 0.01 \
@@ -50,6 +50,8 @@ primary_panels <- c(str_split(opts$gene_lists, ',', simplify = TRUE))
 min_sim <- 0.50
 panelapp_tbl <- read_rds('~/packages/panelapp/panel_app_table.rds') 
 panelapp_sim <- read_rds('~/packages/panelapp/panel_app_sim.rds')
+
+low_intol <- 5
 
 secondary_panels <-
   panelapp_sim %>% 
@@ -88,17 +90,27 @@ vars <-
 
 filtvars <-
   vars %>% 
-  filter(!is_tolerated,
+  filter((!is_tolerated) | is.na(is_tolerated),
          !is.na(gene)) %>% 
   as.data.frame() %>% 
   filter_variants(sampleID, inheritance_MAF, MAF_column="MAF_gnomAD") %>% 
   as_tibble() %>% 
-  inner_join(panels_tbl, by = "gene")
+  mutate(intolerant = GeVIR < low_intol & LOEUF < low_intol &
+           (!replace_na(is_tolerated, TRUE) | IMPACT == 'HIGH'))
+
+
+candvars <-
+  inner_join(filtvars, panels_tbl, by = "gene") %>% 
+  (function(x) {
+    filter(filtvars, intolerant) %>% 
+      anti_join(x, by = 'gene') %>% 
+      bind_rows(x)
+  })
 
 # create cavalier output if any variants remain
 if (nrow(filtvars)) {
   output_cols <- c('inheritance model', "variant", "amino_acid", "change",
-                   "gene", "MAF_gnomAD", "SIFT", "Polyphen2", "Grantham", "RVIS")
+                   "gene", "MAF_gnomAD", "SIFT", "Polyphen2", "Grantham", "RVIS", "GeVIR")
   create_igv_snapshots(filtvars, sample_bam, "hg19", 'igv') %>%
     mutate(sample_id = sample_id,
            variant = str_c(chromosome, ':', position, ':', reference, '>', alternate),

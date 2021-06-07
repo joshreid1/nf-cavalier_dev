@@ -20,9 +20,11 @@ RUN apt-get update \
 RUN wget http://data.broadinstitute.org/igv/projects/downloads/2.9/IGV_2.9.5.zip -O IGV.zip \
     && unzip IGV.zip \
     && rm IGV.zip \
-    && printf '%s\n' '--igvDirectory /igv' >> /IGV_2.9.5/igv.args \
-    && printf 'new\ngenome hg19\ngenome hg38\nexit\n' > /genome.bat \
-    && xvfb-run --auto-servernum --server-num=1 /IGV_2.9.5/igv.sh -b /genome.bat
+    && mkdir /igv \
+    && printf '%s\n%s\n' '#!/bin/bash' '/IGV_2.9.5/igv.sh --igvDirectory /igv "$@"' > /igv/igv.sh \
+    && chmod +x /igv/igv.sh \
+    && printf '%s\n%s\n%s\n%s\n' 'new' 'genome hg19' 'genome hg38' 'exit' > /genome.bat \
+    && xvfb-run --auto-servernum --server-num=1 /igv/igv.sh -b /genome.bat
 
 # Install required R packages
 COPY inst/install_packages.R  inst/cran_packages.txt inst/bioc_packages.txt /
@@ -34,4 +36,4 @@ RUN Rscript --vanilla install_packages.R GITHUB:github_packages.txt
 
 # Instruct R processes to use these empty files instead of clashing with a local version (from nfcore/base)
 RUN touch .Rprofile .Renviron
-ENV PATH="/IGV_2.9.5/:${PATH}" R_LIBS_USER=/usr/local/lib/R/site-library TZ=Etc/UTC
+ENV PATH="/igv/:${PATH}" R_LIBS_USER=/usr/local/lib/R/site-library TZ=Etc/UTC

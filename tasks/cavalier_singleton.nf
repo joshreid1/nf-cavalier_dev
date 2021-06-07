@@ -11,6 +11,7 @@ process cavalier_singleton {
     time '4 h'
     container 'jemunro/cavalier:dev'
     publishDir "output/cavalier_singleton", mode: 'copy'
+    tag { sample }
 
     input:
     tuple val(sample), file(vcf), file(bam), file(bai), val(lists)
