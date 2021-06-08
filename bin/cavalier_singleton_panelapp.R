@@ -3,7 +3,6 @@
 stopifnot(require(tidyverse),
           require(docopt),
           require(cavalier))
-require(flextable)
 
 doc <- "
 Usage:
@@ -29,8 +28,7 @@ Options:
 #     --maf-comp-het 0.01 \
 #     --gtex-rpkm /stornext/Bioinf/data/lab_bahlo/public_datasets/GTEx/GTEx_Analysis_2016-01-15_v7_RNASeQCv1.1.8_gene_median_tpm.gct.gz \
 #     --omim-genemap2 /stornext/Bioinf/data/lab_bahlo/ref_db/human/OMIM/OMIM_2020-04-29/genemap2.txt
-# 
-# ") %>%
+#          ") %>%
 #  str_split('\\s+', simplify = T) %>%
 #  str_trim()
 # opts <- docopt(doc, args)
