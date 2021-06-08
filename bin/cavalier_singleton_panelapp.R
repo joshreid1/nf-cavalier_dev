@@ -3,6 +3,7 @@
 stopifnot(require(tidyverse),
           require(docopt),
           require(cavalier))
+require(flextable)
 
 doc <- "
 Usage:
