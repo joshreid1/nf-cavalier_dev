@@ -49,7 +49,7 @@ dir.create(opts$out)
 gene_lists <- 'AGHA-0289'
 
 vars <- 
-  load_vep_vcf_2(opts$vcf, sampleID) %>% 
+  load_vep_vcf(opts$vcf, sampleID) %>%
   mutate(Polyphen2 = if_else(Polyphen2 == 'unknown', NA_character_, Polyphen2)) %>% 
   mutate(is_tolerated = (SIFT == 'tolerated' & Polyphen2 == 'benign') |
            (SIFT == 'tolerated' & is.na(Polyphen2)) |

@@ -42,9 +42,7 @@ if (length(github_packages)) {
                      repos='https://cloud.r-project.org',
                      clean = TRUE)
   }
-  devtools::install_github(github_packages, force = TRUE)
+  devtools::install_github(github_packages, force = TRUE, upgrade = 'never')
   stopifnot(all(gsub('@.+$', '', gsub('^[^/]+/', '', github_packages)) %in%
                   rownames(installed.packages())))
 }
-
-

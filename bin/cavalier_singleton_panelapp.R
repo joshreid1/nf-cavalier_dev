@@ -17,11 +17,12 @@ Options:
   --maf-dom=<f>               Maximum MAF for dominant [default: 0.0001].
   --maf-rec=<f>               Maximum MAF for recessive [default: 0.01].
   --maf-comp-het=<f>          Maximum MAF for compound het [default: 0.01].
+  --min-depth=<f>             Minimum depth for variant [default: 5].
   --gtex-rpkm=<f>             Path to GTEx_median_rpkm_file.
   --omim-genemap2=<f>         Path to OMIM_genemap2_file.
 "
-# args <- ("S36412_1.subset.vcf.gz S36412_1 S36412_1=S36412_1.merged.bam \
-#     --gene-lists AGHA-0289 \
+# args <- ("S35565_1.subset.vcf.gz S35565_1 S35565_1=S35565_1.merged.bam \
+#     --gene-lists AGHA-0026,AGHA-0024 \
 #     --maf-dom 0.0001 \
 #     --maf-rec 0.01 \
 #     --maf-comp-het 0.01 \
@@ -42,15 +43,22 @@ opts[names(opts) %>%
 sample_id <- str_extract(opts$sample_bam, '^[^=]+')
 sample_bam <- str_extract(opts$sample_bam, '[^=]+$')
 sampleID <- list("proband") %>% setNames(sample_id)
-inheritance_MAF <- list("individual dominant"  = as.numeric(opts$maf_dom),
-                        "individual recessive" = as.numeric(opts$maf_rec),
-                        "individual comp het"  = as.numeric(opts$maf_comp_het))
+inheritance_MAF <- list("individual dominant"  = as.numeric(opts$`--maf-dom`),
+                        "individual recessive" = as.numeric(opts$`--maf-rec`),
+                        "individual comp het"  = as.numeric(opts$`--maf-comp-het`))
+min_depth <- as.numeric(opts$`--min-depth`)
 dir.create(opts$out)
 
-primary_panels <- c(str_split(opts$gene_lists, ',', simplify = TRUE))
+primary_panels <- c(str_split(opts$`--gene-lists`, ',', simplify = TRUE))
 min_sim <- 0.50
-panelapp_tbl <- read_rds('~/packages/panelapp/panel_app_table.rds') 
+panelapp_tbl <- 
+  read_rds('~/packages/panelapp/panel_app_table.rds') %>% 
+  mutate(gene = {
+    at <- which(gene %in% cavalier::HGNC_alias$alias)
+    replace(gene, at, cavalier::HGNC_alias$symbol[match(gene[at], cavalier::HGNC_alias$symbol)])
+    })
 panelapp_sim <- read_rds('~/packages/panelapp/panel_app_sim.rds')
+
 
 # low_intol <- 5
 
@@ -70,7 +78,8 @@ secondary_panels <-
   filter(!is_subset) %>% 
   mutate(similar_to = str_c(id, ' (', format(sim, digits = 2), ')')) %>% 
   select(panel_id = sim_id) %>% 
-  distinct()
+  distinct() %>% 
+  pull(panel_id)
   # group_by(panel_id) %>% 
   # summarise(similar_to = str_c(similar_to, collapse = ', '),
   #           .groups = 'drop') %>% 
@@ -78,8 +87,8 @@ secondary_panels <-
 
 panels_tbl <- 
   panelapp_tbl %>% 
-  filter(panel_id %in% c(primary_panels, secondary_panels$panel_id)) %>% 
-  left_join(secondary_panels, 'panel_id') %>% 
+  filter(panel_id %in% c(primary_panels, secondary_panels)) %>% 
+  # left_join(secondary_panels, 'panel_id') %>% 
   nest(panel_data=(-gene))
 
 vars <- 
@@ -94,7 +103,7 @@ filtvars <-
   filter((!is_tolerated) | is.na(is_tolerated),
          !is.na(gene)) %>% 
   as.data.frame() %>% 
-  filter_variants(sampleID, inheritance_MAF, MAF_column="MAF_gnomAD") %>% 
+  filter_variants(sampleID, inheritance_MAF, MAF_column="MAF_gnomAD", min_depth = min_depth) %>% 
   as_tibble()
   # mutate(intolerant = GeVIR < low_intol & LOEUF < low_intol &
   #          (!replace_na(is_tolerated, TRUE) | IMPACT == 'HIGH'))
@@ -128,8 +137,8 @@ if (nrow(filtvars)) {
     create_cavalier_output(opts$out, sampleID, output_cols,
                            hide_missing_igv = TRUE,
                            layout = "individual",
-                           genemap2 = opts$omim_genemap2,
-                           GTEx_median_rpkm = opts$gtex_rpkm,
+                           genemap2 = opts$`--omim-genemap2`,
+                           GTEx_median_rpkm = opts$`--gtex-rpkm`,
                            title_col = 'title', 
                            add_data_col = 'panel_data')
 }
