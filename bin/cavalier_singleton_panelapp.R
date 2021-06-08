@@ -21,13 +21,14 @@ Options:
   --gtex-rpkm=<f>             Path to GTEx_median_rpkm_file.
   --omim-genemap2=<f>         Path to OMIM_genemap2_file.
 "
-# args <- ("S35565_1.subset.vcf.gz S35565_1 S35565_1=S35565_1.merged.bam \
-#     --gene-lists AGHA-0026,AGHA-0024 \
+# args <- ("S35872_1.subset.vcf.gz S35872_1 S35872_1=S35872_1.merged.bam \
+#     --gene-lists AGHA-0152,AGHA-3279 \
 #     --maf-dom 0.0001 \
 #     --maf-rec 0.01 \
 #     --maf-comp-het 0.01 \
 #     --gtex-rpkm /stornext/Bioinf/data/lab_bahlo/public_datasets/GTEx/GTEx_Analysis_2016-01-15_v7_RNASeQCv1.1.8_gene_median_tpm.gct.gz \
 #     --omim-genemap2 /stornext/Bioinf/data/lab_bahlo/ref_db/human/OMIM/OMIM_2020-04-29/genemap2.txt
+# 
 # ") %>%
 #  str_split('\\s+', simplify = T) %>%
 #  str_trim()
@@ -49,6 +50,7 @@ inheritance_MAF <- list("individual dominant"  = as.numeric(opts$`--maf-dom`),
 min_depth <- as.numeric(opts$`--min-depth`)
 dir.create(opts$out)
 
+
 primary_panels <- c(str_split(opts$`--gene-lists`, ',', simplify = TRUE))
 min_sim <- 0.50
 panelapp_tbl <- 
@@ -58,9 +60,6 @@ panelapp_tbl <-
     replace(gene, at, cavalier::HGNC_alias$symbol[match(gene[at], cavalier::HGNC_alias$symbol)])
     })
 panelapp_sim <- read_rds('~/packages/panelapp/panel_app_sim.rds')
-
-
-# low_intol <- 5
 
 secondary_panels <-
   panelapp_sim %>% 
@@ -119,7 +118,7 @@ candvars <-
   # })
 
 # create cavalier output if any variants remain
-if (nrow(filtvars)) {
+if (nrow(candvars)) {
   output_cols <- c('Inheritance', "Variant", "Amino acid", "change", "Depth (R,A)", "Cohort AC",
                    "GnomAD MAF", "SIFT", "Polyphen2", "Grantham", "RVIS", "GeVIR")
   create_igv_snapshots(candvars, sample_bam, "hg19", 'igv') %>%
