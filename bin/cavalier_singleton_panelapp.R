@@ -27,8 +27,7 @@ Options:
 #     --maf-rec 0.01 \
 #     --maf-comp-het 0.01 \
 #     --gtex-rpkm /stornext/Bioinf/data/lab_bahlo/public_datasets/GTEx/GTEx_Analysis_2016-01-15_v7_RNASeQCv1.1.8_gene_median_tpm.gct.gz \
-#     --omim-genemap2 /stornext/Bioinf/data/lab_bahlo/ref_db/human/OMIM/OMIM_2020-04-29/genemap2.txt
-#          ") %>%
+#     --omim-genemap2 /stornext/Bioinf/data/lab_bahlo/ref_db/human/OMIM/OMIM_2020-04-29/genemap2.txt") %>%
 #  str_split('\\s+', simplify = T) %>%
 #  str_trim()
 # opts <- docopt(doc, args)
@@ -120,7 +119,11 @@ candvars <-
 if (nrow(candvars)) {
   output_cols <- c('Inheritance', "Variant", "Amino acid", "change", "Depth (R,A)", "Cohort AC",
                    "GnomAD MAF", "SIFT", "Polyphen2", "Grantham", "RVIS", "GeVIR")
-  create_igv_snapshots(candvars, sample_bam, "hg19", 'igv') %>%
+  create_igv_snapshots(candvars, sample_bam, "hg19") %>%
+  # create_igv_snapshots(candvars, sample_bam, "hg19", 
+  #                      singularity_img = '~/links/singularity_cache/jemunro-cavalier-dev.img', 
+  #                      overwrite = TRUE, 
+  #                      singularity_bin = '/stornext/System/data/apps/singularity/singularity-3.7.3/bin/singularity') %>%
     mutate(Inheritance = `inheritance model`,
            Variant = str_c(chromosome, ':', position, ':', reference, '>', alternate),
            `Depth (R,A)` = `proband depth (R,A)`,
@@ -138,7 +141,8 @@ if (nrow(candvars)) {
                            genemap2 = opts$`--omim-genemap2`,
                            GTEx_median_rpkm = opts$`--gtex-rpkm`,
                            title_col = 'title', 
-                           add_data_col = 'panel_data')
+                           add_data_col = 'panel_data',
+                           output = 'ppt')
 }
 
 
