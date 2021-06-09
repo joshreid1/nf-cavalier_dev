@@ -119,11 +119,12 @@ candvars <-
 if (nrow(candvars)) {
   output_cols <- c('Inheritance', "Variant", "Amino acid", "change", "Depth (R,A)", "Cohort AC",
                    "GnomAD MAF", "SIFT", "Polyphen2", "Grantham", "RVIS", "GeVIR")
-  create_igv_snapshots(candvars, sample_bam, "hg19") %>%
-  # create_igv_snapshots(candvars, sample_bam, "hg19", 
-  #                      singularity_img = '~/links/singularity_cache/jemunro-cavalier-dev.img', 
-  #                      overwrite = TRUE, 
-  #                      singularity_bin = '/stornext/System/data/apps/singularity/singularity-3.7.3/bin/singularity') %>%
+  # create_igv_snapshots(candvars, sample_bam, "hg19") %>%
+  create_igv_snapshots(candvars, sample_bam,  "hg19",
+                       vcfs = 'sample.vcf.gz',
+                       singularity_img = '~/links/singularity_cache/jemunro-cavalier-dev.img',
+                       overwrite = TRUE,
+                       singularity_bin = '/stornext/System/data/apps/singularity/singularity-3.7.3/bin/singularity') %>%
     mutate(Inheritance = `inheritance model`,
            Variant = str_c(chromosome, ':', position, ':', reference, '>', alternate),
            `Depth (R,A)` = `proband depth (R,A)`,
@@ -142,7 +143,6 @@ if (nrow(candvars)) {
                            GTEx_median_rpkm = opts$`--gtex-rpkm`,
                            title_col = 'title', 
                            add_data_col = 'panel_data',
-                           output = 'ppt')
+                           output = c('html', 'ppt'))
 }
-
 
