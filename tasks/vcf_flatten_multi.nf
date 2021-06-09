@@ -4,7 +4,7 @@ process vcf_flatten_multi {
     memory '1 GB'
     time '1 h'
     container 'jemunro/nf-long-amplicon-typing:dev'
-    publishDir "output/vcf_flatten_multi", mode: 'copy'
+    publishDir "output/vcf_flatten_multi", mode: 'symlink'
 
     input:
     tuple val(id), file(vcf)

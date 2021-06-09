@@ -21,8 +21,8 @@ Options:
   --gtex-rpkm=<f>             Path to GTEx_median_rpkm_file.
   --omim-genemap2=<f>         Path to OMIM_genemap2_file.
 "
-# args <- ("S35872_1.subset.vcf.gz S35872_1 S35872_1=S35872_1.merged.bam \
-#     --gene-lists AGHA-0152,AGHA-3279 \
+# args <- ("S33843_1.subset.vcf.gz S33843_1 S33843_1=S33843_1.merged.bam \
+#     --gene-lists AGHA-0202,AGHA-0289 \
 #     --maf-dom 0.0001 \
 #     --maf-rec 0.01 \
 #     --maf-comp-het 0.01 \
@@ -119,12 +119,13 @@ candvars <-
 if (nrow(candvars)) {
   output_cols <- c('Inheritance', "Variant", "Amino acid", "change", "Depth (R,A)", "Cohort AC",
                    "GnomAD MAF", "SIFT", "Polyphen2", "Grantham", "RVIS", "GeVIR")
-  # create_igv_snapshots(candvars, sample_bam, "hg19") %>%
-  create_igv_snapshots(candvars, sample_bam,  "hg19",
-                       vcfs = 'sample.vcf.gz',
-                       singularity_img = '~/links/singularity_cache/jemunro-cavalier-dev.img',
-                       overwrite = TRUE,
-                       singularity_bin = '/stornext/System/data/apps/singularity/singularity-3.7.3/bin/singularity') %>%
+  candvars %>%
+    create_igv_snapshots(sample_bam, "hg19", vcfs = opts$vcf) %>%
+    # create_igv_snapshots(sample_bam,  "hg19",
+    #                      vcfs = opts$vcf,
+    #                      singularity_img = '~/links/singularity_cache/jemunro-cavalier-dev.img',
+    #                      overwrite = TRUE,
+    #                      singularity_bin = '/stornext/System/data/apps/singularity/singularity-3.7.3/bin/singularity') %>%
     mutate(Inheritance = `inheritance model`,
            Variant = str_c(chromosome, ':', position, ':', reference, '>', alternate),
            `Depth (R,A)` = `proband depth (R,A)`,

@@ -6,7 +6,7 @@ process vep {
     memory '8 GB'
     time '4 h'
     container 'jemunro/nf-long-amplicon-typing:dev'
-    publishDir "output/vep", mode: 'copy'
+    publishDir "output/vep", mode: 'symlink'
 
     input:
     tuple val(id), file(vcf)

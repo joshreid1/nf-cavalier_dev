@@ -14,7 +14,7 @@ process cavalier_singleton {
     tag { sample }
 
     input:
-    tuple val(sample), file(vcf), file(bam), file(bai), val(lists)
+    tuple val(sample), file(vcf), file(tbi), file(bam), file(bai), val(lists)
 
     output:
     tuple val(sample), file(out)

@@ -5,7 +5,7 @@ process vcf_split {
     memory '2 GB'
     time '1 h'
     container 'bahlolab/mps-geno:latest'
-    publishDir "output/vcf_split", mode: 'copy'
+    publishDir "output/vcf_split", mode: 'symlink'
 
     input:
     tuple val(id), file(vcf), file(tbi)

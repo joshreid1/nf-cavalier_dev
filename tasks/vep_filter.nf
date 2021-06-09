@@ -7,7 +7,7 @@ process vep_filter {
     memory '8 GB'
     time '4 h'
     container 'jemunro/nf-long-amplicon-typing:dev'
-    publishDir "output/vep_filter", mode: 'copy'
+    publishDir "output/vep_filter", mode: 'symlink'
 
     input:
     tuple val(id), file(vcf), file(tbi)

@@ -4,7 +4,7 @@ process vcf_merge {
     memory '4 GB'
     time '2 h'
     container 'jemunro/nf-long-amplicon-typing:dev'
-    publishDir "output/vcf_merge", mode: 'copy'
+    publishDir "output/vcf_merge", mode: 'symlink'
 
     input:
     tuple val(id), file(vcfs), file(tbis)
