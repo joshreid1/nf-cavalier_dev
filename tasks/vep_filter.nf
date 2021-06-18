@@ -1,6 +1,6 @@
 
-params.max_af = 0.05
-params.vep_impact = ['MODERATE', 'HIGH']
+params.max_af = 0.10
+params.vep_impact = ['LOW', 'MODERATE', 'HIGH']
 
 process vep_filter {
     cpus 2

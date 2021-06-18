@@ -31,7 +31,7 @@ process vep {
         --cache_version 101 \\
         --dir $params.vep_cache \\
         --allow_non_variant \\
-        --flag_pick_allele_gene \\
+        --pick_allele_gene \\
         --output_file STDOUT | \\
         bcftools view --no-version -Oz -o $out_vcf
     bcftools index -t $out_vcf

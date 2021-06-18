@@ -21,8 +21,8 @@ Options:
   --gtex-rpkm=<f>             Path to GTEx_median_rpkm_file.
   --omim-genemap2=<f>         Path to OMIM_genemap2_file.
 "
-# args <- ("S33843_1.subset.vcf.gz S33843_1 S33843_1=S33843_1.merged.bam \
-#     --gene-lists AGHA-0202,AGHA-0289 \
+# args <- ("S35669_1.subset.vcf.gz S35669_1 S35669_1=S35669_1.merged.bam \
+#     --gene-lists AGHA-0289 \
 #     --maf-dom 0.0001 \
 #     --maf-rec 0.01 \
 #     --maf-comp-het 0.01 \
@@ -47,7 +47,6 @@ inheritance_MAF <- list("individual dominant"  = as.numeric(opts$`--maf-dom`),
                         "individual comp het"  = as.numeric(opts$`--maf-comp-het`))
 min_depth <- as.numeric(opts$`--min-depth`)
 dir.create(opts$out)
-
 
 primary_panels <- c(str_split(opts$`--gene-lists`, ',', simplify = TRUE))
 min_sim <- 0.50
@@ -77,15 +76,10 @@ secondary_panels <-
   select(panel_id = sim_id) %>% 
   distinct() %>% 
   pull(panel_id)
-  # group_by(panel_id) %>% 
-  # summarise(similar_to = str_c(similar_to, collapse = ', '),
-  #           .groups = 'drop') %>% 
-  # select(-similar_to)
 
 panels_tbl <- 
   panelapp_tbl %>% 
   filter(panel_id %in% c(primary_panels, secondary_panels)) %>% 
-  # left_join(secondary_panels, 'panel_id') %>% 
   nest(panel_data=(-gene))
 
 vars <- 
@@ -97,7 +91,8 @@ vars <-
 
 filtvars <-
   vars %>% 
-  filter((!is_tolerated) | is.na(is_tolerated),
+  filter(IMPACT %in% c('MODERATE', 'HIGH'),
+         (!is_tolerated) | is.na(is_tolerated),
          !is.na(gene)) %>% 
   as.data.frame() %>% 
   filter_variants(sampleID, inheritance_MAF, MAF_column="MAF_gnomAD", min_depth = min_depth) %>% 
@@ -109,23 +104,19 @@ filtvars <-
 candvars <-
   inner_join(filtvars, panels_tbl, by = "gene") %>% 
   arrange(gene, position)
-  # (function(x) {
-  #   filter(filtvars, intolerant) %>% 
-  #     anti_join(x, by = 'gene') %>% 
-  #     bind_rows(x)
-  # })
 
 # create cavalier output if any variants remain
 if (nrow(candvars)) {
-  output_cols <- c('Inheritance', "Variant", "Amino acid", "change", "Depth (R,A)", "Cohort AC",
-                   "GnomAD MAF", "SIFT", "Polyphen2", "Grantham", "RVIS", "GeVIR")
+  output_cols <- c('Inheritance', "Variant", "Amino acid", "change", "Depth (R,A)", "Cohort AF",
+                   "GnomAD AF", "SIFT", "Polyphen2", "Grantham", "RVIS", "GeVIR")
   candvars %>%
-    create_igv_snapshots(sample_bam, "hg19", vcfs = opts$vcf) %>%
-    # create_igv_snapshots(sample_bam,  "hg19",
-    #                      vcfs = opts$vcf,
-    #                      singularity_img = '~/links/singularity_cache/jemunro-cavalier-dev.img',
-    #                      overwrite = TRUE,
-    #                      singularity_bin = '/stornext/System/data/apps/singularity/singularity-3.7.3/bin/singularity') %>%
+  create_igv_snapshots(sample_bam, "hg19", vcfs = opts$vcf) %>%
+  #   create_igv_snapshots(sample_bam,  "hg19",
+  #                        vcfs = opts$vcf,
+  #                        # overwrite = TRUE,
+  #                        singularity_img = '~/links/singularity_cache/jemunro-cavalier-dev.img',
+  #                        singularity_bin = '/stornext/System/data/apps/singularity/singularity-3.7.3/bin/singularity') %>%
+  #   mutate(panel_data = map(seq_along(gene), ~tibble())) %>% 
     mutate(Inheritance = `inheritance model`,
            Variant = str_c(chromosome, ':', position, ':', reference, '>', alternate),
            `Depth (R,A)` = `proband depth (R,A)`,
@@ -133,9 +124,9 @@ if (nrow(candvars)) {
            Polyphen2 = str_c(Polyphen2, ' (', Polyphen2_score, ')'),
            SIFT = str_c(SIFT, ' (', SIFT_score, ')'),
            title = str_c('Sample: ', sample_id, ', Gene: ', gene),
-           `Cohort AC` = as.integer(AC) - 1,
+           `Cohort AF` = str_c(round(AF, 4), ' (', AC, ')')
     ) %>%
-    rename(`GnomAD MAF` = MAF_gnomAD) %>% 
+    rename(`GnomAD AF` = MAF_gnomAD) %>% 
     as.data.frame() %>%
     create_cavalier_output(opts$out, sampleID, output_cols,
                            hide_missing_igv = TRUE,
