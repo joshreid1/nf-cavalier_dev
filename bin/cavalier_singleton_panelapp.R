@@ -18,19 +18,23 @@ Options:
   --maf-rec=<f>               Maximum MAF for recessive [default: 0.01].
   --maf-comp-het=<f>          Maximum MAF for compound het [default: 0.01].
   --min-depth=<f>             Minimum depth for variant [default: 5].
+  --max-cohort-ac=<f>         Maximum allele count within cohort [default: Inf].
+  --max-cohort-af=<f>         Maximum allele frequency within cohort [default: Inf].
   --gtex-rpkm=<f>             Path to GTEx_median_rpkm_file.
   --omim-genemap2=<f>         Path to OMIM_genemap2_file.
 "
-# args <- ("S35669_1.subset.vcf.gz S35669_1 S35669_1=S35669_1.merged.bam \
-#     --gene-lists AGHA-0289 \
+# args <- ("S35872_1.subset.vcf.gz S35872_1 S35872_1=S35872_1.merged.bam \
+#     --gene-lists AGHA-0152,AGHA-3279 \
 #     --maf-dom 0.0001 \
 #     --maf-rec 0.01 \
 #     --maf-comp-het 0.01 \
 #     --gtex-rpkm /stornext/Bioinf/data/lab_bahlo/public_datasets/GTEx/GTEx_Analysis_2016-01-15_v7_RNASeQCv1.1.8_gene_median_tpm.gct.gz \
-#     --omim-genemap2 /stornext/Bioinf/data/lab_bahlo/ref_db/human/OMIM/OMIM_2020-04-29/genemap2.txt") %>%
+#     --omim-genemap2 /stornext/Bioinf/data/lab_bahlo/ref_db/human/OMIM/OMIM_2020-04-29/genemap2.txt \
+#     --max-cohort-af 0.10") %>%
 #  str_split('\\s+', simplify = T) %>%
 #  str_trim()
 # opts <- docopt(doc, args)
+
 opts <- docopt(doc)
 # print options
 message('Using options:')
@@ -39,6 +43,7 @@ opts[names(opts) %>%
   { class(.) <- c('list', 'docopt'); .} %>% 
   print()
 
+# set options
 sample_id <- str_extract(opts$sample_bam, '^[^=]+')
 sample_bam <- str_extract(opts$sample_bam, '[^=]+$')
 sampleID <- list("proband") %>% setNames(sample_id)
@@ -46,18 +51,20 @@ inheritance_MAF <- list("individual dominant"  = as.numeric(opts$`--maf-dom`),
                         "individual recessive" = as.numeric(opts$`--maf-rec`),
                         "individual comp het"  = as.numeric(opts$`--maf-comp-het`))
 min_depth <- as.numeric(opts$`--min-depth`)
-dir.create(opts$out)
-
+max_cohort_ac <- as.numeric(opts$`--max-cohort-ac`)
+max_cohort_af <- as.numeric(opts$`--max-cohort-af`)
 primary_panels <- c(str_split(opts$`--gene-lists`, ',', simplify = TRUE))
-min_sim <- 0.50
+
 panelapp_tbl <- 
   read_rds('~/packages/panelapp/panel_app_table.rds') %>% 
   mutate(gene = {
     at <- which(gene %in% cavalier::HGNC_alias$alias)
     replace(gene, at, cavalier::HGNC_alias$symbol[match(gene[at], cavalier::HGNC_alias$symbol)])
     })
-panelapp_sim <- read_rds('~/packages/panelapp/panel_app_sim.rds')
 
+# find similar panels
+min_sim <- 0.50
+panelapp_sim <- read_rds('~/packages/panelapp/panel_app_sim.rds')
 secondary_panels <-
   panelapp_sim %>% 
   filter(id %in% primary_panels,
@@ -82,6 +89,7 @@ panels_tbl <-
   filter(panel_id %in% c(primary_panels, secondary_panels)) %>% 
   nest(panel_data=(-gene))
 
+# load variants
 vars <- 
   load_vep_vcf(opts$vcf, sampleID) %>% 
   mutate(Polyphen2 = if_else(Polyphen2 == 'unknown', NA_character_, Polyphen2)) %>% 
@@ -89,23 +97,26 @@ vars <-
            (SIFT == 'tolerated' & is.na(Polyphen2)) |
            (is.na(SIFT) & Polyphen2 == 'benign'))
 
+# filter variants
 filtvars <-
   vars %>% 
   filter(IMPACT %in% c('MODERATE', 'HIGH'),
          (!is_tolerated) | is.na(is_tolerated),
-         !is.na(gene)) %>% 
+         !is.na(gene),
+         AC <= max_cohort_ac,
+         AF <= max_cohort_af,
+         ) %>% 
   as.data.frame() %>% 
   filter_variants(sampleID, inheritance_MAF, MAF_column="MAF_gnomAD", min_depth = min_depth) %>% 
   as_tibble()
-  # mutate(intolerant = GeVIR < low_intol & LOEUF < low_intol &
-  #          (!replace_na(is_tolerated, TRUE) | IMPACT == 'HIGH'))
 
-
+# intersect with gene lists
 candvars <-
   inner_join(filtvars, panels_tbl, by = "gene") %>% 
   arrange(gene, position)
 
 # create cavalier output if any variants remain
+dir.create(opts$out, recursive = TRUE, showWarnings = FALSE)
 if (nrow(candvars)) {
   output_cols <- c('Inheritance', "Variant", "Amino acid", "change", "Depth (R,A)", "Cohort AF",
                    "GnomAD AF", "SIFT", "Polyphen2", "Grantham", "RVIS", "GeVIR")

@@ -1,5 +1,7 @@
 
 params.vep_cache = '/stornext/Bioinf/data/lab_bahlo/ref_db/vep-cache'
+params.vep_cache_ver = '104'
+params.vep_assembly = 'GRCh37'
 
 process vep {
     cpus 2
@@ -17,7 +19,7 @@ process vep {
     script:
     out_vcf = "${id}.vep.vcf.gz"
     """
-    vep --input_file $vcf  \\
+    vep --input_file $vcf \\
         --format vcf \\
         --vcf \\
         --cache \\
@@ -27,8 +29,8 @@ process vep {
         --allele_number \\
         --variant_class \\
         --dont_skip \\
-        --assembly GRCh37 \\
-        --cache_version 101 \\
+        --assembly $params.vep_assembly \\
+        --cache_version $params.vep_cache_ver \\
         --dir $params.vep_cache \\
         --allow_non_variant \\
         --pick_allele_gene \\
@@ -36,6 +38,4 @@ process vep {
         bcftools view --no-version -Oz -o $out_vcf
     bcftools index -t $out_vcf
     """
-    // added --flag_pick_allele_gene option to VEP, this will pick single best annotation per variant
-    // this makes it simpler for cavalier
 }

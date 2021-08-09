@@ -4,6 +4,7 @@ params.omim_genemap2 = '/stornext/Bioinf/data/lab_bahlo/ref_db/human/OMIM/OMIM_2
 params.maf_dom = 0.0001
 params.maf_rec = 0.01
 params.maf_comp_het = 0.01
+params.max_cohort_af = 0.10
 
 process cavalier_singleton {
     cpus 1
@@ -28,7 +29,8 @@ process cavalier_singleton {
         --maf-rec $params.maf_rec \\
         --maf-comp-het $params.maf_comp_het \\
         --gtex-rpkm $params.gtex_rpkm \\
-        --omim-genemap2 $params.omim_genemap2
+        --omim-genemap2 $params.omim_genemap2 \\
+        --max-cohort-af $params.max_cohort_af
     """
 }
 //process cavalier_singleton {

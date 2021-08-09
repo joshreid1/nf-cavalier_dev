@@ -3,7 +3,7 @@
 process vcf_split {
     cpus 2
     memory '2 GB'
-    time '1 h'
+    time '10 h'
     container 'bahlolab/mps-geno:latest'
     publishDir "output/vcf_split", mode: 'symlink'
 

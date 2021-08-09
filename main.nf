@@ -1,6 +1,33 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl=2
 
+/* TODO:
+    inputs:
+        - vcf
+        - bam_manifest [sample, bam]
+            - csv file
+        - pedigree [family, sample, pid, mid, sex, phenotype]
+            - tsv file, no column names
+        - gene_lists [family, list_name, list_path]
+            - csv file, one list per line
+    gene_lists:
+        - csv file, single required column 'gene'
+        - additional metadata columns will be reported by cavalier
+    checks:
+        - check pedigree (don't necessarily expected all family members to have sample)
+            - check at least one affected sample per family in VCF
+        - check samples in vcf, pedigree and bam_manifest
+        - check families in gene lists
+        - report similar to peddy
+    pedigree:
+        - function read_ped(), return list of map
+        - function group_ped(), return list of [family, [affected...], [unaffected...]]
+        - collectFile() to split into sub pedigrees for input to cavalier
+        - multipe models can be used for a given family by using different family_ids for each
+    bam_manifest:
+        - combine with pedigree to add in family
+ */
+
 params.vcf_input = ''
 params.id = ''
 params.n_split = 100
