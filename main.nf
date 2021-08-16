@@ -26,7 +26,7 @@ nextflow.enable.dsl=2
         - multipe models can be used for a given family by using different family_ids for each
     bam_manifest:
         - combine with pedigree to add in family
-   tweaks:
+    tweaks:
         - pre-filter VCF by select only samples in manifest/pedigree and only alternate alleles
  */
 
@@ -41,6 +41,12 @@ params.vep_cache_ver = ''
 params.vep_assembly = ''
 params.max_af = 0.10
 params.vep_impact = ['MODERATE', 'HIGH']
+params.maf_dom = 0.0001
+params.maf_rec = 0.01
+params.maf_comp_het = 0.01
+params.max_cohort_af = 0.10
+params.gtex_rpkm = '/stornext/Bioinf/data/lab_bahlo/public_datasets/GTEx/GTEx_Analysis_2016-01-15_v7_RNASeQCv1.1.8_gene_median_tpm.gct.gz'
+params.omim_genemap2 = '/stornext/Bioinf/data/lab_bahlo/ref_db/human/OMIM/OMIM_2020-04-29/genemap2.txt'
 
 include { path; read_tsv; get_families } from './nf/functions'
 
@@ -88,6 +94,19 @@ workflow {
         // Note: families silently dropped here if no affected members in VCF
         filter { it[1].size() > 0 }
 
+    ped_channel = Channel.from(ped) |
+        map { it.values() as ArrayList } |
+        collectFile(newLine:true) {
+            [ "${it[0]}.ped", it.join('\t')]
+        } |
+        map { [it.name.replaceAll('.ped', ''), it] }
+
+    bam_channel = Channel.from(bams) |
+        map { [it.iid, it.bam] } |
+        combine(ped.collect { [it.iid, it.fid]}, by: 0) |
+        map { it[[2,0,1]] } |
+        groupTuple(by: 0)
+
     Channel.value([vcf, tbi]) |
         vcf_split |
         flatten |
@@ -103,6 +122,9 @@ workflow {
         map { it[0] } |
         combine(families) |
         vcf_family_subset |
+        map { it[0] } |
+        combine(ped_channel, by:0) |
+        combine(bam_channel, by:0) |
         view
 //        join(samples) |
 //        cavalier_singleton
