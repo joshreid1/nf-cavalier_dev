@@ -1,13 +1,8 @@
 
-params.vep_cache = '/stornext/Bioinf/data/lab_bahlo/ref_db/vep-cache'
-params.vep_cache_ver = '104'
-params.vep_assembly = 'GRCh37'
+
 
 process vep {
-    cpus 2
-    memory '8 GB'
-    time '4 h'
-    container 'jemunro/nf-long-amplicon-typing:dev'
+    label 'C2M8T4'
     publishDir "output/vep", mode: 'symlink'
 
     input:

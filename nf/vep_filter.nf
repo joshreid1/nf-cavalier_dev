@@ -1,12 +1,7 @@
 
-params.max_af = 0.10
-params.vep_impact = ['LOW', 'MODERATE', 'HIGH']
 
 process vep_filter {
-    cpus 2
-    memory '8 GB'
-    time '4 h'
-    container 'jemunro/nf-long-amplicon-typing:dev'
+    label 'C2M8T4'
     publishDir "output/vep_filter", mode: 'symlink'
 
     input:
