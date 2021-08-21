@@ -3,25 +3,26 @@
 process cavalier {
     label 'C2M4T2'
     container 'jemunro/cavalier:dev'
-    publishDir "output/cavalier_singleton", mode: 'copy'
+    publishDir "output/cavalier", mode: 'copy'
     tag { fam }
 
     input:
-        tuple val(fam), path(vcf), path(ped), val(sam), path(bam)
+        tuple val(fam), path(vcf), path(ped), path(lists), val(sam), path(bam), path(genemap2)
 
     output:
-        tuple val(fam), file(out)
+        tuple val(fam), path(fam)
 
     script:
-    out = "$fam"
+    sam_bam = [sam, bam instanceof List ? bam: [bam]]
+        .transpose().collect {it.join('=') }.join(' ')
     """
-    cavalier_singleton_panelapp.R $vcf $out $sample=$bam \\
-        --gene-lists $lists \\
+    cavalier_wrapper.R $vcf $ped $sam_bam \\
+        --out $fam \\
+        --gene-lists ${lists.join(',')} \\
+        --omim-genemap2 $genemap2 \\
         --maf-dom $params.maf_dom \\
         --maf-rec $params.maf_rec \\
         --maf-comp-het $params.maf_comp_het \\
-        --gtex-rpkm $params.gtex_rpkm \\
-        --omim-genemap2 $params.omim_genemap2 \\
         --max-cohort-af $params.max_cohort_af
     """
 }

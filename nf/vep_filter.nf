@@ -17,7 +17,8 @@ process vep_filter {
         --format vcf \\
         --only_matched \\
         --filter "MAX_AF < $params.max_af or not MAX_AF" \\
-        --filter "IMPACT in ${params.vep_impact.join(',')}" |  \\
+        --filter "IMPACT in ${params.vep_impact.join(',')}" \\
+        --filter "Feature_type is Transcript" |  \\
         bcftools view --no-version -Oz -o $out_vcf
     bcftools index -t $out_vcf
     """

@@ -45,8 +45,9 @@ params.maf_dom = 0.0001
 params.maf_rec = 0.01
 params.maf_comp_het = 0.01
 params.max_cohort_af = 0.10
-params.gtex_rpkm = '/stornext/Bioinf/data/lab_bahlo/public_datasets/GTEx/GTEx_Analysis_2016-01-15_v7_RNASeQCv1.1.8_gene_median_tpm.gct.gz'
-params.omim_genemap2 = '/stornext/Bioinf/data/lab_bahlo/ref_db/human/OMIM/OMIM_2020-04-29/genemap2.txt'
+params.omim_genemap2 = '/stornext/Bioinf/data/lab_bahlo/ref_db/human/OMIM/OMIM_2021-08-17/genemap2.txt'
+params.ref_fasta = ''
+
 
 include { path; read_tsv; get_families } from './nf/functions'
 
@@ -57,36 +58,19 @@ include { vep } from './nf/vep'
 include { vep_filter } from './nf/vep_filter'
 include { vcf_merge } from './nf/vcf_merge'
 include { vcf_family_subset } from './nf/vcf_family_subset'
-include { cavalier_singleton } from './nf/cavalier_singleton'
+include { cavalier } from './nf/cavalier'
 
 vcf = path(params.vcf)
 tbi = path(params.vcf + '.tbi')
 ped = read_tsv(path(params.ped), ['fid', 'iid', 'pid', 'mid', 'sex', 'phe'])
 bams = read_tsv(path(params.bams), ['iid', 'bam'])
 lists = read_tsv(path(params.lists), ['fid', 'list'])
+omim_genemap2 = path(params.omim_genemap2)
+ref_fasta = path(params.ref_fasta)
+ref_fai = path(params.ref_fasta + '.fai')
 
 workflow {
 
-//    data = Channel.fromList([
-//        [params.id,
-//         file(params.vcf_input, checkIfExists:true),
-//         file(params.vcf_input + '.tbi', checkIfExists:true)]
-//    ])
-//    sample_manifest = read_tsv(
-//        file(params.sample_manifest, checkIfExists: true, type: 'file'),
-//        ['sample', 'bam', 'lists']
-//    )
-//    // list of family members, starting with proband
-//    // ultimately will extract from pedigree, for now only working on singletons
-//    families = Channel.from(sample_manifest).map { [[it.sample]] }
-//    samples = Channel.from(sample_manifest)
-//        .map {
-//            [ it.sample,
-//              file(it.bam, checkIfExists:true, type: 'file'),
-//              file(it.bam + '.bai', checkIfExists:true, type: 'file'),
-//              it.lists
-//            ]
-//        }
     families = vcf_sample_list(vcf) |
         map { [it.toFile().readLines() as ArrayList] } |
         combine(get_families(ped)) |
@@ -101,9 +85,13 @@ workflow {
         } |
         map { [it.name.replaceAll('.ped', ''), it] }
 
+    list_channel = Channel.from(lists) |
+        map { [it.fid, path(it.list)] } |
+        groupTuple(by: 0)
+
     bam_channel = Channel.from(bams) |
-        map { [it.iid, it.bam] } |
-        combine(ped.collect { [it.iid, it.fid]}, by: 0) |
+        map { [it.iid, path(it.bam)] } |
+        combine(ped.collect { [it.iid, it.fid] }, by: 0) |
         map { it[[2,0,1]] } |
         groupTuple(by: 0)
 
@@ -112,6 +100,7 @@ workflow {
         flatten |
         map { [it.name.replaceFirst(params.id + '-', '').replaceFirst('.vcf.gz', ''), it] } |
         vcf_flatten_multi |
+        combine([[ref_fasta, ref_fai]]) |
         vep |
         vep_filter |
         toSortedList |
@@ -122,10 +111,10 @@ workflow {
         map { it[0] } |
         combine(families) |
         vcf_family_subset |
-        map { it[0] } |
+        map { it[0..1] } |
         combine(ped_channel, by:0) |
+        combine(list_channel, by:0) |
         combine(bam_channel, by:0) |
-        view
-//        join(samples) |
-//        cavalier_singleton
+        combine([omim_genemap2]) |
+        cavalier
 }

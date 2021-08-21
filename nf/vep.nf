@@ -6,10 +6,10 @@ process vep {
     publishDir "output/vep", mode: 'symlink'
 
     input:
-    tuple val(id), file(vcf)
+        tuple val(id), path(vcf), path(fasta), path(fai)
 
     output:
-    tuple val(id), file(out_vcf), file("${out_vcf}.tbi")
+        tuple val(id), path(out_vcf), path("${out_vcf}.tbi")
 
     script:
     out_vcf = "${id}.vep.vcf.gz"
@@ -24,6 +24,8 @@ process vep {
         --allele_number \\
         --variant_class \\
         --dont_skip \\
+        --hgvsg \\
+        --fasta $fasta \\
         --assembly $params.vep_assembly \\
         --cache_version $params.vep_cache_ver \\
         --dir $params.vep_cache \\
