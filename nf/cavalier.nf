@@ -2,15 +2,18 @@
 
 process cavalier {
     label 'C2M4T2'
-    container 'jemunro/cavalier:dev'
+    container null
+    module 'R/3.6.1'
+//    container 'jemunro/cavalier:dev'
     publishDir "output/cavalier", mode: 'copy'
+    memory '4G'
     tag { fam }
 
     input:
-        tuple val(fam), path(vcf), path(ped), path(lists), val(sam), path(bam), path(genemap2)
+        tuple val(fam), path(vcf), path(ped), path(lists), val(sam), path(bam), path(bai), path(genemap2)
 
     output:
-        tuple val(fam), path(fam)
+        tuple val(fam), path("${fam}.pptx")
 
     script:
     sam_bam = [sam, bam instanceof List ? bam: [bam]]
