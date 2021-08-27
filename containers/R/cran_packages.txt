@@ -3,6 +3,7 @@ ape
 cowplot
 flextable
 gridExtra
+ggplotify
 matrixStats
 memuse
 officer
