@@ -1,4 +1,4 @@
-FROM rocker/tidyverse:3.6.3
+FROM rocker/tidyverse:4.0.5
 
 LABEL \
   author="Jacob Munro" \
@@ -17,25 +17,21 @@ RUN apt-get update \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 # Install IGV
-RUN wget http://data.broadinstitute.org/igv/projects/downloads/2.9/IGV_2.9.5.zip -O IGV.zip \
+RUN wget http://data.broadinstitute.org/igv/projects/downloads/2.11/IGV_2.11.0.zip -O IGV.zip \
     && unzip IGV.zip \
     && rm IGV.zip
-# # and download genomes
-#    && mkdir /igv \
-#    && printf '%s\n%s\n' '#!/bin/bash' '/IGV_2.9.5/igv.sh --igvDirectory /igv "$@"' > /igv/igv.sh \
-#    && chmod +x /igv/igv.sh \
-#    && printf '%s\n%s\n%s\n%s\n' 'new' 'genome hg19' 'genome hg38' 'exit' > /genome.bat \
-#    && xvfb-run --auto-servernum --server-num=1 /igv/igv.sh -b /genome.bat
 
 # Install required R packages
-COPY inst/install_packages.R  inst/cran_packages.txt inst/bioc_packages.txt /
+COPY install_packages.R  cran_packages.txt bioc_packages.txt /
 RUN Rscript --vanilla install_packages.R CRAN:cran_packages.txt BIOC:bioc_packages.txt
 
 # Install cavalier R package
-COPY inst/github_packages.txt /
+COPY github_packages.txt /
 RUN Rscript --vanilla install_packages.R GITHUB:github_packages.txt
 
 # set R ENV variables and add IGV to R PATH
-RUN sed 's:^PATH=:PATH=/IGV_2.9.5\::' -i /usr/local/lib/R/etc/Renviron
-ENV PATH="/IGV_2.9.5:${PATH}" TZ=Etc/UTC \
-    R_HOME=/usr/local/lib/R/ R_ENVIRON=/usr/local/lib/R/etc/Renviron R_LIBS_USER=/usr/local/lib/R/site-library
+RUN sed 's:^PATH=:PATH=/IGV_2.11.0\::' -i /usr/local/lib/R/etc/Renviron
+ENV PATH="/IGV_2.11.0:${PATH}" \
+    TZ=Etc/UTC \
+    R_HOME=/usr/local/lib/R/ \
+    R_ENVIRON=/usr/local/lib/R/etc/Renviron R_LIBS_USER=/usr/local/lib/R/site-library
