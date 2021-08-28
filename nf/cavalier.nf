@@ -2,11 +2,8 @@
 
 process cavalier {
     label 'C2M4T2'
-    container null
-    module 'R/3.6.1'
-//    container 'jemunro/cavalier:dev'
+    container 'bahlolab/cavalier:dev'
     publishDir "output/cavalier", mode: 'copy'
-    memory '4G'
     tag { fam }
 
     input:
