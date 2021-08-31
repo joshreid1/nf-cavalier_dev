@@ -1,24 +1,30 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl=2
 
+//imput params
 params.id = ''
 params.vcf = ''
 params.ped = ''
 params.bams = ''
 params.lists = ''
-params.n_split = 100
-params.vep_cache = ''
-params.vep_cache_ver = ''
-params.vep_assembly = ''
+// filter params
 params.max_af = 0.10
 params.vep_impact = ['LOW', 'MODERATE', 'HIGH']
 params.maf_dom = 0.0001
+params.maf_de_novo = 0.0001
 params.maf_rec = 0.01
 params.maf_comp_het = 0.01
 params.max_cohort_af = 0.10
-params.omim_genemap2 = '/stornext/Bioinf/data/lab_bahlo/ref_db/human/OMIM/OMIM_2021-08-17/genemap2.txt'
+params.min_impact = 'MODERATE'
+// ref params
+params.omim_genemap2 = ''
 params.ref_fasta = ''
-
+params.ref_hg38 = true
+params.vep_cache = ''
+params.vep_cache_ver = ''
+params.vep_assembly = params.ref_hg38 ? 'GRCh38' : 'GRCh37'
+// exec params
+params.n_split = 100
 
 include { path; read_tsv; get_families } from './nf/functions'
 

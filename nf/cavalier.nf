@@ -22,10 +22,11 @@ process cavalier {
         --gene-lists ${lists.join(',')} \\
         --omim-genemap2 $genemap2 \\
         --maf-dom $params.maf_dom \\
+        --maf-de-novo $params.maf_de_novo \\
         --maf-rec $params.maf_rec \\
         --maf-comp-het $params.maf_comp_het \\
         --max-cohort-af $params.max_cohort_af \\
-        --min-impact MODERATE
+        --min-impact $params.min_impact
     """
 }
 
