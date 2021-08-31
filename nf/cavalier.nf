@@ -1,7 +1,7 @@
 
 process cavalier {
     label 'C2M4T2'
-    container 'bahlolab/cavalier:dev'
+    container 'bahlolab/cavalier:latest'
 //    container null
 //    module 'R/3.6.1'
     publishDir "output/cavalier", mode: 'copy'
