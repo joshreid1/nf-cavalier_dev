@@ -1,4 +1,0 @@
-tidyverse
-matrixStats
-shiny
-docopt

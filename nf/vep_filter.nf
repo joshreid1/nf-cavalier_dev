@@ -1,13 +1,8 @@
 
-params.max_af = 0.05
-params.vep_impact = ['MODERATE', 'HIGH']
 
 process vep_filter {
-    cpus 2
-    memory '8 GB'
-    time '4 h'
-    container 'jemunro/nf-long-amplicon-typing:dev'
-    publishDir "output/vep_filter", mode: 'copy'
+    label 'C2M8T4'
+    publishDir "output/vep_filter", mode: 'symlink'
 
     input:
     tuple val(id), file(vcf), file(tbi)
@@ -22,7 +17,8 @@ process vep_filter {
         --format vcf \\
         --only_matched \\
         --filter "MAX_AF < $params.max_af or not MAX_AF" \\
-        --filter "IMPACT in ${params.vep_impact.join(',')}" |  \\
+        --filter "IMPACT in ${params.vep_impact.join(',')}" \\
+        --filter "Feature_type is Transcript" |  \\
         bcftools view --no-version -Oz -o $out_vcf
     bcftools index -t $out_vcf
     """

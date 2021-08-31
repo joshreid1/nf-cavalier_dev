@@ -1,0 +1,15 @@
+abind
+ape
+cowplot
+flextable
+gridExtra
+ggplotify
+matrixStats
+memuse
+officer
+permute
+pinfsc50
+png
+vcfR
+vegan
+docopt
