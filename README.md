@@ -2,8 +2,16 @@
 
 Nextflow Pipeline for singleton and family based candidate variant prioritisation based on gene lists using the Cavalier R package. This pipeline is a work in progress.
 
-## Usage
+## Installation
+* Clone this repositoty
 
+## Usage
+* Create and navigate to run working directory
+* First run:  
+  `nextflow run /PATH/TO/nf-cavalier`
+* Resume run:  
+  `nextflow run /PATH/TO/nf-cavalier -resume`
+* Recommended to execute commands with either `nohup` or `screen`
 * **Example `nextflow.config`**
   ```Nextflow
     params {
