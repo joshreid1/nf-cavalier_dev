@@ -32,9 +32,9 @@ Nextflow Pipeline for singleton and family based candidate variant prioritisatio
     ```
 * **Params**  
   * `id` - Unique name for run. Used to name output files.
-  * `vcf` - Input VCF file with variant calls for all samples
-  * `ped` - A [Ped format file](https://gatk.broadinstitute.org/hc/en-us/articles/360035531972-PED-Pedigree-format) describing familial relationships, with 1/2 encoding for unaffected/affected phenotypes (missing phenotype no supported)
-  * `bams` - TSV file with first column containing individual ID, second column containing path to indexed BAM file (no header row/  column names)
+  * `vcf` - Input VCF file with variant calls for all samples.
+  * `ped` - A [Ped format file](https://gatk.broadinstitute.org/hc/en-us/articles/360035531972-PED-Pedigree-format) describing familial relationships, with 1/2 coding for unaffected/affected phenotypes (missing phenotype not supported).
+  * `bams` - TSV file with first column containing individual ID, second column containing path to indexed BAM file (no header row/  column names).
   * `lists` - TSV file with first column containing family ID (matching first column of PED file), second column containing the path to a gene list file (no header row/  column names). Each gene list file should itself be a TSV file with mandatory named columns "list_id", "list_name" and "gene". The "gene" column should contain HGNC symbol for each gene. Additional metadata columns may also be included such as "version", e.g.:
     ```
     list_id list_name       version gene    inheritance     status
