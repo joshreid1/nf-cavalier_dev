@@ -12,6 +12,27 @@ ArrayList<Map> read_tsv(Path path, List<String> names ) {
     }
 }
 
+ArrayList<Map> read_csv(Path path, List<String> names ) {
+    path.toFile().readLines().with { lines ->
+        lines.each {assert it.split(',').size() == names.size() }
+        lines.collect {
+            [names, it.split(',')].transpose().collectEntries { k, v -> [(k): v] }
+        }
+    }
+}
+/* read_csv but with flexible column names and ordering */
+ArrayList<Map> read_csv2(Path path, List<String> req_names, List<String> opt_names ) {
+    path.toFile().readLines().with { lines ->
+        names = lines[0].split(',') as ArrayList<String>
+        assert req_names.all { names.contains(it) }
+        // TODO - check opt_names
+        lines.each {assert it.split(',').size() == names.size() }
+        lines.collect {
+            [names, it.split(',')].transpose().collectEntries { k, v -> [(k): v] }
+        }
+    }
+}
+
 ArrayList<ArrayList> get_families(ArrayList<Map> pedigree) {
     pedigree.groupBy { it.fid }
         .collect { k, v -> [

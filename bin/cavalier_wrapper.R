@@ -27,14 +27,15 @@ Options:
   --max-cohort-af=<f>         Maximum allele frequency within cohort [default: Inf].
   --omim-genemap2=<f>         Path to OMIM_genemap2_file.
 "
-# opts <- ("AH017.subset.vcf.gz AH017.ped S35338_1=S35338_1.merged.bam S35339_1=S35339_1.merged.bam S35340_2=S35340_2.merged.bam S35341_2=S35341_2.merged.bam S36153_1=S36153_1.merged.bam \
-#     --out AH017 \
-#     --gene-lists custom_2_autoimmune_and_demyelinating.tsv \
+# opts <- ("AH048.subset.vcf.gz AH048.ped S34233_2=S34233_2.merged.bam S36435_2=S36435_2.merged.bam S36436_2=S36436_2.merged.bam \
+#     --out AH048 \
+#     --gene-lists agha_202_genetic_epilepsy.tsv,agha_250_intellectual_disability_syndromic_and_non_syndromic.tsv,custom_1_hyperornithinemia_hyperammonemia_homocitrullinuria.tsv,ge_285_intellectual_disability.tsv,ge_402_genetic_epilepsy_syndromes.tsv \
 #     --omim-genemap2 genemap2.txt \
 #     --maf-dom 0.0001 \
 #     --maf-rec 0.01 \
 #     --maf-comp-het 0.01 \
-#     --max-cohort-af 0.10") %>%
+#     --max-cohort-af 0.10 \
+#     --min-impact MODERATE") %>%
 #  str_split('\\s+', simplify = T) %>%
 #  str_trim() %>%
 #   docopt(doc, .)
@@ -47,8 +48,9 @@ opts[names(opts) %>%
   { class(.) <- c('list', 'docopt'); .} %>% 
   print()
 
-set_cavalier_opt(singularity_img = '~/links/singularity_cache/jemunro-cavalier-dev.img',
-                 singularity_cmd = '/stornext/System/data/apps/singularity/singularity-3.7.3/bin/singularity')
+# set_cavalier_opt(
+#   singularity_img = '~/links/singularity_cache/jemunro-cavalier-dev.img',
+#   singularity_cmd = '/stornext/System/data/apps/singularity/singularity-3.7.3/bin/singularity')
 
 # set and check options
 assert_that(file.exists(opts$vcf),
@@ -79,11 +81,18 @@ list_df <-
     read_tsv(l, col_types = cols()) %T>% 
       { assert_that(all(c('list_id', 'list_name', 'gene') %in% names(.))) }
   }) %>% 
+  mutate(list_name_url = case_when(
+    str_starts(list_id, 'AGHA#') ~ str_c('https://panelapp.agha.umccr.org/panels/', 
+                                         str_extract(list_id, '(?<=AGHA#)\\d+')),
+    str_starts(list_id, 'GE#') ~ str_c('https://panelapp.genomicsengland.co.uk/panels/', 
+                                       str_extract(list_id, '(?<=GE#)\\d+'))
+  )) %>% 
   rename(symbol = gene) %>% 
-  mutate(symbol = hgnc_sym2sym(symbol)) %>% 
+  mutate(symbol = hgnc_sym2sym(symbol),
+         list_id_url = list_name_url) %>% 
   nest(data = -symbol)
-  
-# load variants
+
+    # load variants
 vars <- load_vcf(opts$vcf, annot_source = 'VEP')
 
 # slide_layout
@@ -120,16 +129,13 @@ cand_vars <-
   left_join(select(list_df, gene = symbol, panel_data = data),
             by = 'gene') %>%
   mutate(title = str_c(opts$out, ' - ', gene),
-         cohort_AC_AF = str_c(AC, ' (', round(AF, 2), ')'),
-         gene_ensembl = str_c(gene, ' (', ensembl_gene, ')')) %>% 
+         cohort_AC_AF = str_c(AC, ' (', round(AF, 2), ')')) %>% 
     create_slides(
       output = str_c(opts$out, '.pptx'),
       bam_files = sample_bams,
       ped_file = opts$ped,
       genemap2_file = opts$omim_genemap2, 
       layout = layout, 
-      var_info = c(Gene = 'gene_ensembl',
-                   cavalier:::get_var_info() %>% 
-                     discard(~ . == 'gene'),
+      var_info = c(cavalier:::get_var_info(),
                    cohort_AC_AF = 'cohort_AC_AF'))
   
