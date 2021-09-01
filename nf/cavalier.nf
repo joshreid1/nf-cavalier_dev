@@ -19,6 +19,7 @@ process cavalier {
     """
     cavalier_wrapper.R $vcf $ped $sam_bam \\
         --out $fam \\
+        --genome ${params.ref_hg38 ? 'hg38' : 'hg19'} \\
         --gene-lists ${lists.join(',')} \\
         --omim-genemap2 $genemap2 \\
         --maf-dom $params.maf_dom \\

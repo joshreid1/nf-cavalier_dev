@@ -15,7 +15,7 @@ Options:
   ped                         Pedigree file
   sample_bams                 Sample names and bam files in format name=/path/to/bam.
   --out=<f>                   Output directory [default: out].
-  --genome=<f>                Reference genome for IGV snapshot [default: hg19].
+  --genome=<f>                Reference genome for IGV snapshot [default: hg38].
   --gene-lists=<f>            Comma serparated list of gene list names.
   --min-impact=<f>            Minimum VEP impact [default: MODERATE].
   --maf-dom=<f>               Maximum MAF for dominant [default: 0.0001].
@@ -27,18 +27,6 @@ Options:
   --max-cohort-af=<f>         Maximum allele frequency within cohort [default: Inf].
   --omim-genemap2=<f>         Path to OMIM_genemap2_file.
 "
-# opts <- ("AH048.subset.vcf.gz AH048.ped S34233_2=S34233_2.merged.bam S36435_2=S36435_2.merged.bam S36436_2=S36436_2.merged.bam \
-#     --out AH048 \
-#     --gene-lists agha_202_genetic_epilepsy.tsv,agha_250_intellectual_disability_syndromic_and_non_syndromic.tsv,custom_1_hyperornithinemia_hyperammonemia_homocitrullinuria.tsv,ge_285_intellectual_disability.tsv,ge_402_genetic_epilepsy_syndromes.tsv \
-#     --omim-genemap2 genemap2.txt \
-#     --maf-dom 0.0001 \
-#     --maf-rec 0.01 \
-#     --maf-comp-het 0.01 \
-#     --max-cohort-af 0.10 \
-#     --min-impact MODERATE") %>%
-#  str_split('\\s+', simplify = T) %>%
-#  str_trim() %>%
-#   docopt(doc, .)
 
 opts <- docopt(doc)
 # print options
@@ -48,13 +36,12 @@ opts[names(opts) %>%
   { class(.) <- c('list', 'docopt'); .} %>% 
   print()
 
-# set_cavalier_opt(
-#   singularity_img = '~/links/singularity_cache/jemunro-cavalier-dev.img',
-#   singularity_cmd = '/stornext/System/data/apps/singularity/singularity-3.7.3/bin/singularity')
-
 # set and check options
 assert_that(file.exists(opts$vcf),
-            file.exists(opts$ped))
+            file.exists(opts$ped),
+            opts$genome %in% c('hg19', 'hg38'))
+
+set_cavalier_opt(ref_genome = opts$genome)
 
 sample_bams <- 
   setNames(str_extract(opts$sample_bam, '[^=]+$'),
