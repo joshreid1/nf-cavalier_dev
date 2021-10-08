@@ -82,7 +82,11 @@ list_df <-
   rename(symbol = gene) %>% 
   filter(!is.na(symbol)) %>% 
   mutate(symbol = hgnc_sym2sym(symbol),
-         list_id_url = list_name_url) %>% 
+         list_id_url = list_name_url) %>%
+  distinct() %>%
+  group_by(list_id, list_name, list_id_url, list_name_url, symbol) %>%
+  summarise(across(everything(), ~ str_c(sort(unique(na.omit(.))), collapse = '; ')),
+            .groups = 'drop') %>%
   nest(data = -symbol)
 
     # load variants
