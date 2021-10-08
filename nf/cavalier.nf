@@ -1,14 +1,14 @@
 
 process cavalier {
     label 'C2M4T2'
-    container 'bahlolab/cavalier:latest'
-//    container null
-//    module 'R/3.6.1'
+    label 'cavalier'
+//    container = null
+//    module = 'R/3.6.1'
     publishDir "output/cavalier", mode: 'copy'
     tag { fam }
 
     input:
-        tuple val(fam), path(vcf), path(ped), path(lists), val(sam), path(bam), path(bai), path(genemap2)
+        tuple val(fam), path(vcf), path(ped), path(lists), val(sam), path(bam), path(bai)
 
     output:
         tuple val(fam), path("${fam}.pptx")
@@ -21,7 +21,6 @@ process cavalier {
         --out $fam \\
         --genome ${params.ref_hg38 ? 'hg38' : 'hg19'} \\
         --gene-lists ${lists.join(',')} \\
-        --omim-genemap2 $genemap2 \\
         --maf-dom $params.maf_dom \\
         --maf-de-novo $params.maf_de_novo \\
         --maf-rec $params.maf_rec \\

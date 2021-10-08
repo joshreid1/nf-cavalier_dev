@@ -1,3 +1,4 @@
+import java.text.SimpleDateFormat
 
 Path path(filename) {
     file(filename, checkIfExists: true)
@@ -40,4 +41,10 @@ ArrayList<ArrayList> get_families(ArrayList<Map> pedigree) {
             v.findAll {it.phe == '2'}.collect {it.iid},
             v.findAll {it.phe == '1'}.collect {it.iid}
         ] }
+}
+
+String date_ymd() {
+    date = new Date()
+    sdf = new SimpleDateFormat("yyyy-MM-dd")
+    sdf.format(date)
 }
