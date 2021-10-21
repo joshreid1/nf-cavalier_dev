@@ -45,6 +45,7 @@ bams = read_tsv(path(params.bams), ['iid', 'bam'])
 lists = read_tsv(path(params.lists), ['fid', 'list'])
 ref_fasta = path(params.ref_fasta)
 ref_fai = path(params.ref_fasta + '.fai')
+vep_cache = path(params.vep_cache)
 
 workflow {
 
@@ -100,7 +101,7 @@ workflow {
         flatten |
         map { [it.name.replaceFirst(params.id + '-', '').replaceFirst('.vcf.gz', ''), it] } |
         vcf_flatten_multi |
-        combine([[ref_fasta, ref_fai]]) |
+        combine([[ref_fasta, ref_fai, vep_cache]]) |
         vep |
         vep_filter |
         toSortedList |
