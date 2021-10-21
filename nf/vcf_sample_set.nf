@@ -1,7 +1,7 @@
 
-process vcf_sample_list {
+process vcf_sample_set {
     label 'C1M1T1'
-    publishDir "progress/vcf_sample_list", mode: 'symlink'
+    publishDir "progress/vcf_sample_set", mode: 'symlink'
 
     input:
         path(vcf)

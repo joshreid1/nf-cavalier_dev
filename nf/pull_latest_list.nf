@@ -1,10 +1,10 @@
 
-process get_latest_version {
+process pull_latest_list {
     label 'C1M1T1'
     label 'cavalier'
 //    container = null
 //    module = 'R/3.6.1'
-    publishDir "output/get_latest_version", mode: 'copy'
+    publishDir "output/pull_latest_list", mode: 'copy'
     tag { "$id:v$ver" }
 
     input:
