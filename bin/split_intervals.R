@@ -16,10 +16,6 @@ Options:
   pref          Output file prefix
 "
 
-# opts <- docopt(doc, c('/stornext/Bioinf/data/lab_bahlo/ref_db/human/hg38/GATK/fasta_no_alt/hg38.no_alt.fasta.fai',
-#                       './data/hg38.gaps.bed.gz',
-#                       '50',
-#                       'split'))
 opts <- docopt(doc)
 
 n <- as.integer(opts$n)
@@ -37,6 +33,7 @@ read_tsv(opts$ref_fai,
            format(as.integer(as.factor(set))), '\\s', '0')) %>% 
   nest(data = -set) %>% 
   pwalk(function(set, data) {
-    with(data, GRanges(seqnames, IRanges(start, end))) %>% 
-      export.bed(str_c(opts$pref, '-', set, '.bed'))
+    select(data, 1:3) %>% 
+      write_tsv(str_c(opts$pref, '-', set, '.intervals.tsv'),
+                col_names = FALSE)
   })

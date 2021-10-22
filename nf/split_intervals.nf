@@ -9,7 +9,7 @@ process split_intervals {
         tuple val(n), path(ref_fai), path(gaps)
 
     output:
-        path("split-*.bed")
+        path("split-*.intervals.tsv")
 
     script:
     """

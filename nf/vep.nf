@@ -1,38 +1,67 @@
 
-
-
 process vep {
-    label 'C2M8T4'
+    label 'C2M4T2'
     publishDir "output/vep", mode: 'symlink'
 
     input:
-        tuple val(id), path(vcf), path(fasta), path(fai), path(cache)
+        tuple path(vcf), path(fasta), path(fai), path(cache)
 
     output:
-        tuple val(id), path(out_vcf), path("${out_vcf}.tbi")
+        path(out_vcf)
 
     script:
-    out_vcf = "${id}.vep.vcf.gz"
+    out_vcf = vcf.name.replaceAll('.bcf', '.vep.bcf')
+    vep_output_opts = [
+        '--sift b',
+        '--polyphen b',
+        '--ccds',
+        '--hgvs',
+        '--hgvsg',
+        '--symbol',
+        '--numbers',
+        '--protein',
+        '--af',
+        '--af_1kg',
+        '--af_gnomad',
+        '--max_af',
+        '--variant_class',
+//        '--mane'
+//        '--var_synonyms',
+//        '--pubmed',
+//        '--af_esp',
+//        '--gene_phenotype',
+//        '--appris',
+//        '--tsl',
+//        '--uniprot',
+//        '--biotype',
+//        '--canonical',
+//        '--regulatory',
+//        '--domains',
+    ].join(' ')
+
+    vep_filter_opts = [
+        '--pick_allele_gene',
+        '--no_intergenic'
+//        '--allow_non_variant',
+//        '--dont_skip',
+    ].join(' ')
     """
-    vep --input_file $vcf \\
-        --format vcf \\
-        --vcf \\
-        --cache \\
-        --offline \\
-        --everything \\
-        --max_af \\
-        --allele_number \\
-        --variant_class \\
-        --dont_skip \\
-        --hgvsg \\
-        --fasta $fasta \\
-        --assembly $params.vep_assembly \\
-        --cache_version $params.vep_cache_ver \\
-        --dir $cache \\
-        --allow_non_variant \\
-        --pick_allele_gene \\
-        --output_file STDOUT | \\
-        bcftools view --no-version -Oz -o $out_vcf
-    bcftools index -t $out_vcf
+    bcftools view --no-version  $vcf |
+        vep --input_file STDIN \\
+            $vep_output_opts \\
+            $vep_filter_opts \\
+            --fork 2 \\
+            --format vcf \\
+            --vcf \\
+            --cache \\
+            --offline \\
+            --no_stats \\
+            --fasta $fasta \\
+            --assembly $params.vep_assembly \\
+            --cache_version $params.vep_cache_ver \\
+            --dir $cache \\
+            --output_file STDOUT | \\
+        bcftools view --threads 2 --no-version -Ob -o $out_vcf
     """
+    //    bcftools index --threads 2 -t $out_vcf
 }

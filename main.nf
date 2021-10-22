@@ -23,24 +23,21 @@ params.vep_cache = ''
 params.vep_cache_ver = ''
 params.vep_assembly = params.ref_hg38 ? 'GRCh38' : 'GRCh37'
 // exec params
-params.chunk_size = 250000
+params.chunk_size = 200000
 
 include { path; read_tsv; get_families; date_ymd } from './nf/functions'
-
-
-include { vcf_sample_set } from './nf/vcf_sample_set'
-include { vcf_count } from './nf/vcf_count'
+include { check_inputs } from './nf/check_inputs'
 include { update_list_versions } from './nf/update_list_versions'
 include { pull_latest_list } from './nf/pull_latest_list'
+include { vcf_sample_set } from './nf/vcf_sample_set'
+include { vcf_count } from './nf/vcf_count'
+include { split_intervals } from './nf/split_intervals'
 include { vcf_split_norm } from './nf/vcf_split_norm'
-//include { vcf_flatten_multi } from './nf/vcf_flatten_multi'
+
 include { vep } from './nf/vep'
-include { vep_filter } from './nf/vep_filter'
 include { vcf_merge } from './nf/vcf_merge'
 include { vcf_family_subset } from './nf/vcf_family_subset'
 include { cavalier } from './nf/cavalier'
-include { check_inputs } from './nf/check_inputs'
-include { split_intervals } from './nf/split_intervals'
 
 vcf = path(params.vcf)
 tbi = path(params.vcf + '.tbi')
@@ -107,6 +104,7 @@ workflow {
             groupTuple(by: 0)
     }
 
+//    split_variants =
     Channel.value([vcf, tbi]) |
         vcf_count |
         map { Math.ceil((it.toFile().text as int) / params.chunk_size) as int } |
@@ -114,7 +112,23 @@ workflow {
         split_intervals |
         flatten() |
         map { [it, vcf, tbi, ref_fa, ref_fai] } |
-        vcf_split_norm
+        vcf_split_norm |
+        flatten() |
+        map { [it, ref_fa, ref_fai, vep_cache] } |
+        vep
+
+    //        map { [it[0], it[1], it[2].toFile().text as int] } |
+//        branch {
+//            high: it[2] > params.chunk_size
+//            low: true
+//        }
+
+//    split_variants.high |
+//        map { it[0..1] } |
+//        vcf_split_further |
+//        flatten() |
+//        mix(split_variants.low.map { it[0] }) |
+
 
 //    Channel.value([vcf, tbi]) |
 //        vcf_split |
