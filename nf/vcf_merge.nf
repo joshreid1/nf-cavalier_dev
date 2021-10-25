@@ -1,18 +1,19 @@
 
 process vcf_merge {
     label 'C2M2T2'
-    publishDir "output/vcf_merge", mode: 'symlink'
+    publishDir "output/vcf_merge", mode: 'copy'
 
     input:
-    tuple file(vcfs), file(tbis)
+    path(file_list)
 
     output:
-    tuple file(out_vcf), file("${out_vcf}.tbi")
+    tuple val(set), path(out_vcf), path("${out_vcf}.csi")
 
     script:
-    out_vcf = "${params.id}.vep-filtered.merged.vcf.gz"
+    set = file_list.name.replaceAll('.files.txt', '')
+    out_vcf = "${params.id}.${set}.bcf"
     """
-    bcftools concat -a --no-version --threads $task.cpus -Oz ${vcfs.join(' ')} > $out_vcf
-    bcftools index -t $out_vcf
+    bcftools concat --naive-force --file-list $file_list -Ob -o $out_vcf
+    bcftools index --threads 2 $out_vcf
     """
 }

@@ -26,14 +26,16 @@ class VcfWriteProc:
 def main(pref, chunk_size, as_bcf):
     n = 0
     i = 1
+    ix = '01'
     vf_in = VariantFile('-')
-    vf_out = VcfWriteProc("{}-{}".format(pref, i), vf_in.header, as_bcf)
+    vf_out = VcfWriteProc("{}-{}".format(pref, ix), vf_in.header, as_bcf)
     for rec in vf_in:
         if n == chunk_size:
             vf_out.close()
             n = 0
             i += 1
-            vf_out = VcfWriteProc("{}-{}".format(pref, i), vf_in.header, as_bcf)
+            ix = ('0' + str(i)) if i < 10 else str(i)
+            vf_out = VcfWriteProc("{}-{}".format(pref, ix), vf_in.header, as_bcf)
         vf_out.write(rec)
         n += 1
     vf_out.close()

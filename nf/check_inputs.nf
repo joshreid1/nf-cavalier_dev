@@ -12,13 +12,18 @@ workflow check_inputs {
     // check families
     ped_families = ped.collect { it.fid }.unique()
     list_families = lists.collect { it.fid }.unique()
+    ped_w_aff =
+        ped.groupBy { it.fid }
+        .collect { k, v -> [
+            k,  v.findAll {it.phe == '2'}.collect {it.iid} ] }
+        .findAll { it[1].size() > 0 }
+        .collect { it[0] }
+    ped_list_samples = ped
+        .findAll { list_families.intersect(ped_w_aff).contains(it.fid) }
+        .collect { it.iid }
+        .unique()
 
-    [['with no affected members',
-      ped.groupBy { it.fid }
-          .collect { k, v -> [
-              k,  v.findAll {it.phe == '2'}.collect {it.iid} ] }
-          .findAll { it[1].size() == 0 }
-          .collect { it[0] }],
+    [['with no affected members', ped_families - ped_w_aff],
      ['in "lists" but not in "ped"', list_families - ped_families],
      ['in "ped" but not in "lists"', ped_families - list_families]]
         .findAll { it[1].size() > 0}
@@ -46,5 +51,14 @@ workflow check_inputs {
             n = sm.size()
             sm = n > 5 ? sm[0..4] + ['...'] : sm
             println "[WARNING]: $n sample${n > 1 ? 's':''} $warn: ${sm.join(', ')}"
+        }
+
+    //     check there is any work to be done
+    vcf_samples |
+        map {
+            complete = it.intersect(ped_list_samples).intersect(bam_samples)
+            if (complete.size() == 0) {
+                throw new Exception("[ERROR]: No samples to process")
+            }
         }
 }

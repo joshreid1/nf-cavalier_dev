@@ -104,7 +104,7 @@ workflow {
             groupTuple(by: 0)
     }
 
-//    split_variants =
+
     Channel.value([vcf, tbi]) |
         vcf_count |
         map { Math.ceil((it.toFile().text as int) / params.chunk_size) as int } |
@@ -115,40 +115,19 @@ workflow {
         vcf_split_norm |
         flatten() |
         map { [it, ref_fa, ref_fai, vep_cache] } |
-        vep
-
-    //        map { [it[0], it[1], it[2].toFile().text as int] } |
-//        branch {
-//            high: it[2] > params.chunk_size
-//            low: true
-//        }
-
-//    split_variants.high |
-//        map { it[0..1] } |
-//        vcf_split_further |
-//        flatten() |
-//        mix(split_variants.low.map { it[0] }) |
-
-
-//    Channel.value([vcf, tbi]) |
-//        vcf_split |
-//        flatten |
-//        map { [it.name.replaceFirst(params.id + '-', '').replaceFirst('.vcf.gz', ''), it] } |
-//        vcf_flatten_multi |
-//        combine([[ref_fa, ref_fai, vep_cache]]) |
-//        vep |
-//        vep_filter |
-//        toSortedList |
-//        transpose |
-//        toList |
-//        map { it[1..2] } |
-//        vcf_merge |
-//        map { it[0] } |
-//        combine(families) |
-//        vcf_family_subset |
-//        map { it[0..1] } |
-//        combine(ped_channel, by:0) |
-//        combine(list_channel, by:0) |
-//        combine(bam_channel, by:0) |
-//        cavalier
+        vep |
+        flatMap { [['vep', it[0]],  ['vep-modifier', it[1]], ['unannotated', it[2]]] } |
+        collectFile(newLine: true, sort: { new File(it).toPath().fileName.toString() } ) {
+            ["${it[0]}.files.txt", it[1].toString()] } |
+        vcf_merge |
+        filter { it[0] == 'vep' } |
+        map { it[1] } |
+        first() |
+        combine(families) |
+        vcf_family_subset |
+        map { it[0..1] } |
+        combine(ped_channel, by:0) |
+        combine(list_channel, by:0) |
+        combine(bam_channel, by:0) |
+        cavalier
 }

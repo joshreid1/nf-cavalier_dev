@@ -1,16 +1,18 @@
 
 process vep {
-    label 'C2M4T2'
+    label 'C4M4T1'
     publishDir "output/vep", mode: 'symlink'
 
     input:
         tuple path(vcf), path(fasta), path(fai), path(cache)
 
     output:
-        path(out_vcf)
+        tuple path(vep_vcf), path(mod_vcf), path(unann_vcf)
 
     script:
-    out_vcf = vcf.name.replaceAll('.bcf', '.vep.bcf')
+    vep_vcf = vcf.name.replaceAll('.bcf', '.vep.bcf')
+    mod_vcf = vcf.name.replaceAll('.bcf', '.vep-modifier.bcf')
+    unann_vcf = vcf.name.replaceAll('.bcf', '.unannotated.bcf')
     vep_output_opts = [
         '--sift b',
         '--polyphen b',
@@ -46,11 +48,13 @@ process vep {
 //        '--dont_skip',
     ].join(' ')
     """
+    mkfifo vep_out
+    mkfifo filter_in
     bcftools view --no-version  $vcf |
         vep --input_file STDIN \\
             $vep_output_opts \\
             $vep_filter_opts \\
-            --fork 2 \\
+            --fork 4 \\
             --format vcf \\
             --vcf \\
             --cache \\
@@ -60,8 +64,29 @@ process vep {
             --assembly $params.vep_assembly \\
             --cache_version $params.vep_cache_ver \\
             --dir $cache \\
-            --output_file STDOUT | \\
-        bcftools view --threads 2 --no-version -Ob -o $out_vcf
+            --output_file STDOUT |
+            bcftools view --no-version -Ou |
+            tee vep_out | \\
+            bcftools view --no-version -i "INFO/CSQ ~ '\\\\.'" -Ov |
+            tee filter_in |
+            filter_vep \\
+                --format vcf \\
+                --only_matched \\
+                --filter "IMPACT in LOW,MODERATE,HIGH" |
+            bcftools view --no-version -Ob -o $vep_vcf &
+    
+    bcftools view --no-version vep_out \\
+        -e "INFO/CSQ ~ '\\\\.'" \\
+        -Ob -o $unann_vcf &
+
+    cat filter_in |
+        filter_vep \\
+        --format vcf \\
+        --only_matched \\
+        --filter "IMPACT is MODIFIER" |
+        bcftools view --no-version -Ob -o $mod_vcf
+
+    wait && rm vep_out filter_in
     """
     //    bcftools index --threads 2 -t $out_vcf
 }
