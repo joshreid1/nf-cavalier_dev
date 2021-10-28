@@ -1,10 +1,10 @@
 
-process check_latest_version {
+process update_list_versions {
     label 'C1M1T1'
     label 'cavalier'
 //    container = null
 //    module = 'R/3.6.1'
-    publishDir "output/get_web_version", mode: 'copy'
+    publishDir "progress/update_list_versions", mode: 'symlink'
     tag { date }
 
     input:

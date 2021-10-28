@@ -24,7 +24,8 @@ Nextflow Pipeline for singleton and family based candidate variant prioritisatio
       maf_de_novo = 0.0001
       max_cohort_af = 1.0
       min_impact = 'MODERATE'
-      
+      exclude_benign_missense = true
+  
       // reference config
       ref_hg38 = true
       ref_fasta = '/stornext/Bioinf/data/lab_bahlo/ref_db/human/hg38/GATK/fasta_no_alt/hg38.no_alt.fasta'
@@ -50,9 +51,11 @@ Nextflow Pipeline for singleton and family based candidate variant prioritisatio
         AGHA#289        Ataxia_Superpanel       0.437   ABCB7   X-LINKED        GREEN
         AGHA#289        Ataxia_Superpanel       0.437   ABCD1   X-LINKED        GREEN
         ```
+    * `exclude_benign_missense` - exclude missense variants that are predicted/annotated as benign by all of Sift, 
+    Polyphen and ClinVar. Missing annotations are ignored.
 * First run:  
 `nextflow run /PATH/TO/nf-cavalier`
 * Resume run:  
 `nextflow run /PATH/TO/nf-cavalier -resume`
-* Recommended to execute commands with either `nohup` or `screen`
+* Recommended to run workflow in a `screen` session
   

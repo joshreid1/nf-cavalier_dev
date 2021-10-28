@@ -14,6 +14,8 @@ RUN apt-get update \
         xauth \
         openjdk-11-jdk-headless \
         openjdk-11-jdk \
+        libbz2-dev \
+        liblzma-dev \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 # Install IGV
