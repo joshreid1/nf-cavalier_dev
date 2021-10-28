@@ -2,8 +2,6 @@
 process cavalier {
     label 'C2M4T2'
     label 'cavalier'
-//    container = null
-//    module = 'R/3.6.1'
     publishDir "output/cavalier", mode: 'copy'
     tag { fam }
 
@@ -26,7 +24,8 @@ process cavalier {
         --maf-rec $params.maf_rec \\
         --maf-comp-het $params.maf_comp_het \\
         --max-cohort-af $params.max_cohort_af \\
-        --min-impact $params.min_impact
+        --min-impact $params.min_impact \\
+        ${params.exclude_benign_missense ? '--exclude-benign-missense': ''}
     """
 }
 

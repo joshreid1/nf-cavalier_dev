@@ -10,7 +10,7 @@ Usage:
   split_intervals.R <ref_fai> <gaps_bed> <n> <pref>
 
 Options:
-  ref           Reference fasta fai file
+  ref_fai       Reference fasta fai file
   gaps_bed      Bed file with Gap positions
   n             Maximum/Ideal number of regions to split
   pref          Output file prefix
@@ -24,13 +24,13 @@ read_tsv(opts$ref_fai,
          col_names = c('chrom', 'len', 'offset', 'lb', 'lw'),
          col_types = c('cidii')) %>% 
   with(GRanges(chrom,IRanges(1, len)))  %>% 
-  { suppressWarnings(setdiff(., import.bed(opts$gaps_bed))) } %>% 
+  { suppressWarnings(GenomicRanges::setdiff(., import.bed(opts$gaps_bed))) } %>%
   GenomicRanges::reduce() %>% 
   as_tibble() %>% 
   mutate(tot = cumsum(as.numeric(width)),
          set = 1 + tot %/% (ceiling(last(tot) / n)),
          set = str_replace_all(
-           format(as.integer(as.factor(set))), '\\s', '0')) %>% 
+           format(as.integer(as.factor(set))), '\\s', '0')) %>%
   nest(data = -set) %>% 
   pwalk(function(set, data) {
     select(data, 1:3) %>% 

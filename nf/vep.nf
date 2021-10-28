@@ -1,7 +1,7 @@
 
 process vep {
     label 'C4M4T1'
-    publishDir "output/vep", mode: 'symlink'
+    publishDir "progress/vep", mode: 'symlink'
 
     input:
         tuple path(vcf), path(fasta), path(fai), path(cache)
@@ -88,5 +88,4 @@ process vep {
 
     wait && rm vep_out filter_in
     """
-    //    bcftools index --threads 2 -t $out_vcf
 }

@@ -9,13 +9,13 @@ params.bams = ''
 params.lists = ''
 // filter params
 params.max_af = 0.10
-params.vep_impact = ['LOW', 'MODERATE', 'HIGH']
 params.maf_dom = 0.0001
 params.maf_de_novo = 0.0001
 params.maf_rec = 0.01
 params.maf_comp_het = 0.01
 params.max_cohort_af = 1.0
 params.min_impact = 'MODERATE'
+params.exclude_benign_missense = true
 // ref params
 params.ref_fasta = ''
 params.ref_hg38 = true
@@ -103,7 +103,6 @@ workflow {
             map { [it[0], path(it[1])] } |
             groupTuple(by: 0)
     }
-
 
     Channel.value([vcf, tbi]) |
         vcf_count |

@@ -4,7 +4,7 @@ process update_list_versions {
     label 'cavalier'
 //    container = null
 //    module = 'R/3.6.1'
-    publishDir "output/update_list_versions", mode: 'copy'
+    publishDir "progress/update_list_versions", mode: 'symlink'
     tag { date }
 
     input:

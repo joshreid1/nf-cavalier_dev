@@ -3,7 +3,7 @@
 process split_intervals {
     label 'C2M2T8'
     label 'cavalier'
-    publishDir "output/split_intervals", mode: 'symlink'
+    publishDir "progress/split_intervals", mode: 'symlink'
 
     input:
         tuple val(n), path(ref_fai), path(gaps)

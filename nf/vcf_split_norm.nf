@@ -2,7 +2,7 @@
 
 process vcf_split_norm {
     label 'C2M2T2'
-    publishDir "output/vcf_split_norm", mode: 'symlink'
+    publishDir "progress/vcf_split_norm", mode: 'symlink'
 
     input:
         tuple path(regions), path(vcf), path(tbi), path(ref), path(ref_fai)

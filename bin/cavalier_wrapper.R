@@ -25,6 +25,7 @@ Options:
   --min-depth=<f>             Minimum depth for variant [default: 5].
   --max-cohort-ac=<f>         Maximum allele count within cohort [default: Inf].
   --max-cohort-af=<f>         Maximum allele frequency within cohort [default: Inf].
+  --exclude-benign-missense   Exclude missense variants that are predicted to be benign by sift, polyphen and ClinVar
 "
 
 opts <- docopt(doc)
@@ -41,9 +42,6 @@ assert_that(file.exists(opts$vcf),
             opts$genome %in% c('hg19', 'hg38'))
 
 set_cavalier_opt(ref_genome = opts$genome)
-set_cavalier_opt(
-  singularity_img = '~/links/singularity_cache/jemunro-cavalier-dev.img',
-  singularity_cmd = '/stornext/System/data/apps/singularity/singularity-3.7.3/bin/singularity')
 insecure()
 
 sample_bams <- 
@@ -73,9 +71,9 @@ list_df <-
   }) %>% 
   mutate(list_name_url = case_when(
     str_starts(list_id, 'PAA:') ~ str_c('https://panelapp.agha.umccr.org/panels/', 
-                                         str_extract(list_id, '(?<=PAA:)\\d+')),
+                                        str_extract(list_id, '(?<=PAA:)\\d+')),
     str_starts(list_id, 'PAE:') ~ str_c('https://panelapp.genomicsengland.co.uk/panels/', 
-                                       str_extract(list_id, '(?<=PAE:)\\d+')),
+                                        str_extract(list_id, '(?<=PAE:)\\d+')),
     str_starts(list_id, 'HP:') ~ str_c('https://hpo.jax.org/app/browse/term/', 
                                        list_id)
   )) %>% 
@@ -85,8 +83,12 @@ list_df <-
          list_id_url = list_name_url) %>%
   distinct() %>%
   group_by(list_id, list_name, list_id_url, list_name_url, symbol) %>%
-  summarise(across(everything(), ~ str_c(sort(unique(na.omit(.))), collapse = '; ')),
-            .groups = 'drop') %>%
+  (function(x) 
+    `if`(n_groups(x) < nrow(x),
+         summarise(x,
+                   across(everything(), ~ str_c(sort(unique(na.omit(.))), collapse = '; ')),
+                   .groups = 'drop'),
+         ungroup(x))) %>%
   nest(data = -symbol)
 
     # load variants
@@ -106,16 +108,29 @@ layout <-
                       slide_num = 2L))
   )
 
-# get candidates and print slides
+# get candidates 
 cand_vars <-
   vars %>% 
-  filter(replace_na(sift != 'tolerated' |  polyphen != 'benign', TRUE),
-         replace_na(!(is.na(sift) & polyphen == 'benign'), TRUE),
-         replace_na(!(is.na(polyphen) & polyphen == 'tolerated'), TRUE),
-         AC <= max_cohort_ac,
+  (function(x) {
+    if (opts$exclude_benign_missense) {
+      x %>% 
+        mutate(idx = seq_along(variant_id)) %>% 
+        filter(consequence == 'missense_variant') %>% 
+        select(idx, sift, polyphen, clin_sig) %>% 
+        mutate(sift = sift > ordered('tolerated', levels(sift)),
+               polyphen = polyphen > ordered('benign', levels(polyphen)),
+               clin_sig = clin_sig > ordered('likely_benign ', levels(clin_sig)),
+               all_na = is.na(sift) & is.na(polyphen) & is.na(clin_sig),
+               any_pass = replace_na(sift | polyphen | clin_sig, FALSE) | all_na) %>% 
+        filter(any_pass) %>% 
+        pull(idx) %>% 
+        { filter(x, consequence != 'missense_variant' | (seq_along(variant_id) %in% .)) }
+    } else { x }
+  }) %>%
+  filter(AC <= max_cohort_ac,
          AF <= max_cohort_af,
          impact >= min_impact,
-         gene %in% list_df$symbol) %>%
+         gene %in% list_df$symbol) %>% 
   add_inheritance(ped_file = opts$ped,
                   af_column = 'af_gnomad',
                   af_compound_het = maf_comp_het,
@@ -126,10 +141,13 @@ cand_vars <-
   left_join(select(list_df, gene = symbol, panel_data = data),
             by = 'gene') %>%
   mutate(title = str_c(opts$out, ' - ', gene),
-         cohort_AC_AF = str_c(AC, ' (', round(AF, 2), ')')) %>% 
-  create_slides(output = str_c(opts$out, '.pptx'),
-                bam_files = sample_bams,
-                ped_file = opts$ped,
-                layout = layout,
-                var_info = c(cavalier:::get_var_info(),
-                             cohort_AC_AF = 'cohort_AC_AF'))
+         cohort_AC_AF = str_c(AC, ' (', round(AF, 2), ')'))
+
+# create slides
+create_slides(cand_vars,
+              output = str_c(opts$out, '.pptx'),
+              bam_files = sample_bams,
+              ped_file = opts$ped,
+              layout = layout,
+              var_info = c(cavalier::get_var_info(),
+                           cohort_AC_AF = 'cohort_AC_AF'))
