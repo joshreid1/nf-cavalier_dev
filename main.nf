@@ -74,7 +74,7 @@ workflow {
     bam_channel = Channel.from(bams) |
         map { [it.iid, path(it.bam), path(it.bam + '.bai')] } |
         combine(ped.collect { [it.iid, it.fid] }, by: 0) |
-        map { it[[3 ,0,1, 2]] } |
+        map { it[[3,0,1,2]] } |
         groupTuple(by: 0)
 
     if (lists.any { it.list  ==~ '^(HP|PA[AE]):.+'}) {
