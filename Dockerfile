@@ -27,7 +27,9 @@ RUN /opt/conda/envs/$NAME/bin/Rscript --vanilla install_packages.R GITHUB:github
 
 # set R ENV variables and add IGV to R PATH
 RUN cp /opt/conda/envs/$NAME/bin/igv /opt/conda/envs/$NAME/bin/igv.sh \
-    && echo 'PATH=/opt/conda/envs/$NAME/bin' >> /opt/conda/envs/$NAME/lib/R/etc/Renviron
+    && echo "PATH=/opt/conda/envs/$NAME/bin:/opt/conda/bin:${PATH}" >> \
+    /opt/conda/envs/$NAME/lib/R/etc/Renviron
+
 ENV PATH="/opt/conda/envs/$NAME/bin:/opt/conda/bin:${PATH}" \
     TZ=Etc/UTC \
     R_HOME=/opt/conda/envs/$NAME/lib/R/ \
