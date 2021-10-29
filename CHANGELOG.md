@@ -1,6 +1,10 @@
 # Changelog: nf-cavalier
 <!--- https://keepachangelog.com/en/1.0.0/ --->
 
+## [Unreleased]
+### Changed
+- Merge cavalier-pre and cavalier containers, install majority of R packages with conda for faster builds
+
 ## [21.10.2](https://github.com/bahlolab/nf-cavalier/releases/tag/21.10.2) - 29 Oct 2021
 ### Fixed
 - VEP cache directory not passed as Nextflow Path, causing directory not to be mounted in Singularity images.

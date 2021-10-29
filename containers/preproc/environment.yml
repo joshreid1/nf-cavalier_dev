@@ -1,8 +1,0 @@
-name: cavalier_preproc_v0.0
-channels:
-    - conda-forge
-    - bioconda
-dependencies:
-    - bcftools
-    - pysam
-    - ensembl-vep=104.3
