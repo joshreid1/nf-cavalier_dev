@@ -22,13 +22,14 @@ RUN conda env create -f /environment.yml \
     && conda env export --name $NAME > $NAME.yml
 
 # Install cavalier R package
-#COPY inst/install_packages.R inst/github_packages.txt /
-#RUN Rscript --vanilla install_packages.R GITHUB:github_packages.txt
-#
-## set R ENV variables and add IGV to R PATH
-#RUN sed 's:^PATH=:PATH=/IGV_2.11.0\::' -i /usr/local/lib/R/etc/Renviron
-#ENV PATH="/opt/conda/envs/$NAME/bin:/opt/conda/bin:${PATH}" \
-#    TZ=Etc/UTC \
-#    R_HOME=/usr/local/lib/R/ \
-#    R_ENVIRON=/usr/local/lib/R/etc/Renviron \
-#    R_LIBS_USER=/usr/local/lib/R/site-library
+COPY inst/install_packages.R inst/github_packages.txt /
+RUN Rscript --vanilla install_packages.R GITHUB:github_packages.txt
+
+# set R ENV variables and add IGV to R PATH
+RUN cp /opt/conda/envs/$NAME/bin/igv /opt/conda/envs/$NAME/bin/igv.sh \
+    && echo 'PATH=/opt/conda/envs/$NAME/bin' >> /opt/conda/envs/$NAME/lib/R/etc/Renviron
+ENV PATH="/opt/conda/envs/$NAME/bin:/opt/conda/bin:${PATH}" \
+    TZ=Etc/UTC \
+    R_HOME=/opt/conda/envs/$NAME/lib/R/ \
+    R_ENVIRON=/opt/conda/envs/$NAME/lib/R/etc/Renviron \
+    R_LIBS_USER=/opt/conda/envs/$NAME/lib/R/site-library
