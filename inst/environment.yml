@@ -17,7 +17,6 @@ dependencies:
     - r-ggplotify
     - r-officer
     - r-png
-    - r-ggimg
     - r-kinship2
     - r-dt
     - bioconductor-seqvartools
