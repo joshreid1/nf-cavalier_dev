@@ -1,0 +1,25 @@
+name: cavalier_dev
+channels:
+    - conda-forge
+    - bioconda
+dependencies:
+    - bcftools
+    - pysam
+    - ensembl-vep=104.3
+    - igv
+    - r-tidyverse
+    - r-docopt
+    - r-devtools
+    - r-abind
+    - r-cowplot
+    - r-gridextra
+    - r-flextable
+    - r-ggplotify
+    - r-officer
+    - r-png
+    - r-ggimg
+    - r-kinship2
+    - r-dt
+    - bioconductor-seqvartools
+    - bioconductor-genomicranges
+    - bioconductor-rtracklayer
