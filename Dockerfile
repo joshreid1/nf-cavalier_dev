@@ -16,13 +16,12 @@ RUN apt-get update \
 
 # Install the conda environment
 ARG NAME='cavalier_dev'
-COPY inst/environment.yml /
+COPY environment.yml /
 RUN conda env create -f /environment.yml \
     && conda clean -a -y \
     && conda env export --name $NAME > $NAME.yml
 
 # Install cavalier R package
-COPY inst/install_packages.R inst/github_packages.txt /
 RUN /opt/conda/envs/$NAME/bin/R --slave --vanilla -e \
     "devtools::install_github('jemunro/cavalier@931442c623b4e611a4a1c98154e63cd600a2e44f', \
         force = TRUE, upgrade = 'never')"

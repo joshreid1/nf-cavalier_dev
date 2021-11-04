@@ -40,7 +40,6 @@ workflow check_inputs {
     vcf_samples |
         map { ['in "bams" but not in "vcf"', bam_samples - it] } |
         mix(vcf_samples
-            .map { it + ["a_sam", "b_sam"] }
             .flatMap {
                 ne = it - (bam_samples + ped_samples)
                 [['in "vcf" and "bams" but not in "ped"', it - ne - ped_samples],

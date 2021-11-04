@@ -2,6 +2,8 @@
 <!--- https://keepachangelog.com/en/1.0.0/ --->
 
 ## [Unreleased]
+### Fixed
+- Test code resulting in warning `2 samples in "vcf" but not in "ped" or "bams": a_sam, b_sam` removed
 ### Changed
 - Merge cavalier-pre and cavalier containers, install majority of R packages with conda for faster builds
 
