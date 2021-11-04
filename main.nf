@@ -84,6 +84,7 @@ workflow {
                 web: it[1]  ==~ '^(HP|PA[AE]):.+'
                 file: true
             }
+
         list_channel =
             lists.web |
                 map { it[1] } |

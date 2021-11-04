@@ -15,7 +15,7 @@ process pull_latest_list {
 
     script:
         output = id.replaceAll(':', '_') + '_v' + ver + '.tsv'
-        cmd = "cavalier::get_web_list('$id', save='$output', secure=FALSE)"
+        cmd = "cavalier::get_web_list('$id', version='$ver', save='$output', secure=FALSE)"
         """
         R --slave --vanilla -e "$cmd"
         """

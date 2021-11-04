@@ -30,7 +30,7 @@ workflow check_inputs {
         .forEach { warn, fams ->
             n = fams.size()
             fams = n > 5 ? fams[0..4] + ['...'] : fams
-            println "[WARNING]: $n famil${n > 1 ? 'ies':'y'} $warn: ${fams.join(', ')}"
+            println "[-WARNING-] $n famil${n > 1 ? 'ies':'y'} $warn: ${fams.join(', ')}"
         }
 
     // check samples
@@ -57,7 +57,7 @@ workflow check_inputs {
         map {
             complete = it.intersect(ped_list_samples).intersect(bam_samples)
             if (complete.size() == 0) {
-                throw new Exception("[ERROR]: No samples to process")
+                throw new Exception("[--ERROR--] No samples to process")
             }
         }
 }

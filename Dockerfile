@@ -23,7 +23,7 @@ RUN conda env create -f /environment.yml \
 
 # Install cavalier R package
 RUN /opt/conda/envs/$NAME/bin/R --slave --vanilla -e \
-    "devtools::install_github('jemunro/cavalier@931442c623b4e611a4a1c98154e63cd600a2e44f', \
+    "devtools::install_github('jemunro/cavalier@2c12d5ff265df235c497ea9be27156ec106beaee', \
         force = TRUE, upgrade = 'never')"
 
 # ensure igv.sh exists and add conda executables to R PATH

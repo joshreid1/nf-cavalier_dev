@@ -27,7 +27,7 @@ def main(pref, chunk_size, as_bcf):
     n = 0
     i = 1
     ix = '01'
-    vf_in = VariantFile('-')
+    vf_in = VariantFile('-', 'rb')
     vf_out = VcfWriteProc("{}-{}".format(pref, ix), vf_in.header, as_bcf)
     for rec in vf_in:
         if n == chunk_size:
