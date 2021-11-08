@@ -6,6 +6,7 @@
 - Test code resulting in warning `2 samples in "vcf" but not in "ped" or "bams": a_sam, b_sam` removed
 ### Changed
 - Merge cavalier-pre and cavalier containers, install the majority of R packages with conda for faster builds
+- PanelApp list versions save to cavalier cache to avoid downloading repeatedly across pipelines
 
 ## [21.10.2](https://github.com/bahlolab/nf-cavalier/releases/tag/21.10.2) - 29 Oct 2021
 ### Fixed
