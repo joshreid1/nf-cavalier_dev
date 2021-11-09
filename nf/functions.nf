@@ -48,3 +48,13 @@ String date_ymd() {
     sdf = new SimpleDateFormat("yyyy-MM-dd")
     sdf.format(date)
 }
+
+void checkMode(mode) {
+    if (! mode instanceof String) {
+        throw new Exception("[--ERROR--] Mode must be a string")
+    }
+    valid_modes = ['short', 'sv']
+    if (! valid_modes.contains(mode)) {
+        throw new Exception("[--ERROR--] Mode must be on of: '${valid_modes.join("', '")}'")
+    }
+}

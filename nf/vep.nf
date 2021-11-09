@@ -67,7 +67,7 @@ process vep {
             --output_file STDOUT |
             bcftools view --no-version -Ou |
             tee vep_out | \\
-            bcftools view --no-version -i "INFO/CSQ ~ '\\\\.'" -Ov |
+            bcftools view --no-version -i "INFO/CSQ ~ '.'" -Ov |
             tee filter_in |
             filter_vep \\
                 --format vcf \\
@@ -76,7 +76,7 @@ process vep {
             bcftools view --no-version -Ob -o $vep_vcf &
     
     bcftools view --no-version vep_out \\
-        -e "INFO/CSQ ~ '\\\\.'" \\
+        -e "INFO/CSQ ~ '.'" \\
         -Ob -o $unann_vcf &
 
     cat filter_in |

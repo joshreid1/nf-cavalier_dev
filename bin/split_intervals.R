@@ -20,7 +20,8 @@ opts <- docopt(doc)
 
 n <- as.integer(opts$n)
 
-read_tsv(opts$ref_fai, 
+x <-
+  read_tsv(opts$ref_fai,
          col_names = c('chrom', 'len', 'offset', 'lb', 'lw'),
          col_types = c('cidii')) %>% 
   with(GRanges(chrom,IRanges(1, len)))  %>% 
@@ -28,7 +29,7 @@ read_tsv(opts$ref_fai,
   GenomicRanges::reduce() %>% 
   as_tibble() %>% 
   mutate(tot = cumsum(as.numeric(width)),
-         set = 1 + tot %/% (ceiling(last(tot) / n)),
+         set = pmin(1 + tot %/% (ceiling(last(tot) / n)), n),
          set = str_replace_all(
            format(as.integer(as.factor(set))), '\\s', '0')) %>%
   nest(data = -set) %>% 

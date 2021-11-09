@@ -14,18 +14,32 @@ process cavalier {
     script:
     sam_bam = [sam, bam instanceof List ? bam: [bam]]
         .transpose().collect {it.join('=') }.join(' ')
-    """
-    cavalier_wrapper.R $vcf $ped $sam_bam \\
-        --out $fam \\
-        --genome ${params.ref_hg38 ? 'hg38' : 'hg19'} \\
-        --gene-lists ${lists.join(',')} \\
-        --maf-dom $params.maf_dom \\
-        --maf-de-novo $params.maf_de_novo \\
-        --maf-rec $params.maf_rec \\
-        --maf-comp-het $params.maf_comp_het \\
-        --max-cohort-af $params.max_cohort_af \\
-        --min-impact $params.min_impact \\
-        ${params.exclude_benign_missense ? '--exclude-benign-missense': ''}
-    """
+    if (params.mode == 'short')
+        """
+        cavalier_wrapper.R $vcf $ped $sam_bam \\
+            --out $fam \\
+            --genome ${params.ref_hg38 ? 'hg38' : 'hg19'} \\
+            --gene-lists ${lists.join(',')} \\
+            --maf-dom $params.maf_dom \\
+            --maf-de-novo $params.maf_de_novo \\
+            --maf-rec $params.maf_rec \\
+            --maf-comp-het $params.maf_comp_het \\
+            --max-cohort-af $params.max_cohort_af \\
+            --min-impact $params.min_impact \\
+            ${params.exclude_benign_missense ? '--exclude-benign-missense': ''}
+        """
+    else if (params.mode == 'sv')
+        """
+        cavalier_wrapper_sv.R $vcf $ped $sam_bam \\
+            --out $fam \\
+            --genome ${params.ref_hg38 ? 'hg38' : 'hg19'} \\
+            --gene-lists ${lists.join(',')} \\
+            --maf-dom $params.maf_dom \\
+            --maf-de-novo $params.maf_de_novo \\
+            --maf-rec $params.maf_rec \\
+            --maf-comp-het $params.maf_comp_het \\
+            --max-cohort-af $params.max_cohort_af \\
+            --min-impact $params.min_impact
+        """
 }
 

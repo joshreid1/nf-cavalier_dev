@@ -1,19 +1,22 @@
 
+params.naive = true
+
 process vcf_merge {
     label 'C2M2T2'
     publishDir "output/vcf_merge", mode: 'copy'
+    tag { set }
 
     input:
-    path(file_list)
+    tuple val(set), path(file_list)
 
     output:
     tuple val(set), path(out_vcf), path("${out_vcf}.csi")
 
     script:
-    set = file_list.name.replaceAll('.files.txt', '')
     out_vcf = "${params.id}.${set}.bcf"
     """
-    bcftools concat --naive-force --file-list $file_list -Ob -o $out_vcf
+    bcftools concat ${params.naive ? '--naive-force' : '-a' } \\
+        --file-list $file_list -Ob -o $out_vcf
     bcftools index --threads 2 $out_vcf
     """
 }

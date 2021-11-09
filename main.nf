@@ -2,6 +2,7 @@
 nextflow.enable.dsl=2
 
 //imput params
+params.mode = 'short'
 params.id = ''
 params.vcf = ''
 params.ped = ''
@@ -24,8 +25,11 @@ params.vep_cache_ver = ''
 params.vep_assembly = params.ref_hg38 ? 'GRCh38' : 'GRCh37'
 // exec params
 params.chunk_size = 200000
+// sv params
+params.pop_sv = 'nstd186.GRCh38.variant_call.vcf.gz'
+params.sv_type_match = [DEL: ['DEL'], DUP: ['CNV', 'DUP']]
 
-include { path; read_tsv; get_families; date_ymd } from './nf/functions'
+include { path; read_tsv; get_families; date_ymd; checkMode } from './nf/functions'
 include { check_inputs } from './nf/check_inputs'
 include { update_list_versions } from './nf/update_list_versions'
 include { pull_latest_list } from './nf/pull_latest_list'
@@ -33,12 +37,17 @@ include { vcf_sample_set } from './nf/vcf_sample_set'
 include { vcf_count } from './nf/vcf_count'
 include { split_intervals } from './nf/split_intervals'
 include { vcf_split_norm } from './nf/vcf_split_norm'
+include { vcf_split_sv_types } from './nf/vcf_split_sv_types'
+include { vcf_split_sv_types as vcf_split_sv_types_pop } from './nf/vcf_split_sv_types'
 
 include { vep } from './nf/vep'
+include { vep_plugin_svo } from './nf/vep_plugin_svo'
 include { vcf_merge } from './nf/vcf_merge'
+include { vcf_merge as vcf_merge_svo } from './nf/vcf_merge' addParams(naive:false)
 include { vcf_family_subset } from './nf/vcf_family_subset'
 include { cavalier } from './nf/cavalier'
 
+checkMode(params.mode)
 vcf = path(params.vcf)
 tbi = path(params.vcf + '.tbi')
 ped = read_tsv(path(params.ped), ['fid', 'iid', 'pid', 'mid', 'sex', 'phe'])
@@ -50,6 +59,15 @@ gaps = params.ref_hg38 ?
     path("${workflow.projectDir}/data/hg38.gaps.bed.gz") :
     path("${workflow.projectDir}/data/hg19.gaps.bed.gz")
 vep_cache = path(params.vep_cache)
+
+if (params.mode == 'sv') {
+    pop_sv = path(params.pop_sv)
+    pop_sv_tbi = path(params.pop_sv + '.tbi')
+    sv_type_match_rev = params.sv_type_match
+        .collectMany { k, v -> v.collect { [it, k] }}
+        .groupBy { it[0] }
+        .collectEntries { k, v -> [(k) : v.collect{ it[1] }.unique()] }
+}
 
 workflow {
 
@@ -105,7 +123,8 @@ workflow {
             groupTuple(by: 0)
     }
 
-    Channel.value([vcf, tbi]) |
+    vep_vcf =
+        Channel.value([vcf, tbi]) |
         vcf_count |
         map { Math.ceil((it.toFile().text as int) / params.chunk_size) as int } |
         map { [it, ref_fai, gaps] } |
@@ -119,15 +138,48 @@ workflow {
         flatMap { [['vep', it[0]],  ['vep-modifier', it[1]], ['unannotated', it[2]]] } |
         collectFile(newLine: true, sort: { new File(it).toPath().fileName.toString() } ) {
             ["${it[0]}.files.txt", it[1].toString()] } |
+        map { [it.name.replaceAll('.files.txt', ''), it] } |
         vcf_merge |
         filter { it[0] == 'vep' } |
-        map { it[1] } |
-        first() |
-        combine(families) |
-        vcf_family_subset |
-        map { it[0..1] } |
-        combine(ped_channel, by:0) |
-        combine(list_channel, by:0) |
-        combine(bam_channel, by:0) |
-        cavalier
+        map { it[1..2] } |
+        first()
+
+    if (params.mode == 'sv') {
+        pop_sv_split = Channel.value([pop_sv, pop_sv_tbi]) |
+            vcf_split_sv_types_pop |
+            flatMap { it.transpose() } |
+            map { [(it[0].name =~ /([A-Z]+)\.vcf\.gz$/)[0][1]] + it } |
+            filter { sv_type_match_rev.keySet().contains(it[0]) } |
+            flatMap { sv_type_match_rev[it[0]].collect {type -> [type] + it[1..2] } }
+//
+        sv_types =
+            vep_vcf |
+                vcf_split_sv_types |
+                flatMap { it.transpose() } |
+                map { [(it[0].name =~ /([A-Z]+)\.vcf\.gz$/)[0][1]] + it } |
+                branch {
+                    overlap: params.sv_type_match.keySet().contains(it[0])
+                    no_overlap: true
+                }
+//
+        sv_types.overlap |
+            combine(pop_sv_split, by:0) |
+            groupTuple(by: 0..2) |
+            map { it + [ref_fa, ref_fai, vep_cache] } |
+            vep_plugin_svo |
+            map { it[1] } |
+            toSortedList() |
+            concat(sv_types.no_overlap.map{it[1]}.toSortedList()) |
+            flatten() |
+            map { it.toString() } |
+            collectFile(newLine: true, name:'file_list.txt', sort:false) |
+            map { ['SVO', it] } |
+            vcf_merge_svo |
+            view
+        // need to merge vcfs
+        // but header is not write for vcfs that havent been th
+
+
+    }
+
 }
