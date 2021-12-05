@@ -8,6 +8,7 @@ from subprocess import Popen
 
 class VcfWriteProc:
     def __init__(self, pref, header, as_bcf):
+        self.as_bcf = as_bcf
         self.fn = (pref + '.bcf') if as_bcf else (pref + '.vcf.gz')
         mode = '-Ob' if as_bcf else '-Oz'
         self.Popen = Popen(['bcftools', 'view', mode, '--no-version', '-o', self.fn],
@@ -15,7 +16,8 @@ class VcfWriteProc:
         self.variantFile = VariantFile(self.Popen.stdin, 'wu', header=header)
 
     def index(self):
-        popen = Popen(['bcftools', 'index', '-t', self.fn],
+        flag = '' if self.as_bcf else '-t'
+        popen = Popen(['bcftools', 'index', flag, self.fn],
                       stdin=subprocess.PIPE, stdout=subprocess.DEVNULL)
         return popen.poll()
 

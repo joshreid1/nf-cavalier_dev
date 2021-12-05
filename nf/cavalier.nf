@@ -12,9 +12,8 @@ process cavalier {
         tuple val(fam), path("${fam}.pptx")
 
     script:
-    sam_bam = [sam, bam instanceof List ? bam: [bam]]
-        .transpose().collect {it.join('=') }.join(' ')
-    if (params.mode == 'short')
+        sam_bam = [sam, bam instanceof List ? bam: [bam]]
+            .transpose().collect {it.join('=') }.join(' ')
         """
         cavalier_wrapper.R $vcf $ped $sam_bam \\
             --out $fam \\
@@ -28,7 +27,24 @@ process cavalier {
             --min-impact $params.min_impact \\
             ${params.exclude_benign_missense ? '--exclude-benign-missense': ''}
         """
-    else if (params.mode == 'sv')
+}
+
+process cavalier_sv {
+    label 'C2M4T2'
+    label 'cavalier'
+    container null
+    module 'R/3.6.1'
+    publishDir "output/cavalier", mode: 'copy', pattern: "*.pptx"
+    tag { fam }
+
+    input:
+    tuple val(fam), path(vcf), path(ped), path(lists), val(sam), path(bam), path(bai)
+
+    output:
+    tuple val(fam), path("${fam}.pptx"), path("${fam}.candidates.vcf.gz"), path("${fam}.candidates.csv")
+    script:
+        sam_bam = [sam, bam instanceof List ? bam: [bam]]
+            .transpose().collect {it.join('=') }.join(' ')
         """
         cavalier_wrapper_sv.R $vcf $ped $sam_bam \\
             --out $fam \\
@@ -42,4 +58,3 @@ process cavalier {
             --min-impact $params.min_impact
         """
 }
-

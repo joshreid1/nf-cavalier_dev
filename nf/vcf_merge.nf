@@ -1,5 +1,5 @@
 
-params.naive = true
+params.allow_overlap = false
 
 process vcf_merge {
     label 'C2M2T2'
@@ -15,7 +15,7 @@ process vcf_merge {
     script:
     out_vcf = "${params.id}.${set}.bcf"
     """
-    bcftools concat ${params.naive ? '--naive-force' : '-a' } \\
+    bcftools concat ${params.allow_overlap ? '--allow-overlaps' : '--naive-force' } \\
         --file-list $file_list -Ob -o $out_vcf
     bcftools index --threads 2 $out_vcf
     """

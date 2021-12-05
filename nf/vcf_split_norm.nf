@@ -8,7 +8,7 @@ process vcf_split_norm {
         tuple path(regions), path(vcf), path(tbi), path(ref), path(ref_fai)
 
     output:
-        path("$pref*.bcf")
+        tuple path("$pref*.bcf"), path("$pref*.bcf.csi")
 
     script:
         pref = regions.name.replaceAll('.intervals.tsv', '.norm')
@@ -19,7 +19,7 @@ process vcf_split_norm {
                 bcftools annotate --no-version --threads 2 -Ou \\
                     --remove INFO/CSQ \\
                     --set-id '%CHROM\\_%POS\\_%REF\\_%FIRST_ALT' | \\
-                 split_variants.py --bcf \\
+                 split_variants.py --bcf --index \\
                     --chunk-size ${params.chunk_size} \\
                     --pref $pref
             """
@@ -28,7 +28,7 @@ process vcf_split_norm {
             bcftools view --no-version $vcf -R $regions -Ou |
                 bcftools annotate --no-version --threads 2 -Ou \\
                     --remove INFO/CSQ | \\
-                 split_variants.py --bcf \\
+                 split_variants.py --bcf --index \\
                     --chunk-size ${params.chunk_size} \\
                     --pref $pref
             """
