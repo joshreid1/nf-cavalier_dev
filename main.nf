@@ -39,7 +39,7 @@ include { GetSamples } from './nf/GetSamples'
 include { CheckInputs } from './nf/CheckInputs'
 include { SplitSVs } from './nf/SplitSVs'
 include { CountVCF } from './nf/CountVCF'
-include { CleanAndChunkVCF } from './nf/CleanAndChunkVCF'
+include { CleanAndChunk } from './nf/CleanAndChunk'
 
 //include { ProcessVCF } from './nf/ProcessVCF'
 
@@ -104,10 +104,9 @@ workflow {
 
     vcfs_count = vcfs |
         SplitSVs |
-        CountVCF |
-        view
+        CountVCF
 
-//    CleanAndChunkVCF(vcfs_count, ref_data)
+    CleanAndChunk(vcfs_count, ref_data)
 
 
 

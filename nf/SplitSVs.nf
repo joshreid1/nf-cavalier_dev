@@ -3,8 +3,6 @@ workflow SplitSVs {
     take: vcfs // set, vcf, tbi
 
     main:
-    output = Channel.fromList([])
-
     if (params.sv_vcf) { // only run if sv vcf present
         output = vcfs |
             filter { it[0] == 'SV' } |
