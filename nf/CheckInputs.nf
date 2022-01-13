@@ -1,6 +1,5 @@
-#!/usr/bin/env nextflow
 
-workflow check_inputs {
+workflow CheckInputs {
     take:
         ped
         bams
@@ -38,26 +37,30 @@ workflow check_inputs {
     bam_samples = bams.collect { it.iid }.unique()
 
     vcf_samples |
-        map { ['in "bams" but not in "vcf"', bam_samples - it] } |
+        map { set, samples -> ["in \"bams\" but not in \"$set\"", bam_samples - samples] } |
         mix(vcf_samples
-            .flatMap {
-                ne = it - (bam_samples + ped_samples)
-                [['in "vcf" and "bams" but not in "ped"', it - ne - ped_samples],
-                 ['in "vcf" and "ped" but not in "bams"', it - ne - bam_samples],
-                 ['in "vcf" but not in "ped" or "bams"', ne],]}) |
+            .flatMap { set, samples ->
+                ne = samples - (bam_samples + ped_samples)
+                [["in $set VCF and \"bams\" but not in \"ped\"", samples - ne - ped_samples],
+                 ["in $set VCF and \"ped\" but not in \"bams\"", samples - ne - bam_samples],
+                 ["in $set VCF but not in \"ped\" or \"bams\"", ne],]}) |
         filter { it[1].size() > 0 } |
         map { warn, sm ->
             n = sm.size()
             sm = n > 5 ? sm[0..4] + ['...'] : sm
-            println "[WARNING]: $n sample${n > 1 ? 's':''} $warn: ${sm.join(', ')}"
+            println "[-WARNING-]: $n sample${n > 1 ? 's':''} $warn: ${sm.join(', ')}"
         }
 
     //     check there is any work to be done
-    vcf_samples |
-        map {
-            complete = it.intersect(ped_list_samples).intersect(bam_samples)
+    sets =
+        vcf_samples |
+        map { set, samples ->
+            complete = samples.intersect(ped_list_samples).intersect(bam_samples)
             if (complete.size() == 0) {
-                throw new Exception("[--ERROR--] No samples to process")
+                throw new Exception("[--ERROR--] No samples to process in $set VCF")
             }
+            return set
         }
+
+    emit: sets
 }
