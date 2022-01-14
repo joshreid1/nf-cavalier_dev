@@ -1,22 +1,22 @@
 
 workflow CleanAndChunk {
     take:
-        vcfs_count // set, vcf, tbi, count
+        vcf_counts // set, vcf, tbi, count
         ref_data // ref_fa, ref_fai, gaps, vep_cache
 
     main:
 
-    output = vcfs_count |
+    output = vcf_counts |
         map { [it[0], Math.ceil(
             it[3] / (it[0] == 'SNP' ? params.chunk_size : params.sv_chunk_size )) as int ] } |
-        combine(ref_data.map { it[1..2] } ) | // set, n_chunk, ref_fai, gaps |
+        combine(ref_data.map { it[1..2] } ) | // set, n_chunk, ref_fai, gaps
         split_intervals |
         flatMap { set, intvls ->
             intvls instanceof List ?
                 intvls.collect{ [set, (it.name =~ /(?<=split-)([0-9]+)/)[0][1], it] } :
                 [[set, (intvls.name =~ /(?<=split-)([0-9]+)/)[0][1], intvls]]
         } |
-        combine(vcfs_count.map { it[0..2] }, by: 0) |
+        combine(vcf_counts.map { it[0..2] }, by: 0) |
         combine(ref_data.map { it[0..1] }) | // set, i, intvls, vcf, tbi, ref_fa, ref_fai
         clean_and_chunk |
         flatMap { set, i,  vcf, index ->

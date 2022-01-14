@@ -40,22 +40,20 @@ include { CheckInputs } from './nf/CheckInputs'
 include { SplitSVs } from './nf/SplitSVs'
 include { CountVCF } from './nf/CountVCF'
 include { CleanAndChunk } from './nf/CleanAndChunk'
+include { Annotate } from './nf/Annotate'
 
-//include { ProcessVCF } from './nf/ProcessVCF'
-
-include { prep_lists } from './nf/prep_lists'
-
-include { split_intervals } from './nf/split_intervals'
-include { vcf_split_norm } from './nf/vcf_split_norm'
+//include { prep_lists } from './nf/prep_lists'
+//include { split_intervals } from './nf/split_intervals'
+//include { vcf_split_norm } from './nf/vcf_split_norm'
 //include { vcf_split_sv_types } from './nf/SplitSVs'
 //include { vcf_split_sv_types as vcf_split_sv_types_pop } from './nf/SplitSVs'
-include { vcf_stub } from './nf/vcf_stub'
-include { vep; vep_svo } from './nf/vep'
-include { vcf_merge } from './nf/vcf_merge'
-include { vcf_merge as vcf_merge_ao } from './nf/vcf_merge' addParams(allow_overlap:true)
-include { vcf_family_subset } from './nf/vcf_family_subset'
-include { cavalier; cavalier_sv } from './nf/cavalier'
-include { svpv } from './nf/svpv'
+//include { vcf_stub } from './nf/vcf_stub'
+//include { vep; vep_svo } from './nf/vep'
+//include { vcf_concat } from './nf/vcf_concat'
+//include { vcf_concat as vcf_merge_ao } from './nf/vcf_concat' addParams(allow_overlap:true)
+//include { vcf_family_subset } from './nf/vcf_family_subset'
+//include { cavalier; cavalier_sv } from './nf/cavalier'
+//include { svpv } from './nf/svpv'
 
 //check we have an input vcf
 if (!params.snp_vcf & !params.sv_vcf){
@@ -80,33 +78,42 @@ if (params.snp_vcf) {
 if (params.sv_vcf) {
     sv_vcf = path(params.sv_vcf)
     sv_tbi = path(params.sv_vcf + '.tbi')
-//    pop_sv = path(params.pop_sv)
-//    pop_sv_tbi = path(params.pop_sv + '.tbi')
+    pop_sv = path(params.pop_sv)
+    pop_sv_tbi = path(params.pop_sv + '.tbi')
     sv_type_match_rev = params.sv_type_match
         .collectMany { k, v -> v.collect { [it, k] }}
         .groupBy { it[0] }
         .collectEntries { k, v -> [(k) : v.collect{ it[1] }.unique()] }
-//    ref_gene = path(params.ref_gene)
+    ref_gene = path(params.ref_gene)
 }
 
 workflow {
 
     ref_data = Channel.value([ref_fa, ref_fai, gaps, vep_cache])
 
+    if (params.sv_vcf) {
+        sv_ref_data = Channel.value([pop_sv, pop_sv_tbi, ref_gene])
+    } else {
+        sv_ref_data = Channel.fromList([])
+    }
+
     vcfs = Channel.fromList(
         (params.snp_vcf ? [['SNP', snp_vcf, snp_tbi]] : []) +
         (params.sv_vcf ? [['SV', sv_vcf, sv_tbi]] : []))
 
     vcf_samples = GetSamples(vcfs)
-//
-    vcfs = CheckInputs(ped, bams, lists, vcf_samples) |
-        combine(vcfs, by:0) // force ProcessVCF to wait until after CheckInputs
 
-    vcfs_count = vcfs |
+    vcfs = CheckInputs(ped, bams, lists, vcf_samples) |
+        combine(vcfs, by:0) // force wait for CheckInputs
+
+    vcf_counts = vcfs |
         SplitSVs |
         CountVCF
 
-    CleanAndChunk(vcfs_count, ref_data)
+    vcf_chunks = CleanAndChunk(vcf_counts, ref_data)
+
+    Annotate(vcf_chunks, ref_data, sv_ref_data)
+
 
 
 
@@ -152,7 +159,7 @@ workflow {
 //                collectFile(newLine: true, sort: { new File(it).toPath().fileName.toString() } ) {
 //                    ["${it[0]}.files.txt", it[1].toString()] } |
 //                map { [it.name.replaceAll('.files.txt', ''), it] } |
-//                vcf_merge |
+//                vcf_concat |
 //                filter { it[0] == 'vep' } |
 //                map { it[1..2] } |
 //                first()

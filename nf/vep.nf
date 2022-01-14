@@ -37,14 +37,19 @@ params.vep_filter_opts =
 
 
 process vep {
-    label 'C4M4T1'
+//    label 'C4M4T1'
+    cpus 4
+    memory '4 GB'
+    time '15 min'
+
     publishDir "progress/vep", mode: 'symlink'
+    tag { "$set:$i:$j" }
 
     input:
-        tuple path(vcf), path(fasta), path(fai), path(cache)
+        tuple val(set), val(i), val(j), path(vcf), path(fasta), path(fai), path(cache)
 
     output:
-        tuple path(vep_vcf), path(mod_vcf), path(unann_vcf)
+        tuple val(set), path(vep_vcf), path(mod_vcf), path(unann_vcf)
 
     script:
         vep_vcf = vcf.name.replaceAll('.bcf', '.vep.bcf')
