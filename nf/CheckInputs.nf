@@ -1,13 +1,12 @@
+include { get_ped; get_bams; get_lists } from './functions'
 
 workflow CheckInputs {
-    take:
-        ped
-        bams
-        lists
-        vcf_samples
+    take: vcf_samples
 
     main:
-
+    ped = get_ped()
+    bams = get_bams()
+    lists = get_lists()
     // check families
     ped_families = ped.collect { it.fid }.unique()
     list_families = lists.collect { it.fid }.unique()

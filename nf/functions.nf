@@ -58,3 +58,35 @@ void checkMode(mode) {
         throw new Exception("[--ERROR--] Mode must be on of: '${valid_modes.join("', '")}'")
     }
 }
+
+def get_ref_data() {
+    ref_fa = path(params.ref_fasta)
+    ref_fai = path(params.ref_fasta + '.fai')
+    gaps = params.ref_hg38 ?
+        path("${workflow.projectDir}/data/hg38.gaps.bed.gz") :
+        path("${workflow.projectDir}/data/hg19.gaps.bed.gz")
+    vep_cache = path(params.vep_cache)
+    Channel.value([ref_fa, ref_fai, gaps, vep_cache])
+}
+
+def get_vcfs() {
+    if (!params.snp_vcf & !params.sv_vcf){
+        throw new Exception("[--ERROR--] Must specify at least one of 'params.vcf' or 'params.sv_vcf'")
+    }
+    Channel.fromList(
+        (params.snp_vcf ? [['SNP', path(params.snp_vcf), path(params.snp_vcf + '.tbi')]] : []) +
+            (params.sv_vcf ? [['SV', path(params.sv_vcf), path(params.sv_vcf + '.tbi')]] : [])
+    )
+}
+
+def get_ped() {
+    read_tsv(path(params.ped), ['fid', 'iid', 'pid', 'mid', 'sex', 'phe'])
+}
+
+def get_bams() {
+    read_tsv(path(params.bams), ['iid', 'bam'])
+}
+
+def get_lists() {
+    read_tsv(path(params.lists), ['fid', 'list'])
+}

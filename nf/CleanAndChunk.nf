@@ -1,10 +1,11 @@
+include { get_ref_data } from './functions'
 
 workflow CleanAndChunk {
     take:
         vcf_counts // set, vcf, tbi, count
-        ref_data // ref_fa, ref_fai, gaps, vep_cache
 
     main:
+    ref_data = get_ref_data()
 
     output = vcf_counts |
         map { [it[0], Math.ceil(

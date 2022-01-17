@@ -34,7 +34,8 @@ params.ref_gene = 'RefSeqGene.hg38.UCSC.txt'
 params.sv_types = ['DEL', 'DUP', 'INS', 'INV', 'BND']
 params.sv_type_match = [DEL: ['DEL'], DUP: ['CNV', 'DUP']]
 
-include { path; read_tsv; get_families; date_ymd; checkMode } from './nf/functions'
+include { path; read_tsv; date_ymd; checkMode; get_families } from './nf/functions'
+include { get_ref_data; get_vcfs; get_ped; get_bams; get_lists } from './nf/functions'
 include { GetSamples } from './nf/GetSamples'
 include { CheckInputs } from './nf/CheckInputs'
 include { SplitSVs } from './nf/SplitSVs'
@@ -55,64 +56,27 @@ include { Annotate } from './nf/Annotate'
 //include { cavalier; cavalier_sv } from './nf/cavalier'
 //include { svpv } from './nf/svpv'
 
-//check we have an input vcf
-if (!params.snp_vcf & !params.sv_vcf){
-    throw new Exception("[--ERROR--] Must specify at least one of 'params.vcf' or 'params.sv_vcf'")
-}
-
-ped = read_tsv(path(params.ped), ['fid', 'iid', 'pid', 'mid', 'sex', 'phe'])
-bams = read_tsv(path(params.bams), ['iid', 'bam'])
-lists = read_tsv(path(params.lists), ['fid', 'list'])
-ref_fa = path(params.ref_fasta)
-ref_fai = path(params.ref_fasta + '.fai')
-gaps = params.ref_hg38 ?
-    path("${workflow.projectDir}/data/hg38.gaps.bed.gz") :
-    path("${workflow.projectDir}/data/hg19.gaps.bed.gz")
-vep_cache = path(params.vep_cache)
-
-if (params.snp_vcf) {
-    snp_vcf = path(params.snp_vcf)
-    snp_tbi = path(params.snp_vcf + '.tbi')
-}
-
-if (params.sv_vcf) {
-    sv_vcf = path(params.sv_vcf)
-    sv_tbi = path(params.sv_vcf + '.tbi')
-    pop_sv = path(params.pop_sv)
-    pop_sv_tbi = path(params.pop_sv + '.tbi')
-    sv_type_match_rev = params.sv_type_match
-        .collectMany { k, v -> v.collect { [it, k] }}
-        .groupBy { it[0] }
-        .collectEntries { k, v -> [(k) : v.collect{ it[1] }.unique()] }
-    ref_gene = path(params.ref_gene)
-}
+//ref_gene = path(params.ref_gene)
 
 workflow {
 
-    ref_data = Channel.value([ref_fa, ref_fai, gaps, vep_cache])
-
-    if (params.sv_vcf) {
-        sv_ref_data = Channel.value([pop_sv, pop_sv_tbi, ref_gene])
-    } else {
-        sv_ref_data = Channel.fromList([])
-    }
-
-    vcfs = Channel.fromList(
-        (params.snp_vcf ? [['SNP', snp_vcf, snp_tbi]] : []) +
-        (params.sv_vcf ? [['SV', sv_vcf, sv_tbi]] : []))
+    vcfs = get_vcfs()
 
     vcf_samples = GetSamples(vcfs)
 
-    vcfs = CheckInputs(ped, bams, lists, vcf_samples) |
-        combine(vcfs, by:0) // force wait for CheckInputs
-
-    vcf_counts = vcfs |
+    vcf_samples |
+        CheckInputs |
+        combine(vcfs, by: 0) |
         SplitSVs |
-        CountVCF
+        CountVCF |
+        CleanAndChunk |
+        Annotate
 
-    vcf_chunks = CleanAndChunk(vcf_counts, ref_data)
+}
 
-    Annotate(vcf_chunks, ref_data, sv_ref_data)
+//    vcf_chunks = CleanAndChunk(vcf_counts, ref_data)
+//
+//    Annotate(vcf_chunks, ref_data)
 
 
 
@@ -224,6 +188,6 @@ workflow {
 //            collectFile(name: 'candidates.csv', storeDir: 'output',
 //                        newLine:true, sort: false, cache: false)
 //    }
-
-
-}
+//
+//
+//}
