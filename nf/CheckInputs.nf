@@ -1,12 +1,12 @@
-include { get_ped; get_bams; get_lists } from './functions'
+include { read_ped; read_bams; read_lists } from './functions'
 
 workflow CheckInputs {
     take: vcf_samples
 
     main:
-    ped = get_ped()
-    bams = get_bams()
-    lists = get_lists()
+    ped = read_ped()
+    bams = read_bams()
+    lists = read_lists()
     // check families
     ped_families = ped.collect { it.fid }.unique()
     list_families = lists.collect { it.fid }.unique()
@@ -28,7 +28,7 @@ workflow CheckInputs {
         .forEach { warn, fams ->
             n = fams.size()
             fams = n > 5 ? fams[0..4] + ['...'] : fams
-            println "[-WARNING-] $n famil${n > 1 ? 'ies':'y'} $warn: ${fams.join(', ')}"
+            println "WARNING: $n famil${n > 1 ? 'ies':'y'} $warn: ${fams.join(', ')}"
         }
 
     // check samples
@@ -47,7 +47,7 @@ workflow CheckInputs {
         map { warn, sm ->
             n = sm.size()
             sm = n > 5 ? sm[0..4] + ['...'] : sm
-            println "[-WARNING-]: $n sample${n > 1 ? 's':''} $warn: ${sm.join(', ')}"
+            println "WARNING: $n sample${n > 1 ? 's':''} $warn: ${sm.join(', ')}"
         }
 
     //     check there is any work to be done
@@ -56,7 +56,7 @@ workflow CheckInputs {
         map { set, samples ->
             complete = samples.intersect(ped_list_samples).intersect(bam_samples)
             if (complete.size() == 0) {
-                throw new Exception("[--ERROR--] No samples to process in $set VCF")
+                throw new Exception("ERROR: No samples to process in $set VCF")
             }
             return set
         }

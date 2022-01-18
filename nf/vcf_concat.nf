@@ -1,12 +1,10 @@
 
 params.allow_overlap = false
 
+
 process vcf_concat {
-//    label 'C2M2T2'
-    cpus 2
-    memory '2 GB'
-    time '10 min'
-    publishDir "output/vcf_concat", mode: 'copy'
+    label 'C2M2T2'
+    publishDir "output/ConcatVCF", mode: 'copy'
     tag { "$set:$type" }
 
     input:

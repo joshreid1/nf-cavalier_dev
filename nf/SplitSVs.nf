@@ -3,6 +3,8 @@ workflow SplitSVs {
     take: vcfs // set, vcf, tbi
 
     main:
+    all_sv_types = (params.sv_types + params.sv_type_match.collectMany{ k,v -> v }).unique()
+
     if (params.sv_vcf) { // only run if sv vcf present
         output = vcfs |
             filter { it[0] == 'SV' } |
@@ -10,7 +12,7 @@ workflow SplitSVs {
             proc |
             flatMap { it.transpose() } |
             map { [(it[0].name =~ /([A-Z]+)\.vcf\.gz$/)[0][1]] + it } |
-            filter { params.sv_types.contains(it[0]) } |
+            filter { all_sv_types.contains(it[0]) } |
             mix(vcfs.filter { it[0] == 'SNP'} )
 
     } else {

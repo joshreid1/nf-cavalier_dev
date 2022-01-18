@@ -34,160 +34,30 @@ params.ref_gene = 'RefSeqGene.hg38.UCSC.txt'
 params.sv_types = ['DEL', 'DUP', 'INS', 'INV', 'BND']
 params.sv_type_match = [DEL: ['DEL'], DUP: ['CNV', 'DUP']]
 
-include { path; read_tsv; date_ymd; checkMode; get_families } from './nf/functions'
-include { get_ref_data; get_vcfs; get_ped; get_bams; get_lists } from './nf/functions'
+include { vcf_channel; families_channel } from './nf/functions'
 include { GetSamples } from './nf/GetSamples'
 include { CheckInputs } from './nf/CheckInputs'
 include { SplitSVs } from './nf/SplitSVs'
 include { CountVCF } from './nf/CountVCF'
 include { CleanAndChunk } from './nf/CleanAndChunk'
 include { Annotate } from './nf/Annotate'
-
-//include { prep_lists } from './nf/prep_lists'
-//include { split_intervals } from './nf/split_intervals'
-//include { vcf_split_norm } from './nf/vcf_split_norm'
-//include { vcf_split_sv_types } from './nf/SplitSVs'
-//include { vcf_split_sv_types as vcf_split_sv_types_pop } from './nf/SplitSVs'
-//include { vcf_stub } from './nf/vcf_stub'
-//include { vep; vep_svo } from './nf/vep'
-//include { vcf_concat } from './nf/vcf_concat'
-//include { vcf_concat as vcf_merge_ao } from './nf/vcf_concat' addParams(allow_overlap:true)
-//include { vcf_family_subset } from './nf/vcf_family_subset'
-//include { cavalier; cavalier_sv } from './nf/cavalier'
-//include { svpv } from './nf/svpv'
-
-//ref_gene = path(params.ref_gene)
+include { FamilyPrep } from './nf/FamilyPrep'
+include { Cavalier } from './nf/Cavalier'
 
 workflow {
 
-    vcfs = get_vcfs()
+    vcfs = vcf_channel()
 
     vcf_samples = GetSamples(vcfs)
 
-    vcf_samples |
+    ann_vcf = vcf_samples |
         CheckInputs |
         combine(vcfs, by: 0) |
         SplitSVs |
         CountVCF |
         CleanAndChunk |
-        Annotate
-
+        Annotate |
+        combine(families_channel(vcf_samples), by: 0) |
+        FamilyPrep |
+        Cavalier
 }
-
-//    vcf_chunks = CleanAndChunk(vcf_counts, ref_data)
-//
-//    Annotate(vcf_chunks, ref_data)
-
-
-
-
-//        combine(Channel.fromList(vcfs), by:0) |
-//        view
-
-
-//    vcf_samples = GetSamples(vcf) | map { it.toFile().readLines() as ArrayList }
-//
-//    CheckInputs()
-//
-//    families = vcf_samples |
-//        flatMap { sam ->
-//            get_families(ped).collect { fam, af, un ->
-//                [fam, af.intersect(sam), un.intersect(sam)] }
-//            .findAll { it[1].size() > 0 }
-//        }
-//
-//    ped_channel = Channel.from(ped) |
-//        map { it.values() as ArrayList } |
-//        collectFile(newLine:true) {
-//            [ "${it[0]}.ped", it.join('\t')]
-//        } |
-//        map { [it.name.replaceAll('.ped', ''), it] }
-//
-//    bam_channel = Channel.from(bams) |
-//        map { [it.iid, path(it.bam), path(it.bam + '.bai')] } |
-//        combine(ped.collect { [it.iid, it.fid] }, by: 0) |
-//        map { it[[3,0,1,2]] } |
-//        groupTuple(by: 0)
-//
-//    list_channel = prep_lists(lists)
-//
-
-
-//    if (params.mode == 'short') {
-
-//        annot_vcf =
-//            split_vcf |
-//                map { [it, ref_fa, ref_fai, vep_cache] } |
-//                vep |
-//                flatMap { [['vep', it[0]],  ['vep-modifier', it[1]], ['unannotated', it[2]]] } |
-//                collectFile(newLine: true, sort: { new File(it).toPath().fileName.toString() } ) {
-//                    ["${it[0]}.files.txt", it[1].toString()] } |
-//                map { [it.name.replaceAll('.files.txt', ''), it] } |
-//                vcf_concat |
-//                filter { it[0] == 'vep' } |
-//                map { it[1..2] } |
-//                first()
-
-//    } else if (params.mode == 'sv') {
-//
-//        pop_sv_split = Channel.value([pop_sv, pop_sv_tbi]) |
-//            vcf_split_sv_types_pop |
-//            flatMap { it.transpose() } |
-//            map { [(it[0].name =~ /([A-Z]+)\.vcf\.gz$/)[0][1]] + it } |
-//            filter { sv_type_match_rev.keySet().contains(it[0]) } |
-//            flatMap { sv_type_match_rev[it[0]].collect {type -> [type] + it[1..2] } } |
-//            mix(vcf_stub(pop_sv) | map { ['STUB'] + it })
-////
-//        annot_vcf =
-//            split_vcf |
-//                SplitSVs |
-//                flatMap { it.transpose() } |
-//                map { [(it[0].name =~ /([A-Z]+)\.vcf\.gz$/)[0][1]] + it } |
-//                map { params.sv_type_match.keySet().contains(it[0]) ?
-//                    it : ['STUB'] + it[1..2] } |
-//                combine(pop_sv_split, by:0) |
-//                groupTuple(by: 0..2) |
-//                map { it + [ref_fa, ref_fai, vep_cache] } |
-//                vep_svo |
-//                flatMap { [['vep', it[1]], ['unannotated', it[2]]] } |
-//                collectFile(newLine: true, sort: true ) { ["${it[0]}.files.txt", it[1].toString()] } |
-//                map { [it.name.replaceAll('.files.txt', ''), it] } |
-//                vcf_merge_ao |
-//                filter { it[0] == 'vep' } |
-//                map { it[1] } |
-//                first()
-//    }
-//
-//    calalier_input = annot_vcf |
-//        combine(families) |
-//        vcf_family_subset |
-//        map { it[0..1] } |
-//        combine(ped_channel, by:0) |
-//        combine(list_channel, by:0) |
-//        combine(bam_channel, by:0)
-//
-//    if (params.mode == 'sv') {
-//        calalier_input |
-//            cavalier_sv
-//
-//        candidates = cavalier_sv.out |
-//            map { it[3] } |
-//            splitCsv(header: true)
-//
-//        cavalier_sv.out |
-//            map { it[0, 2] } |
-//            combine(candidates.map{it.family}.unique(), by:0) |
-//            combine(bam_channel, by:0) |
-//            map { it +  [pop_sv, pop_sv_tbi, ref_gene] } |
-//            svpv
-//
-//        candidates |
-//            first |
-//            map { (it.keySet() as List).join(',') } |
-//            concat(candidates.map { (it.values() as List).join(',') }) |
-//            collectFile(name: 'candidates.csv', storeDir: 'output',
-//                        newLine:true, sort: false, cache: false)
-//    }
-//
-//
-//}

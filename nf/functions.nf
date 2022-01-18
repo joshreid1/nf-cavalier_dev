@@ -34,14 +34,7 @@ ArrayList<Map> read_csv2(Path path, List<String> req_names, List<String> opt_nam
     }
 }
 
-ArrayList<ArrayList> get_families(ArrayList<Map> pedigree) {
-    pedigree.groupBy { it.fid }
-        .collect { k, v -> [
-            k,
-            v.findAll {it.phe == '2'}.collect {it.iid},
-            v.findAll {it.phe == '1'}.collect {it.iid}
-        ] }
-}
+
 
 String date_ymd() {
     date = new Date()
@@ -51,15 +44,28 @@ String date_ymd() {
 
 void checkMode(mode) {
     if (! mode instanceof String) {
-        throw new Exception("[--ERROR--] Mode must be a string")
+        throw new Exception("ERROR: Mode must be a string")
     }
     valid_modes = ['short', 'sv']
     if (! valid_modes.contains(mode)) {
-        throw new Exception("[--ERROR--] Mode must be on of: '${valid_modes.join("', '")}'")
+        throw new Exception("ERROR: Mode must be on of: '${valid_modes.join("', '")}'")
     }
 }
 
-def get_ref_data() {
+def read_ped() {
+    read_tsv(path(params.ped), ['fid', 'iid', 'pid', 'mid', 'sex', 'phe'])
+}
+
+def read_bams() {
+    read_tsv(path(params.bams), ['iid', 'bam'])
+}
+
+def read_lists() {
+    read_tsv(path(params.lists), ['fid', 'list'])
+}
+
+
+def ref_data_channel() {
     ref_fa = path(params.ref_fasta)
     ref_fai = path(params.ref_fasta + '.fai')
     gaps = params.ref_hg38 ?
@@ -69,24 +75,56 @@ def get_ref_data() {
     Channel.value([ref_fa, ref_fai, gaps, vep_cache])
 }
 
-def get_vcfs() {
+def vcf_channel() {
     if (!params.snp_vcf & !params.sv_vcf){
-        throw new Exception("[--ERROR--] Must specify at least one of 'params.vcf' or 'params.sv_vcf'")
+        throw new Exception("ERROR: Must specify at least one of 'params.vcf' or 'params.sv_vcf'")
     }
     Channel.fromList(
         (params.snp_vcf ? [['SNP', path(params.snp_vcf), path(params.snp_vcf + '.tbi')]] : []) +
             (params.sv_vcf ? [['SV', path(params.sv_vcf), path(params.sv_vcf + '.tbi')]] : [])
     )
 }
-
-def get_ped() {
-    read_tsv(path(params.ped), ['fid', 'iid', 'pid', 'mid', 'sex', 'phe'])
+def pop_sv_channel() {
+    Channel.value([path(params.pop_sv), path(params.pop_sv + '.tbi')])
 }
 
-def get_bams() {
-    read_tsv(path(params.bams), ['iid', 'bam'])
+def families_channel(vcf_samples) {
+
+    fam_af_un = read_ped()
+        .groupBy { it.fid }
+        .collect { k, v -> [
+            k,
+            v.findAll {it.phe == '2'}.collect {it.iid},
+            v.findAll {it.phe == '1'}.collect {it.iid}
+        ] }
+
+    vcf_samples |
+        combine(Channel.fromList(fam_af_un)) |
+        map { set, sam, fam, af, un ->
+            [set, fam, af.intersect(sam), un.intersect(sam)] } |
+        filter { it[2].size() > 0 }
+    // set, fam, aff, unaff
 }
 
-def get_lists() {
-    read_tsv(path(params.lists), ['fid', 'list'])
+def pedigree_channel() {
+
+    Channel.fromList(read_ped()) |
+        unique |
+        map { it.values() as ArrayList } |
+        collectFile(newLine:true) {
+            [ "${it[0]}.ped", it.join('\t')]
+        } |
+        map { [it.name.replaceAll('.ped', ''), it] }
+    // fam, ped
+}
+
+def bam_channel() {
+
+    Channel.fromList(read_bams()) |
+        unique |
+        map { [it.iid, path(it.bam), path(it.bam + '.bai')] } |
+        combine(read_ped().collect { [it.iid, it.fid] }, by: 0) |
+        map { it[[3,0,1,2]] } |
+        groupTuple(by: 0)
+    // fam, iid, bam, bai
 }

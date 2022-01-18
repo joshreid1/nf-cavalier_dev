@@ -1,11 +1,11 @@
 
-include { path; date_ymd } from './functions'
+include { read_lists; path; date_ymd } from './functions'
 
-workflow prep_lists {
-    take:
-        lists
+workflow Lists {
 
     main:
+        lists = read_lists()
+
         if (lists.any { it.list  ==~ '^(HP|PA[AE]):.+'}) {
             lists = Channel.from(lists) |
                 map { it.values() as ArrayList } |
@@ -34,12 +34,12 @@ workflow prep_lists {
                 groupTuple(by: 0)
         }
     emit:
-        list_channel
+        list_channel // fam, lists
 }
 
 process pull_latest {
     label 'C1M1T1'
-    label 'cavalier'
+    label 'Cavalier'
     publishDir "output/pull_latest_list", mode: 'copy'
     tag { "$id:v$ver" }
 
@@ -59,7 +59,7 @@ process pull_latest {
 
 process update_versions {
     label 'C1M1T1'
-    label 'cavalier'
+    label 'Cavalier'
     publishDir "progress/update_list_versions", mode: 'symlink'
     tag { date }
 

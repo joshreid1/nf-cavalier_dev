@@ -53,9 +53,9 @@ assert_that(file.exists(opts$vcf),
             opts$genome %in% c('hg19', 'hg38'))
 
 set_cavalier_opt(ref_genome = opts$genome)
-#set_cavalier_opt(
-#  singularity_img = '~/links/singularity_cache/jemunro-cavalier-dev.img',
-#  singularity_cmd = '/stornext/System/data/apps/singularity/singularity-3.7.3/bin/singularity')
+set_cavalier_opt(
+ singularity_img = '~/links/singularity_cache/bahlolab-cavalier-dev.img',
+ singularity_cmd = '/stornext/System/data/apps/singularity/singularity-3.7.3/bin/singularity')
 insecure()
 
 sample_bams <- 
@@ -148,5 +148,5 @@ cand_vars <-
   #               bam_files = sample_bams,
   #               ped_file = opts$ped,
   #               layout = layout,
-  #               var_info = c(cavalier:::get_var_info(),
+  #               var_info = c(Cavalier:::get_var_info(),
   #                            cohort_AC_AF = 'cohort_AC_AF'))

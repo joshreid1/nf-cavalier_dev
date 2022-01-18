@@ -21,7 +21,7 @@ RUN conda env create -f /environment.yml \
     && conda clean -a -y \
     && conda env export --name $NAME > $NAME.yml
 
-# Install cavalier R package
+# Install Cavalier R package
 RUN /opt/conda/envs/$NAME/bin/R --slave --vanilla -e \
     "devtools::install_github('jemunro/cavalier@2c12d5ff265df235c497ea9be27156ec106beaee', \
         force = TRUE, upgrade = 'never')"

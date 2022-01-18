@@ -1,11 +1,11 @@
-include { get_ref_data } from './functions'
+include { ref_data_channel } from './functions'
 
 workflow CleanAndChunk {
     take:
         vcf_counts // set, vcf, tbi, count
 
     main:
-    ref_data = get_ref_data()
+    ref_data = ref_data_channel()
 
     output = vcf_counts |
         map { [it[0], Math.ceil(
@@ -32,7 +32,7 @@ workflow CleanAndChunk {
 
 process split_intervals {
     label 'C2M2T8'
-    label 'cavalier'
+    label 'Cavalier'
     publishDir "progress/split_intervals", mode: 'symlink'
     tag { set }
 
