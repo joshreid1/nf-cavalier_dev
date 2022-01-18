@@ -24,7 +24,7 @@ workflow FamilyPrep {
 process subset {
     label 'C2M2T2'
     publishDir "output/family_subset", mode: 'copy'
-    tag { "$set:$fam" }
+    tag { "$fam:$set" }
 
     input:
     tuple val(set), path(vcf), val(fam), val(aff), val(unaff)

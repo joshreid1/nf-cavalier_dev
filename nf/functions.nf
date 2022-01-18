@@ -88,6 +88,10 @@ def pop_sv_channel() {
     Channel.value([path(params.pop_sv), path(params.pop_sv + '.tbi')])
 }
 
+def ref_gene_channel() {
+    Channel.value([path(params.ref_gene)])
+}
+
 def families_channel(vcf_samples) {
 
     fam_af_un = read_ped()
