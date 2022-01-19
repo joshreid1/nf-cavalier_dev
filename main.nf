@@ -12,12 +12,13 @@ params.chunk_size = 200000
 params.sv_chunk_size = 10000
 
 // filter params
-params.max_af = 0.10
+params.max_af = 0.1
 params.maf_dom = 0.0001
 params.maf_de_novo = 0.0001
 params.maf_rec = 0.01
 params.maf_comp_het = 0.01
 params.max_cohort_af = 1.0
+params.max_cohort_ac = 'Inf'
 params.min_impact = 'MODERATE'
 params.exclude_benign_missense = true
 

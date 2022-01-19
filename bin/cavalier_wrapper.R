@@ -15,8 +15,9 @@ Options:
   ped                         Pedigree file
   sample_bams                 Sample names and bam files in format name=/path/to/bam.
   --exclude-benign-missense   Exclude missense variants that are predicted to be benign by sift, polyphen and ClinVar
-  --sv                        Run in structural variant mode
-  --out=<f>                   Output directory [default: out].
+  --sv                        Run in structural variant mode.
+  --out=<f>                   Output file prefix [default: out].
+  --family=<f>                Name of sample/family [default: Family].
   --genome=<f>                Reference genome for IGV snapshot [default: hg38].
   --gene-lists=<f>            Comma serparated list of gene list names.
   --min-impact=<f>            Minimum VEP impact [default: MODERATE].
@@ -30,7 +31,6 @@ Options:
   --large-event=<f>           Minimum size for a large CNV event to be kept regardless of gene intersections [default: 1e6]
   --sv-csq-keep=<f>           Additional variant consequences for structural variants, ignores impact [default: coding_sequence_variant].
 "
-
 opts <- docopt(doc)
 # print options
 message('Using options:')
@@ -114,10 +114,16 @@ if (!opts$sv) { # SNPS
                         slide_num = 2L))
     )
   # load variants
-  vars <- load_vcf(opts$vcf, 
-                   samples = names(sample_bams),
-                   caller = 'GATK',
-                   annotater = 'VEP')
+  vars <-
+    load_vcf(opts$vcf, 
+             samples = names(sample_bams),
+             caller = 'GATK',
+             annotater = 'VEP') %>% 
+    mutate(AN = AN - rowSums(mutate_all(genotype, ~str_count(., '[01]'))),
+           AC = AC - rowSums(mutate_all(genotype, ~str_count(., '[1]'))),
+           AF = AC / AN)
+  
+  
   # get candidates 
   cand_vars <-
     vars %>% 
@@ -164,8 +170,9 @@ if (!opts$sv) { # SNPS
   
   # TBD: write candidate info
   cand_vars %>%
-    mutate(family = opts$out) %>%
-    select(family, variant_id, chrom, pos, hgvs_genomic, gene) %>%
+    mutate(set = 'SNP',
+           family = opts$family) %>%
+    select(set, family, gene, consequence, hgvs_genomic, hgvs_protein) %>%
     distinct() %>%
     write_csv(str_c(opts$out, '.candidates.csv'))
 
@@ -187,7 +194,10 @@ if (!opts$sv) { # SNPS
              caller = 'manta',
              annotater = 'VEP',
              SVO = TRUE) %>% 
-    mutate(af_gnomad = pmax(svo_af, af_gnomad, na.rm = T))
+    mutate(af_gnomad = pmax(svo_af, af_gnomad, na.rm = T)) %>% 
+    mutate(AN = AN - rowSums(mutate_all(genotype, ~str_count(., '[01]'))),
+           AC = AC - rowSums(mutate_all(genotype, ~str_count(., '[1]'))),
+           AF = AC / AN)
   
   # get candidates 
   cand_vars <-
@@ -239,8 +249,9 @@ if (!opts$sv) { # SNPS
   
   # write candidate info
   cand_vars %>% 
-    mutate(family = opts$out) %>% 
-    select(family, chrom, pos, SVTYPE, SVLEN, END) %>% 
+    mutate(set = 'SV',
+           family = opts$family) %>%
+    select(set, family, gene, consequence, chrom, pos, SVTYPE, SVLEN, END) %>%
     distinct() %>% 
     write_csv(str_c(opts$out, '.candidates.csv'))
   

@@ -6,25 +6,50 @@ workflow Cavalier {
         input  //set, fam, vcf, ped, lists, sam, bam, bai
 
     main:
-        input |
-            cavalier |
-            filter { it[0] == 'SV' } |
-            filter { it[4].toFile().readLines().size() > 1 } |
-            map { it[[1,3]] } | //fam, vcf
-            combine( input |
-                         filter { it[0] == 'SV' } |
-                         map { it[[1,5,6,7]] }, // fam, sam, bam, bai,
-                     by:0 ) |
-            combine(pop_sv_channel()) |
-            combine(ref_gene_channel()) |
-            svpv
+    // run cavalier
+    cavalier(input)
+    // run svpv on candidate SVs
+    cavalier.out |
+        filter { it[0] == 'SV' } |
+        filter { it[4].toFile().readLines().size() > 1 } |
+        map { it[[1,3]] } | //fam, vcf
+        combine( input |
+                     filter { it[0] == 'SV' } |
+                     map { it[[1,5,6,7]] }, // fam, sam, bam, bai,
+                 by:0 ) |
+        combine(pop_sv_channel()) |
+        combine(ref_gene_channel()) |
+        svpv
 
-//        candidates |
-//            first |
-//            map { (it.keySet() as List).join(',') } |
-//            concat(candidates.map { (it.values() as List).join(',') }) |
-//            collectFile(name: 'candidates.csv', storeDir: 'output',
-//                        newLine:true, sort: false, cache: false)
+    candidates = cavalier.out |
+        map { it[4] } |
+        splitCsv(header: true) |
+        branch { snp: it.set == 'SNP'; sv: true }
+
+
+    candidates.snp |
+        first |
+        map { (it.keySet() as List).join(',') } |
+        concat(
+            candidates.snp |
+                map { (it.values() as List).join(',') } |
+                toSortedList |
+                flatten
+        ) |
+        collectFile(name: 'SNP_candidates.csv', storeDir: 'output',
+                    newLine:true, sort: false, cache: false)
+
+    candidates.sv |
+        first |
+        map { (it.keySet() as List).join(',') } |
+        concat(
+            candidates.sv |
+                map { (it.values() as List).join(',') } |
+                toSortedList |
+                flatten
+        ) |
+        collectFile(name: 'SV_candidates.csv', storeDir: 'output',
+                    newLine:true, sort: false, cache: false)
 
 //    emit: output // set, fam, pptx, vcf, csv
 }
@@ -54,6 +79,7 @@ process cavalier {
     """
     cavalier_wrapper.R $vcf $ped $sam_bam $flags \\
         --out $pref \\
+        --family $fam \\
         --genome ${params.ref_hg38 ? 'hg38' : 'hg19'} \\
         --gene-lists ${lists.join(',')} \\
         --maf-dom $params.maf_dom \\
@@ -61,6 +87,7 @@ process cavalier {
         --maf-rec $params.maf_rec \\
         --maf-comp-het $params.maf_comp_het \\
         --max-cohort-af $params.max_cohort_af \\
+        --max-cohort-ac $params.max_cohort_ac \\
         --min-impact $params.min_impact
     """
 }
