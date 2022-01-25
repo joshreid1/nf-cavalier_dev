@@ -12,11 +12,10 @@ workflow SplitSVs {
             proc |
             flatMap { it.transpose() } |
             map { [(it[0].name =~ /([A-Z]+)\.vcf\.gz$/)[0][1]] + it } |
-            filter { all_sv_types.contains(it[0]) } |
-            mix(vcfs.filter { it[0] == 'SNP'} )
+            filter { all_sv_types.contains(it[0]) }
 
     } else {
-        output = vcfs
+        output = Channel.fromList([])
     }
 
     emit: output // set, vcf, tbi

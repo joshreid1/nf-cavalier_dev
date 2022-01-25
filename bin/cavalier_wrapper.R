@@ -30,6 +30,7 @@ Options:
   --max-cohort-af=<f>         Maximum allele frequency within cohort [default: Inf].
   --large-event=<f>           Minimum size for a large CNV event to be kept regardless of gene intersections [default: 1e6]
   --sv-csq-keep=<f>           Additional variant consequences for structural variants, ignores impact [default: coding_sequence_variant].
+  --sv-chr-exclude=<f>            Chromosomes to exclude from SV callsets [default: chrM,chrY,M,Y].
 "
 opts <- docopt(doc)
 # print options
@@ -65,6 +66,7 @@ min_impact <- ordered(opts$min_impact, c('MODIFIER', 'LOW', 'MODERATE', 'HIGH'))
 csq_keep <- 
   c(str_split(opts$sv_csq_keep, ',', simplify = T)) %>% 
   str_c(sep = '|')
+sv_chr_exclude <-  c(str_split(opts$sv_chr_exclude, ',', simplify = T)) 
 
 set_cavalier_opt(ref_genome = opts$genome)
 set_cavalier_opt(
@@ -172,7 +174,7 @@ if (!opts$sv) { # SNPS
   cand_vars %>%
     mutate(set = 'SNP',
            family = opts$family) %>%
-    select(set, family, gene, consequence, hgvs_genomic, hgvs_protein) %>%
+    select(set, family, gene, consequence, id, hgvs_genomic, hgvs_protein) %>%
     distinct() %>%
     write_csv(str_c(opts$out, '.candidates.csv'))
 
@@ -202,25 +204,26 @@ if (!opts$sv) { # SNPS
   # get candidates 
   cand_vars <-
     vars %>% 
+    filter(!chrom %in% sv_chr_exclude) %>% 
     filter(AC <= max_cohort_ac,
            AF <= max_cohort_af) %>% 
     (function(x) {
       # variants that intersect gene lists
       gl_vars <-
-        filter(x, 
+        filter(x,
                gene %in% list_df$symbol,
                impact > min_impact | str_detect(consequence, csq_keep))
       # large event CNVs
       le_vars <-
-        anti_join(x, gl_vars, 'variant_id') %>% 
+        anti_join(x, gl_vars, 'variant_id') %>%
         filter(SVTYPE %in% c('DEL', 'DUP'),
-               abs(SVLEN) >= min_large_event) %>% 
-        select(variant_id, chrom, pos, ref, alt, AF, AC, AN, END, SVTYPE, SVLEN, genotype, af_gnomad) %>% 
-        distinct() %>% 
+               abs(SVLEN) >= min_large_event) %>%
+        select(variant_id, chrom, pos, ref, alt, AF, AC, AN, END, SVTYPE, SVLEN, genotype, af_gnomad) %>%
+        distinct() %>%
         mutate(gene = 'Large CNV')
       # combine
       bind_rows(gl_vars, le_vars)
-    }) %>% 
+    }) %>%
     add_inheritance(ped_file = opts$ped,
                     af_column = 'af_gnomad',
                     af_compound_het = maf_comp_het,
@@ -228,6 +231,8 @@ if (!opts$sv) { # SNPS
                     af_recessive = maf_rec,
                     min_depth = NULL) %>%
     filter(!is.na(inheritance)) %>%
+    annotate_gaps() %>% 
+    filter(is.na(gap_type)) %>% 
     left_join(select(list_df, gene = symbol, panel_data = data),
               by = 'gene') %>%
     mutate(title = str_c(opts$out, ' - ', gene),
@@ -251,7 +256,7 @@ if (!opts$sv) { # SNPS
   cand_vars %>% 
     mutate(set = 'SV',
            family = opts$family) %>%
-    select(set, family, gene, consequence, chrom, pos, SVTYPE, SVLEN, END) %>%
+    select(set, family, gene, consequence, id, chrom, pos, SVTYPE, SVLEN, END) %>%
     distinct() %>% 
     write_csv(str_c(opts$out, '.candidates.csv'))
   

@@ -38,12 +38,9 @@ params.sv_type_match = [DEL: ['DEL'], DUP: ['CNV', 'DUP']]
 include { vcf_channel; families_channel } from './nf/functions'
 include { GetSamples } from './nf/GetSamples'
 include { CheckInputs } from './nf/CheckInputs'
-include { SplitSVs } from './nf/SplitSVs'
-include { CountVCF } from './nf/CountVCF'
 include { CleanAndChunk } from './nf/CleanAndChunk'
 include { Annotate } from './nf/Annotate'
-include { FamilyPrep } from './nf/FamilyPrep'
-include { Cavalier } from './nf/Cavalier'
+include { Report } from './nf/Report'
 
 workflow {
 
@@ -54,11 +51,8 @@ workflow {
     ann_vcf = vcf_samples |
         CheckInputs |
         combine(vcfs, by: 0) |
-        SplitSVs |
-        CountVCF |
         CleanAndChunk |
         Annotate |
         combine(families_channel(vcf_samples), by: 0) |
-        FamilyPrep |
-        Cavalier
+        Report
 }
