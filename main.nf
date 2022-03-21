@@ -1,6 +1,11 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl=2
 
+/*
+TODO:
+    - Add download URLs for reference files (similar to PLASTER) as default to simplify configuration
+ */
+
 //imput params
 params.id = ''
 params.snp_vcf = ''
@@ -31,6 +36,7 @@ params.vep_cache_ver = ''
 params.vep_assembly = params.ref_hg38 ? 'GRCh38' : 'GRCh37'
 params.pop_sv = ''
 params.ref_gene = ''
+params.cavalier_cache_dir = "$workflow.homeDir/.cavalier"
 
 // exec params
 params.sv_types = ['DEL', 'DUP', 'INS', 'INV', 'BND']

@@ -1,6 +1,8 @@
 
-include { pedigree_channel; bam_channel; pop_sv_channel; ref_gene_channel } from './functions'
+include { pedigree_channel; bam_channel; pop_sv_channel; ref_gene_channel; make_path } from './functions'
 include { Lists } from './Lists'
+
+cavalier_cache_dir = make_path(params.cavalier_cache_dir)
 
 workflow Report {
     take:
@@ -15,7 +17,7 @@ workflow Report {
         combine(pedigree_channel(), by:0) |
         combine(bam_channel(), by:0) | //fam, set, vcf, ped, sam, bam, bai
         combine(Lists(), by:0) | //fam, set, vcf, ped, sam, bam, bai, lists
-        map { it[[1,0,2,3,7,4,5,6]] }  //set, fam, vcf, ped, lists, sam, bam, bai
+       map { it[[1,0,2,3,7,4,5,6]] + [cavalier_cache_dir] }   //set, fam, vcf, ped, lists, sam, bam, bai
 
     cavalier_input | cavalier
 
@@ -87,14 +89,14 @@ process family_subset {
 
 process cavalier {
     label 'C2M4T2'
-    label 'Cavalier'
-    container null
-    module 'R/3.6.1'
+//    container null
+//    module 'R/4.1.2'
     publishDir "output/cavalier", mode: 'copy', pattern: "*.pptx"
     tag { "$fam:$set" }
 
     input:
-    tuple val(set), val(fam), path(vcf), path(ped), path(lists), val(sam), path(bam), path(bai)
+    tuple val(set), val(fam), path(vcf), path(ped), path(lists), val(sam), path(bam), path(bai),
+        path(cache_dir)
 
     output:
     tuple val(set), val(fam), path("${pref}.pptx"), path("${pref}.candidates.vcf.gz"), path("${pref}.candidates.csv")
@@ -109,6 +111,7 @@ process cavalier {
             (params.include_sv_csv ? ['--include-sv-csv']: [])
     ).join(' ')
     """
+    echo "HOME:\$HOME"
     cavalier_wrapper.R $vcf $ped $sam_bam $flags \\
         --out $pref \\
         --family $fam \\
@@ -120,7 +123,8 @@ process cavalier {
         --maf-comp-het $params.maf_comp_het \\
         --max-cohort-af $params.max_cohort_af \\
         --max-cohort-ac $params.max_cohort_ac \\
-        --min-impact $params.min_impact
+        --min-impact $params.min_impact \\
+        --cache-dir $cache_dir
     """
 }
 

@@ -1,7 +1,14 @@
 import java.text.SimpleDateFormat
 
 Path path(filename) {
-    file(filename, checkIfExists: true)
+    file(filename, checkIfExists: true).toAbsolutePath()
+}
+
+Path make_path(filename) {
+    if (! new File(filename).isDirectory()) {
+        new File(filename).mkdir()
+    }
+    path(filename)
 }
 
 ArrayList<Map> read_tsv(Path path, List<String> names ) {

@@ -31,6 +31,7 @@ Options:
   --large-event=<f>           Minimum size for a large CNV event to be kept regardless of gene intersections [default: 1e6]
   --include-sv-csv            Flag to retain all coding sequence variants (i.e. whole/partial exon)
   --sv-chr-exclude=<f>        Chromosomes to exclude from SV callsets [default: chrM,chrY,M,Y].
+  --cache-dir=<f>             Cavalier cache dir [default: ~/.cavalier].
 "
 opts <- docopt(doc)
 # print options
@@ -66,9 +67,10 @@ min_impact <- ordered(opts$min_impact, c('MODIFIER', 'LOW', 'MODERATE', 'HIGH'))
 sv_chr_exclude <-  c(str_split(opts$sv_chr_exclude, ',', simplify = T)) 
 
 set_cavalier_opt(ref_genome = opts$genome)
-set_cavalier_opt(
-  singularity_img = '~/links/singularity_cache/bahlolab-cavalier-dev.img',
-  singularity_cmd = '/stornext/System/data/apps/singularity/singularity-3.7.3/bin/singularity')
+set_cavalier_opt(cache_dir = opts$cache_dir)
+# set_cavalier_opt(
+#   singularity_img = '~/links/singularity_cache/bahlolab-cavalier-dev.img',
+#   singularity_cmd = '/stornext/System/data/apps/singularity/singularity-3.7.3/bin/singularity')
 insecure()
 
 list_df <-
