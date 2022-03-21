@@ -3,7 +3,7 @@
 from pysam import VariantFile
 import argparse
 import subprocess
-from subprocess import Popen
+from subprocess import Popen, check_call
 
 
 class VcfWriteProc:
@@ -17,9 +17,8 @@ class VcfWriteProc:
 
     def index(self):
         flag = '' if self.as_bcf else '-t'
-        popen = Popen(['bcftools', 'index', flag, self.fn],
-                      stdin=subprocess.PIPE, stdout=subprocess.DEVNULL)
-        return popen.poll()
+        return check_call(['bcftools', 'index', flag, self.fn],
+                          stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
 
     def close(self, index=False):
         self.variantFile.close()
