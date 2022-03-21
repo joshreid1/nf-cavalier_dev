@@ -10,14 +10,14 @@ workflow ConcatVCF {
             single: true }
 
     output = vcfs.multi |
-        proc |
+        concat_vcf |
         mix(vcfs.single.map { [it[0], it[1][0], it[2][0]] })
 
     emit:
     output
 }
 
-process proc {
+process concat_vcf {
     label 'C2M2T2'
     publishDir "progress/ConcatVCF", mode: 'symlink'
     tag { "$set" }

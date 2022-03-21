@@ -8,22 +8,23 @@ workflow Report {
 
     main:
 
-   input |
+   cavalier_input = input |
         map { it[[0,1,3,4,5]] } |
         family_subset |
         map { it[[1,0,2]] } | //fam, set, vcf
         combine(pedigree_channel(), by:0) |
         combine(bam_channel(), by:0) | //fam, set, vcf, ped, sam, bam, bai
         combine(Lists(), by:0) | //fam, set, vcf, ped, sam, bam, bai, lists
-        map { it[[1,0,2,3,7,4,5,6]] } | //set, fam, vcf, ped, lists, sam, bam, bai
-        cavalier
+        map { it[[1,0,2,3,7,4,5,6]] }  //set, fam, vcf, ped, lists, sam, bam, bai
+
+    cavalier_input | cavalier
 
     // run svpv on candidate SVs
     cavalier.out |
         filter { it[0] == 'SV' } |
         filter { it[4].toFile().readLines().size() > 1 } |
         map { it[[1,3]] } | //fam, vcf
-        combine( input |
+        combine( cavalier_input |
                      filter { it[0] == 'SV' } |
                      map { it[[1,5,6,7]] }, // fam, sam, bam, bai,
                  by:0 ) |
@@ -46,7 +47,7 @@ workflow Report {
                 toSortedList |
                 flatten
         ) |
-        collectFile(name: 'SNP_candidates.csv', storeDir: 'output',
+        collectFile(name: "${params.id}.SNP_candidates.csv", storeDir: 'output',
                     newLine:true, sort: false, cache: false)
 
     candidates.sv |
@@ -58,7 +59,7 @@ workflow Report {
                 toSortedList |
                 flatten
         ) |
-        collectFile(name: 'SV_candidates.csv', storeDir: 'output',
+        collectFile(name: "${params.id}.SV_candidates.csv", storeDir: 'output',
                     newLine:true, sort: false, cache: false)
 
 }
@@ -75,13 +76,13 @@ process family_subset {
     tuple val(set), val(fam), path(out_vcf), path("${out_vcf}.tbi")
 
     script:
-    out_vcf = "${params.id}.${set}.${fam}.subset.vcf.gz"
+    out_vcf = "${set}.${fam}.subset.vcf.gz"
     """
-        printf "${aff.join('\\n')}\\n" > aff
-        bcftools view --no-update $vcf -Ou -s ${(aff + unaff).join(',')} |
-            bcftools view  -i "GT[@aff]='alt'" -Oz -o $out_vcf
-        bcftools index -t $out_vcf
-        """
+    printf "${aff.join('\\n')}\\n" > aff
+    bcftools view --no-update $vcf -Ou -s ${(aff + unaff).join(',')} |
+        bcftools view  -i "GT[@aff]='alt'" -Oz -o $out_vcf
+    bcftools index -t $out_vcf
+    """
 }
 
 process cavalier {
@@ -99,12 +100,13 @@ process cavalier {
     tuple val(set), val(fam), path("${pref}.pptx"), path("${pref}.candidates.vcf.gz"), path("${pref}.candidates.csv")
 
     script:
-    pref = "$fam.$set"
+    pref = "${params.id}.$fam.$set"
     sam_bam = [sam, bam instanceof List ? bam: [bam]]
         .transpose().collect {it.join('=') }.join(' ')
     flags =(
         (set == 'SV' ? ['--sv ']: []) +
-            (params.exclude_benign_missense ? ['--exclude-benign-missense']: [])
+            (params.exclude_benign_missense ? ['--exclude-benign-missense']: []) +
+            (params.include_sv_csv ? ['--include-sv-csv']: [])
     ).join(' ')
     """
     cavalier_wrapper.R $vcf $ped $sam_bam $flags \\

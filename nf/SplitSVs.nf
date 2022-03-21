@@ -9,8 +9,8 @@ workflow SplitSVs {
         output = vcfs |
             filter { it[0] == 'SV' } |
             map { it.drop(1) } |
-            proc |
-            flatMap { it.transpose() } |
+            split_svs |
+            flatMap { it[0] instanceof List ? it.transpose() : [it] } |
             map { [(it[0].name =~ /([A-Z]+)\.vcf\.gz$/)[0][1]] + it } |
             filter { all_sv_types.contains(it[0]) }
 
@@ -21,7 +21,7 @@ workflow SplitSVs {
     emit: output // set, vcf, tbi
 }
 
-process proc {
+process split_svs {
     label 'C1M1T1'
     publishDir "progress/SplitSVs", mode: 'symlink'
 

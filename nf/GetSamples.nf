@@ -24,7 +24,7 @@ process proc {
         tuple val(id), path(out)
 
     script:
-    out = "${params.id}.${id}.samples.txt"
+    out = "${id}.samples.txt"
     """
     bcftools query -l $vcf > $out
     """

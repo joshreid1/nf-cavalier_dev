@@ -4,14 +4,14 @@ workflow CountVCF {
 
     main:
     counts = vcfs |
-        proc |
+        count_vcf |
         map { [it[0], it[1].toFile().text as int] }
     output = vcfs.combine(counts, by:0)
 
     emit: output // id, vcf, tbi, count
 }
 
-process proc {
+process count_vcf {
     label 'C1M1T1'
     publishDir "progress/CountVCF", mode: 'symlink'
     tag { id }
