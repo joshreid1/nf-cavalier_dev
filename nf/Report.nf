@@ -111,7 +111,6 @@ process cavalier {
             (params.include_sv_csv ? ['--include-sv-csv']: [])
     ).join(' ')
     """
-    echo "HOME:\$HOME"
     cavalier_wrapper.R $vcf $ped $sam_bam $flags \\
         --out $pref \\
         --family $fam \\

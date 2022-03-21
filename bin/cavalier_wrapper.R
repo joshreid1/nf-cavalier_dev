@@ -152,6 +152,7 @@ if (!opts$sv) { # SNPS
                     af_compound_het = maf_comp_het,
                     af_dominant = maf_dom,
                     af_recessive = maf_rec,
+                    af_de_novo = maf_dom,
                     min_depth = min_depth) %>%
     filter(!is.na(inheritance)) %>%
     left_join(select(list_df, gene = symbol, panel_data = data),
@@ -269,6 +270,7 @@ write_lines(length(vid), str_c(opts$out, '.num_cand'))
 out_vcf <- str_c(opts$out, '.candidates.vcf.gz')
 if (length(vid)) {
   gds <- cavalier:::vcf_to_gds(opts$vcf)
+  SeqArray::seqResetFilter(gds)
   SeqArray::seqSetFilter(gds, variant.id = unique(cand_vars$variant_id))
   SeqArray::seqGDS2VCF(gds, str_c(opts$out, '.candidates.vcf.gz'),
                        verbose = F)
