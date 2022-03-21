@@ -21,6 +21,7 @@ params.max_cohort_af = 1.0
 params.max_cohort_ac = 'Inf'
 params.min_impact = 'MODERATE'
 params.exclude_benign_missense = true
+params.include_sv_csv = true
 
 // ref params
 params.ref_fasta = ''
@@ -28,8 +29,8 @@ params.ref_hg38 = true
 params.vep_cache = ''
 params.vep_cache_ver = ''
 params.vep_assembly = params.ref_hg38 ? 'GRCh38' : 'GRCh37'
-params.pop_sv = 'nstd166.GRCh38.variant_call.vcf.gz'
-params.ref_gene = 'RefSeqGene.hg38.UCSC.txt'
+params.pop_sv = ''
+params.ref_gene = ''
 
 // exec params
 params.sv_types = ['DEL', 'DUP', 'INS', 'INV', 'BND']
