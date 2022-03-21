@@ -29,8 +29,8 @@ Options:
   --max-cohort-ac=<f>         Maximum allele count within cohort [default: Inf].
   --max-cohort-af=<f>         Maximum allele frequency within cohort [default: Inf].
   --large-event=<f>           Minimum size for a large CNV event to be kept regardless of gene intersections [default: 1e6]
-  --sv-csq-keep=<f>           Additional variant consequences for structural variants, ignores impact [default: coding_sequence_variant].
-  --sv-chr-exclude=<f>            Chromosomes to exclude from SV callsets [default: chrM,chrY,M,Y].
+  --include-sv-csv            Flag to retain all coding sequence variants (i.e. whole/partial exon)
+  --sv-chr-exclude=<f>        Chromosomes to exclude from SV callsets [default: chrM,chrY,M,Y].
 "
 opts <- docopt(doc)
 # print options
@@ -63,9 +63,6 @@ max_cohort_ac <- as.numeric(opts$`--max-cohort-ac`)
 max_cohort_af <- as.numeric(opts$`--max-cohort-af`)
 min_large_event <- as.numeric(opts$large_event)
 min_impact <- ordered(opts$min_impact, c('MODIFIER', 'LOW', 'MODERATE', 'HIGH'))
-csq_keep <- 
-  c(str_split(opts$sv_csq_keep, ',', simplify = T)) %>% 
-  str_c(sep = '|')
 sv_chr_exclude <-  c(str_split(opts$sv_chr_exclude, ',', simplify = T)) 
 
 set_cavalier_opt(ref_genome = opts$genome)
@@ -125,7 +122,6 @@ if (!opts$sv) { # SNPS
            AC = AC - rowSums(mutate_all(genotype, ~str_count(., '[1]'))),
            AF = AC / AN)
   
-  
   # get candidates 
   cand_vars <-
     vars %>% 
@@ -158,8 +154,10 @@ if (!opts$sv) { # SNPS
     filter(!is.na(inheritance)) %>%
     left_join(select(list_df, gene = symbol, panel_data = data),
               by = 'gene') %>%
-    mutate(title = str_c(opts$out, ' - ', gene),
-           cohort_AC_AF = str_c(AC, ' (', round(AF, 2), ')'))
+    mutate(title = str_c(opts$family, ' - ', gene),
+           cohort_AC_AF = str_c(AC, ' (', round(AF, 2), ')')) %>% 
+    arrange(gene, chrom, pos)
+  
   
   # create slides
   create_slides(cand_vars,
@@ -174,7 +172,7 @@ if (!opts$sv) { # SNPS
   cand_vars %>%
     mutate(set = 'SNP',
            family = opts$family) %>%
-    select(set, family, gene, consequence, id, hgvs_genomic, hgvs_protein) %>%
+    select(set, family, gene, consequence, inheritance, id, hgvs_genomic, hgvs_protein) %>%
     distinct() %>%
     write_csv(str_c(opts$out, '.candidates.csv'))
 
@@ -212,7 +210,8 @@ if (!opts$sv) { # SNPS
       gl_vars <-
         filter(x,
                gene %in% list_df$symbol,
-               impact > min_impact | str_detect(consequence, csq_keep))
+               impact >= min_impact | 
+                 (opts$include_sv_csv & str_detect(consequence, 'coding_sequence_variant')))
       # large event CNVs
       le_vars <-
         anti_join(x, gl_vars, 'variant_id') %>%
@@ -235,11 +234,12 @@ if (!opts$sv) { # SNPS
     filter(is.na(gap_type)) %>% 
     left_join(select(list_df, gene = symbol, panel_data = data),
               by = 'gene') %>%
-    mutate(title = str_c(opts$out, ' - ', gene),
+    mutate(title = str_c(opts$family, ' - ', gene),
            cohort_AC_AF = str_c(AC, ' (', round(AF, 2), ')')) %>% 
     group_by(variant_id) %>% 
     mutate(other_genes = map(gene, ~setdiff(gene, .)) %>% map_chr(str_c, collapse = ',')) %>% 
-    ungroup()
+    ungroup() %>% 
+    arrange(gene, chrom, pos)
   
   # For SV, makes more sense to summarise across all affected genes
   
@@ -256,7 +256,7 @@ if (!opts$sv) { # SNPS
   cand_vars %>% 
     mutate(set = 'SV',
            family = opts$family) %>%
-    select(set, family, gene, consequence, id, chrom, pos, SVTYPE, SVLEN, END) %>%
+    select(set, family, gene, consequence, inheritance, id, SVTYPE, chrom, pos, END, SVLEN) %>%
     distinct() %>% 
     write_csv(str_c(opts$out, '.candidates.csv'))
   
@@ -273,7 +273,3 @@ if (length(vid)) {
 } else {
   file.create(out_vcf)
 }
-
-
-
-
