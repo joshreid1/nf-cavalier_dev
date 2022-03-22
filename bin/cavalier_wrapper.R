@@ -36,13 +36,13 @@ Options:
 opts <- docopt(doc)
 # print options
 message('Using options:')
-opts[names(opts) %>% 
-       keep(~str_detect(., '^[:alpha:]'))] %>% 
-  { class(.) <- c('list', 'docopt'); .} %>% 
+opts[names(opts) %>%
+       keep(~str_detect(., '^[:alpha:]'))] %>%
+  { class(.) <- c('list', 'docopt'); .} %>%
   print()
 
 # set and check options
-sample_bams <- 
+sample_bams <-
   setNames(str_extract(opts$sample_bam, '[^=]+$'),
            str_extract(opts$sample_bam, '^[^=]+'))
 
@@ -64,7 +64,7 @@ max_cohort_ac <- as.numeric(opts$`--max-cohort-ac`)
 max_cohort_af <- as.numeric(opts$`--max-cohort-af`)
 min_large_event <- as.numeric(opts$large_event)
 min_impact <- ordered(opts$min_impact, c('MODIFIER', 'LOW', 'MODERATE', 'HIGH'))
-sv_chr_exclude <-  c(str_split(opts$sv_chr_exclude, ',', simplify = T)) 
+sv_chr_exclude <-  c(str_split(opts$sv_chr_exclude, ',', simplify = T))
 
 set_cavalier_opt(ref_genome = opts$genome)
 set_cavalier_opt(cache_dir = opts$cache_dir)
@@ -75,24 +75,24 @@ insecure()
 
 list_df <-
   map_df(lists, function(l) {
-    read_tsv(l, col_types = cols(.default = "c")) %T>% 
+    read_tsv(l, col_types = cols(.default = "c")) %T>%
       { assert_that(all(c('list_id', 'list_name', 'gene') %in% names(.))) }
-  }) %>% 
+  }) %>%
   mutate(list_name_url = case_when(
-    str_starts(list_id, 'PAA:') ~ str_c('https://panelapp.agha.umccr.org/panels/', 
+    str_starts(list_id, 'PAA:') ~ str_c('https://panelapp.agha.umccr.org/panels/',
                                         str_extract(list_id, '(?<=PAA:)\\d+')),
-    str_starts(list_id, 'PAE:') ~ str_c('https://panelapp.genomicsengland.co.uk/panels/', 
+    str_starts(list_id, 'PAE:') ~ str_c('https://panelapp.genomicsengland.co.uk/panels/',
                                         str_extract(list_id, '(?<=PAE:)\\d+')),
-    str_starts(list_id, 'HP:') ~ str_c('https://hpo.jax.org/app/browse/term/', 
+    str_starts(list_id, 'HP:') ~ str_c('https://hpo.jax.org/app/browse/term/',
                                        list_id)
-  )) %>% 
-  rename(symbol = gene) %>% 
-  filter(!is.na(symbol)) %>% 
+  )) %>%
+  rename(symbol = gene) %>%
+  filter(!is.na(symbol)) %>%
   mutate(symbol = hgnc_sym2sym(symbol),
          list_id_url = list_name_url) %>%
   distinct() %>%
   group_by(list_id, list_name, list_id_url, list_name_url, symbol) %>%
-  (function(x) 
+  (function(x)
     `if`(n_groups(x) < nrow(x),
          summarise(x,
                    across(everything(), ~ str_c(sort(unique(na.omit(.))), collapse = '; ')),
@@ -116,37 +116,37 @@ if (!opts$sv) { # SNPS
     )
   # load variants
   vars <-
-    load_vcf(opts$vcf, 
+    load_vcf(opts$vcf,
              samples = names(sample_bams),
              caller = 'GATK',
-             annotater = 'VEP') %>% 
+             annotater = 'VEP') %>%
     mutate(AN = AN - rowSums(mutate_all(genotype, ~str_count(., '[01]'))),
            AC = AC - rowSums(mutate_all(genotype, ~str_count(., '[1]'))),
            AF = AC / AN)
   
-  # get candidates 
+  # get candidates
   cand_vars <-
-    vars %>% 
+    vars %>%
     (function(x) {
       if (opts$exclude_benign_missense) {
-        x %>% 
-          mutate(idx = seq_along(variant_id)) %>% 
-          filter(consequence == 'missense_variant') %>% 
-          select(idx, sift, polyphen, clin_sig) %>% 
+        x %>%
+          mutate(idx = seq_along(variant_id)) %>%
+          filter(consequence == 'missense_variant') %>%
+          select(idx, sift, polyphen, clin_sig) %>%
           mutate(sift = sift > ordered('tolerated', levels(sift)),
                  polyphen = polyphen > ordered('benign', levels(polyphen)),
                  clin_sig = clin_sig > ordered('likely_benign ', levels(clin_sig)),
                  all_na = is.na(sift) & is.na(polyphen) & is.na(clin_sig),
-                 any_pass = replace_na(sift | polyphen | clin_sig, FALSE) | all_na) %>% 
-          filter(any_pass) %>% 
-          pull(idx) %>% 
+                 any_pass = replace_na(sift | polyphen | clin_sig, FALSE) | all_na) %>%
+          filter(any_pass) %>%
+          pull(idx) %>%
           { filter(x, consequence != 'missense_variant' | (seq_along(variant_id) %in% .)) }
       } else { x }
     }) %>%
     filter(AC <= max_cohort_ac,
            AF <= max_cohort_af,
            impact >= min_impact,
-           gene %in% list_df$symbol) %>% 
+           gene %in% list_df$symbol) %>%
     add_inheritance(ped_file = opts$ped,
                     af_column = 'af_gnomad',
                     af_compound_het = maf_comp_het,
@@ -158,7 +158,7 @@ if (!opts$sv) { # SNPS
     left_join(select(list_df, gene = symbol, panel_data = data),
               by = 'gene') %>%
     mutate(title = str_c(opts$family, ' - ', gene),
-           cohort_AC_AF = str_c(AC, ' (', round(AF, 2), ')')) %>% 
+           cohort_AC_AF = str_c(AC, ' (', round(AF, 2), ')')) %>%
     arrange(gene, chrom, pos)
   
   
@@ -178,7 +178,7 @@ if (!opts$sv) { # SNPS
     select(set, family, gene, consequence, inheritance, id, hgvs_genomic, hgvs_protein) %>%
     distinct() %>%
     write_csv(str_c(opts$out, '.candidates.csv'))
-
+  
 } else { # SVS
   # slide_layout
   layout <-
@@ -196,24 +196,24 @@ if (!opts$sv) { # SNPS
              samples = names(sample_bams),
              caller = 'manta',
              annotater = 'VEP',
-             SVO = TRUE) %>% 
-    mutate(af_gnomad = pmax(svo_af, af_gnomad, na.rm = T)) %>% 
+             SVO = TRUE) %>%
+    mutate(af_gnomad = pmax(svo_af, af_gnomad, na.rm = T)) %>%
     mutate(AN = AN - rowSums(mutate_all(genotype, ~str_count(., '[01]'))),
            AC = AC - rowSums(mutate_all(genotype, ~str_count(., '[1]'))),
            AF = AC / AN)
   
-  # get candidates 
+  # get candidates
   cand_vars <-
-    vars %>% 
-    filter(!chrom %in% sv_chr_exclude) %>% 
+    vars %>%
+    filter(!chrom %in% sv_chr_exclude) %>%
     filter(AC <= max_cohort_ac,
-           AF <= max_cohort_af) %>% 
+           AF <= max_cohort_af) %>%
     (function(x) {
       # variants that intersect gene lists
       gl_vars <-
         filter(x,
                gene %in% list_df$symbol,
-               impact >= min_impact | 
+               impact >= min_impact |
                  (opts$include_sv_csv & str_detect(consequence, 'coding_sequence_variant')))
       # large event CNVs
       le_vars <-
@@ -233,15 +233,15 @@ if (!opts$sv) { # SNPS
                     af_recessive = maf_rec,
                     min_depth = NULL) %>%
     filter(!is.na(inheritance)) %>%
-    annotate_gaps() %>% 
-    filter(is.na(gap_type)) %>% 
+    annotate_gaps() %>%
+    filter(is.na(gap_type)) %>%
     left_join(select(list_df, gene = symbol, panel_data = data),
               by = 'gene') %>%
     mutate(title = str_c(opts$family, ' - ', gene),
-           cohort_AC_AF = str_c(AC, ' (', round(AF, 2), ')')) %>% 
-    group_by(variant_id) %>% 
-    mutate(other_genes = map(gene, ~setdiff(gene, .)) %>% map_chr(str_c, collapse = ',')) %>% 
-    ungroup() %>% 
+           cohort_AC_AF = str_c(AC, ' (', round(AF, 2), ')')) %>%
+    group_by(variant_id) %>%
+    mutate(other_genes = map(gene, ~setdiff(gene, .)) %>% map_chr(str_c, collapse = ',')) %>%
+    ungroup() %>%
     arrange(gene, chrom, pos)
   
   # For SV, makes more sense to summarise across all affected genes
@@ -256,11 +256,11 @@ if (!opts$sv) { # SNPS
                              cohort_AC_AF = 'cohort_AC_AF'))
   
   # write candidate info
-  cand_vars %>% 
+  cand_vars %>%
     mutate(set = 'SV',
            family = opts$family) %>%
     select(set, family, gene, consequence, inheritance, id, SVTYPE, chrom, pos, END, SVLEN) %>%
-    distinct() %>% 
+    distinct() %>%
     write_csv(str_c(opts$out, '.candidates.csv'))
   
 }
@@ -270,10 +270,9 @@ write_lines(length(vid), str_c(opts$out, '.num_cand'))
 out_vcf <- str_c(opts$out, '.candidates.vcf.gz')
 if (length(vid)) {
   gds <- cavalier:::vcf_to_gds(opts$vcf)
-  SeqArray::seqResetFilter(gds)
-  SeqArray::seqSetFilter(gds, variant.id = unique(cand_vars$variant_id))
-  SeqArray::seqGDS2VCF(gds, str_c(opts$out, '.candidates.vcf.gz'),
-                       verbose = F)
+  SeqArray::seqResetFilter(gds, verbose = F)
+  SeqArray::seqSetFilter(gds, variant.id = vid)
+  SeqArray::seqGDS2VCF(gds, out_vcf, verbose = F)
 } else {
   file.create(out_vcf)
 }
