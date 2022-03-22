@@ -32,7 +32,7 @@ Nextflow Pipeline for singleton and family based candidate variant prioritisatio
       // reference config
       ref_hg38 = true
       ref_fasta = '/PATH/TO/GRCh38.fasta'
-      pop_sv = '/PATH/TO/gnomad-sv.vcf.gz
+      pop_sv = '/PATH/TO/gnomad-sv.vcf.gz'
       ref_gene = '/PATH/TO/RefSeqGene.hg38.UCSC.txt'
       vep_cache = '/PATH/T0/vep-cache'
       vep_cache_ver = '104'
