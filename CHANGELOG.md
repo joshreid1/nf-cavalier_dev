@@ -1,7 +1,7 @@
 # Changelog: nf-cavalier
 <!--- https://keepachangelog.com/en/1.0.0/ --->
 
-## [Unreleased]
+## [22.03.1](https://github.com/bahlolab/nf-cavalier/releases/tag/21.10.2) - 22 Mar 2022
 ### Added
 - SV support, SVPV visualisation
 - Candidate variants CSV output summarising all candidate variants across all samples
