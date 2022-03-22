@@ -1,3 +1,0 @@
-SeqArray
-rtracklayer
-GenomicRanges

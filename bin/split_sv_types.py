@@ -16,8 +16,9 @@ class VcfWriteProc:
         self.variantFile = VariantFile(self.Popen.stdin, 'wu', header=header)
 
     def index(self):
-        args = ['bcftools', 'index', self.fn] if self.as_bcf else ['bcftools', 'index', '-t', self.fn]
-        return check_call(args, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL)
+        flag = '' if self.as_bcf else '-t'
+        return check_call(['bcftools', 'index', flag, self.fn],
+                          stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
 
     def close(self, index=False):
         self.variantFile.close()
@@ -31,29 +32,30 @@ class VcfWriteProc:
         self.variantFile.write(rec)
 
 
-def main(pref, chunk_size, as_bcf, do_index):
-    n = 0
-    i = 1
-    ix = '01'
-    vf_in = VariantFile('-', 'rb')
-    vf_out = VcfWriteProc("{}-{}".format(pref, ix), vf_in.header, as_bcf)
+def get_sv_type(record):
+    if 'SVTYPE' in record.info:
+        return record.info.get('SVTYPE')
+    return 'NONE'
+
+
+def main(input, pref, as_bcf, do_index):
+    vf_in = VariantFile(input)
+    vf_outs = {}
     for rec in vf_in:
-        if n == chunk_size:
-            vf_out.close(index=do_index)
-            n = 0
-            i += 1
-            ix = ('0' + str(i)) if i < 10 else str(i)
-            vf_out = VcfWriteProc("{}-{}".format(pref, ix), vf_in.header, as_bcf)
-        vf_out.write(rec)
-        n += 1
-    vf_out.close(index=do_index)
+        sv_type = get_sv_type(rec)
+        if sv_type not in vf_outs:
+            vf_outs[sv_type] = VcfWriteProc("{}.{}".format(pref, sv_type),
+                                            vf_in.header, as_bcf)
+        vf_outs[sv_type].write(rec)
+    for vf in vf_outs.values():
+        vf.close(index=do_index)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('--input', required=True, help='input vcf/vcf.gz/bcf file')
     parser.add_argument('--pref', default='output', help='output variant files prefix')
-    parser.add_argument('--chunk-size', required=True, type=int, help='ideal (max) size of chunks')
     parser.add_argument('--bcf', action='store_true', help='write bcf instead of vcf.gz')
     parser.add_argument('--index', action='store_true', help='index output files')
     args = parser.parse_args()
-    main(args.pref, args.chunk_size, args.bcf, args.index)
+    main(args.input, args.pref, args.bcf, args.index)
