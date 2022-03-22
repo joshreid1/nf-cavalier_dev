@@ -7,6 +7,7 @@ dependencies:
     - pysam
     - ensembl-vep=104.3
     - igv
+    - xorg-libxtst
     - r-tidyverse
     - r-docopt
     - r-devtools
