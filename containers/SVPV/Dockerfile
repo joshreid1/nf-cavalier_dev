@@ -8,8 +8,8 @@ LABEL \
 # Install the conda environment
 ARG NAME='svpv'
 COPY environment.yml /
-RUN conda update -n base conda \
-    && conda install mamba -n base -c conda-forge \
+RUN conda update -n base conda -y \
+    && conda install mamba -n base -c conda-forge -y \
     && mamba env create -f /environment.yml \
     && mamba clean -a -y \
     && mamba env export --name $NAME > $NAME.yml
