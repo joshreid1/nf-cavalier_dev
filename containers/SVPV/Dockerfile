@@ -8,9 +8,11 @@ LABEL \
 # Install the conda environment
 ARG NAME='svpv'
 COPY environment.yml /
-RUN conda env create -f /environment.yml \
-    && conda clean -a -y \
-    && conda env export --name $NAME > $NAME.yml
+RUN conda update -n base conda \
+    && conda install mamba -n base -c conda-forge \
+    && mamba env create -f /environment.yml \
+    && mamba clean -a -y \
+    && mamba env export --name $NAME > $NAME.yml
 
 # Install SVPV
 RUN git clone https://github.com/VCCRI/SVPV.git \

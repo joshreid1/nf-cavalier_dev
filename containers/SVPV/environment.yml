@@ -7,4 +7,4 @@ dependencies:
     - samtools
     - python=2.7
     - numpy
-    - r
+    - r-base
