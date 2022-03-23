@@ -13,9 +13,9 @@ RUN conda env create -f /environment.yml \
     && conda env export --name $NAME > $NAME.yml
 
 # Install SVPV
-RUN git clone https://github.com/VCCRI/SVPV.git &&
-    echo "python /SVPV/SVPV \$@" > /opt/conda/bin/SVPV &&
-    chmod +x /opt/conda/bin/SVPV
+RUN git clone https://github.com/VCCRI/SVPV.git \
+    && echo "python /SVPV/SVPV \$@" > /opt/conda/bin/SVPV \
+    && chmod +x /opt/conda/bin/SVPV
 
 ENV PATH="/opt/conda/envs/$NAME/bin:/opt/conda/bin:${PATH}" \
     TZ=Etc/UTC \
