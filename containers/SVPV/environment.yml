@@ -8,3 +8,4 @@ dependencies:
     - python=2.7
     - numpy
     - r-base
+    - readline
