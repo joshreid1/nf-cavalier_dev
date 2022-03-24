@@ -130,8 +130,6 @@ process cavalier {
 process svpv {
     label 'C2M4T2'
     container = 'bahlolab/svpv:latest'
-//    container null
-//    conda '/stornext/Home/data/allstaff/m/munro.j/miniconda3/envs/numpy2'
     publishDir "output/svpv", mode: 'copy'
     tag { fam }
 
