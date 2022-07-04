@@ -17,7 +17,9 @@ RUN apt-get update \
 # Install the conda environment
 ARG NAME='cavalier'
 COPY environment.yml /
-RUN conda env create -f /environment.yml \
+RUN conda update -n base conda -y \
+    && conda install mamba -n base -c conda-forge -y \
+    && mamba env create -f /environment.yml \
     && conda clean -a -y \
     && conda env export --name $NAME > $NAME.yml
 
