@@ -84,7 +84,7 @@ def ref_data_channel() {
 
 def vcf_channel() {
     if (!params.snp_vcf & !params.sv_vcf){
-        throw new Exception("ERROR: Must specify at least one of 'params.vcf' or 'params.sv_vcf'")
+        throw new Exception("ERROR: Must specify at least one of 'params.snp_vcf' or 'params.sv_vcf'")
     }
     Channel.fromList(
         (params.snp_vcf ? [['SNP', path(params.snp_vcf), path(params.snp_vcf + '.tbi')]] : []) +
