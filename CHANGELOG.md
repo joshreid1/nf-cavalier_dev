@@ -1,17 +1,17 @@
 # Changelog: nf-cavalier
 <!--- https://keepachangelog.com/en/1.0.0/ --->
 
-## [22.07.1](https://github.com/bahlolab/nf-cavalier/releases/tag/21.10.3) - 04 Jul 2022
+## [22.07.1](https://github.com/bahlolab/nf-cavalier/releases/tag/22.07.1) - 04 Jul 2022
 ### Added
 - "filter stats" csv output to cavalier_wrapper.R to keep track of reasons variants are filtered
 ### Fixed
 - Problem in cavalier::hgnc_sym2sym function causing some gene names to be incorrect
 
-## [22.03.2](https://github.com/bahlolab/nf-cavalier/releases/tag/21.10.3) - 23 Mar 2022
+## [22.03.2](https://github.com/bahlolab/nf-cavalier/releases/tag/22.03.2) - 23 Mar 2022
 ### Fixed
 - Some diseases missing from HPO API causing errors, switch to using phenotype_annotation.tab artifact from hpo.annotations in cavalier
 
-## [22.03.1](https://github.com/bahlolab/nf-cavalier/releases/tag/21.10.2) - 22 Mar 2022
+## [22.03.1](https://github.com/bahlolab/nf-cavalier/releases/tag/22.03.1) - 22 Mar 2022
 ### Added
 - SV support, SVPV visualisation
 - Candidate variants CSV output summarising all candidate variants across all samples
