@@ -15,7 +15,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Install the conda environment
-ARG NAME='cavalier_dev'
+ARG NAME='cavalier'
 COPY environment.yml /
 RUN conda env create -f /environment.yml \
     && conda clean -a -y \

@@ -1,4 +1,4 @@
-name: cavalier_dev
+name: cavalier
 channels:
     - conda-forge
     - bioconda
