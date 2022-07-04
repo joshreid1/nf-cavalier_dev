@@ -92,6 +92,7 @@ process cavalier {
 //    container null
 //    module 'R/4.1.2'
     publishDir "output/cavalier", mode: 'copy', pattern: "*.pptx"
+    publishDir "output/cavalier", mode: 'copy', pattern: "*.filter_stats.csv"
     tag { "$fam:$set" }
 
     input:
@@ -99,7 +100,8 @@ process cavalier {
         path(cache_dir)
 
     output:
-    tuple val(set), val(fam), path("${pref}.pptx"), path("${pref}.candidates.vcf.gz"), path("${pref}.candidates.csv")
+    tuple val(set), val(fam), path("${pref}.pptx"), path("${pref}.candidates.vcf.gz"),
+          path("${pref}.candidates.csv"), path("${pref}.filter_stats.csv")
 
     script:
     pref = "${params.id}.$fam.$set"
@@ -137,14 +139,15 @@ process svpv {
     tuple val(fam), path(vcf), val(sam), path(bam), path(bai), path(pop_sv), path(pop_sv_indx), path(ref_gene)
 
     output:
-    tuple val(fam), path(fam)
+    tuple val(fam), path(output)
 
     script:
+    output = "${params.id}.$fam"
     sam_bam = [sam, bam instanceof List ? bam : [bam]]
         .transpose().collect { it.join('=') }.join(' ')
     """
     SVPV \\
-        -o $fam \\
+        -o $output \\
         -samples ${sam.join(',')} \\
         -aln ${bam.join(',')} \\
         -vcf $vcf \\

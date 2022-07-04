@@ -15,15 +15,17 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Install the conda environment
-ARG NAME='cavalier_dev'
+ARG NAME='cavalier'
 COPY environment.yml /
-RUN conda env create -f /environment.yml \
+RUN conda update -n base conda -y \
+    && conda install mamba -n base -c conda-forge -y \
+    && mamba env create -f /environment.yml \
     && conda clean -a -y \
     && conda env export --name $NAME > $NAME.yml
 
 # Install Cavalier R package
 RUN /opt/conda/envs/$NAME/bin/R --slave --vanilla -e \
-    "devtools::install_github('jemunro/cavalier@e07761191dbdeb003e41ea4fb97bb20bff33ca3b', \
+    "devtools::install_github('jemunro/cavalier@363588d11d982b2909c100dbcd3f06c46ce576d4', \
         force = TRUE, upgrade = 'never')"
 
 # ensure igv.sh exists and add conda executables to R PATH

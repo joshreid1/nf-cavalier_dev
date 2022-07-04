@@ -12,7 +12,7 @@ Nextflow Pipeline for singleton and family based candidate variant prioritisatio
     params {
       // inputs
       id = 'my_cohort'
-      vcf = 'my_cohort.SNPs.vcf.gz'
+      snp_vcf = 'my_cohort.SNPs.vcf.gz'
       sv_vcf = 'my_cohort.SVs.vcf.gz'
       ped = 'families.ped'
       bams = 'bams.tsv'
