@@ -191,8 +191,6 @@ if (!opts$sv) { # SNPS
                 layout = layout,
                 var_info = c(cavalier::get_var_info(),
                              cohort_AC_AF = 'cohort_AC_AF'))
-  file.create(str_c(opts$out, '.pptx'))
-  
   
   cand_vars %>%
     mutate(set = 'SNP',
@@ -288,7 +286,6 @@ if (!opts$sv) { # SNPS
                 layout = layout,
                 var_info = c(cavalier::get_var_info(sv=TRUE),
                              cohort_AC_AF = 'cohort_AC_AF'))
-  file.create(str_c(opts$out, '.pptx'))
   
   # write candidate info
   cand_vars %>%
