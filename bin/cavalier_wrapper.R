@@ -131,9 +131,9 @@ if (!opts$sv) { # SNPS
              samples = names(sample_bams),
              caller = 'GATK',
              annotater = 'VEP') %>%
-    mutate(AN = AN - rowSums(mutate_all(genotype, ~str_count(., '[01]'))),
-           AC = AC - rowSums(mutate_all(genotype, ~str_count(., '[1]'))),
-           AF = AC / AN)
+    mutate(AN = pmax(0, AN - rowSums(mutate_all(genotype, ~str_count(., '[01]')))),
+           AC = pmax(0, AC - rowSums(mutate_all(genotype, ~str_count(., '[1]')))),
+           AF = if_else(AN > 0, AC / AN, 0))
   
   
   filter_stats <- tibble(set = 'all', n = n_distinct(vars$variant_id))
@@ -220,9 +220,9 @@ if (!opts$sv) { # SNPS
              annotater = 'VEP',
              SVO = TRUE) %>%
     mutate(af_gnomad = pmax(svo_af, af_gnomad, na.rm = T)) %>%
-    mutate(AN = AN - rowSums(mutate_all(genotype, ~str_count(., '[01]'))),
-           AC = AC - rowSums(mutate_all(genotype, ~str_count(., '[1]'))),
-           AF = AC / AN) %>% 
+    mutate(AN = pmax(0, AN - rowSums(mutate_all(genotype, ~str_count(., '[01]')))),
+           AC = pmax(0, AC - rowSums(mutate_all(genotype, ~str_count(., '[1]')))),
+           AF = if_else(AN > 0, AC / AN, 0)) %>% 
     filter(!chrom %in% sv_chr_exclude)
   
   filter_stats <- tibble(set = 'all', n = n_distinct(vars$variant_id))
