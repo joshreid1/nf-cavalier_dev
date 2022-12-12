@@ -19,6 +19,7 @@ Options:
   --out=<f>                   Output file prefix [default: out].
   --family=<f>                Name of sample/family [default: Family].
   --genome=<f>                Reference genome for IGV snapshot [default: hg38].
+  --caller=<f>                Name of variant caller [default: GATK].
   --gene-lists=<f>            Comma serparated list of gene list names.
   --min-impact=<f>            Minimum VEP impact [default: MODERATE].
   --maf-dom=<f>               Maximum MAF for dominant [default: 0.0001].
@@ -68,9 +69,9 @@ sv_chr_exclude <-  c(str_split(opts$sv_chr_exclude, ',', simplify = T))
 
 set_cavalier_opt(ref_genome = opts$genome)
 set_cavalier_opt(cache_dir = opts$cache_dir)
-# set_cavalier_opt(
-#   singularity_img = '~/links/singularity_cache/bahlolab-cavalier-dev.img',
-#   singularity_cmd = '/stornext/System/data/apps/singularity/singularity-3.7.3/bin/singularity')
+set_cavalier_opt(
+  singularity_img = '~/links/singularity_cache/bahlolab-cavalier-dev.img',
+  singularity_cmd = '/stornext/System/data/apps/singularity/singularity-3.7.3/bin/singularity')
 insecure()
 
 list_df <-
@@ -129,7 +130,7 @@ if (!opts$sv) { # SNPS
   vars <-
     load_vcf(opts$vcf,
              samples = names(sample_bams),
-             caller = 'GATK',
+             caller = opts$caller,
              annotater = 'VEP') %>%
     mutate(AN = pmax(0, AN - rowSums(mutate_all(genotype, ~str_count(., '[01]')))),
            AC = pmax(0, AC - rowSums(mutate_all(genotype, ~str_count(., '[1]')))),
