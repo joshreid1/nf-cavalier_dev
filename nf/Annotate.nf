@@ -1,6 +1,6 @@
 include { path; ref_data_channel; pop_sv_channel } from './functions'
 include { vep; vep_sv } from './vep'
-include { vcf_concat} from './vcf_concat'
+include { vcf_concat } from './vcf_concat'
 include { vcf_concat as vcf_concat_sv } from './vcf_concat' addParams(allow_overlap: true)
 include { ConcatVCF as ConcatPopVCF } from './ConcatVCF' addParams(id: 'PopSV')
 include { SplitSVs as SplitPopSVs } from './SplitSVs'

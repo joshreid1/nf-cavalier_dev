@@ -131,7 +131,7 @@ process cavalier {
 
 process svpv {
     label 'C2M4T2'
-    container = 'bahlolab/svpv:latest'
+    container 'bahlolab/svpv:latest'
     publishDir "output/svpv", mode: 'copy'
     tag { fam }
 
