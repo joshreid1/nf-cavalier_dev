@@ -89,8 +89,8 @@ process family_subset {
 
 process cavalier {
     label 'C2M4T2'
-//    container null
-//    module 'R/4.1.2'
+    container null
+    module 'R/4.1.3'
     publishDir "output/cavalier", mode: 'copy', pattern: "*.pptx"
     publishDir "output/cavalier", mode: 'copy', pattern: "*.filter_stats.csv"
     tag { "$fam:$set" }
@@ -116,6 +116,7 @@ process cavalier {
     cavalier_wrapper.R $vcf $ped $sam_bam $flags \\
         --out $pref \\
         --family $fam \\
+        --caller $params.snp_caller \\
         --genome ${params.ref_hg38 ? 'hg38' : 'hg19'} \\
         --gene-lists ${lists.join(',')} \\
         --maf-dom $params.maf_dom \\
