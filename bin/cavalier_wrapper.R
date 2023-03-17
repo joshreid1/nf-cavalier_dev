@@ -70,9 +70,9 @@ sv_chr_exclude <-  c(str_split(opts$sv_chr_exclude, ',', simplify = T))
 
 set_cavalier_opt(ref_genome = opts$genome)
 set_cavalier_opt(cache_dir = opts$cache_dir)
-set_cavalier_opt(
-  singularity_img = '~/links/singularity_cache/bahlolab-cavalier-dev.img',
-  singularity_cmd = '/stornext/System/data/apps/singularity/singularity-3.7.3/bin/singularity')
+# set_cavalier_opt(
+#   singularity_img = '~/singularity_cache/bahlolab-cavalier-dev.img',
+#   singularity_cmd = '/stornext/System/data/apps/singularity/singularity-3.7.3/bin/singularity')
 insecure()
 
 list_df <-

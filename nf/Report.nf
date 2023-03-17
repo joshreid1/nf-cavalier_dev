@@ -90,7 +90,7 @@ process family_subset {
 process cavalier {
     label 'C2M4T2'
     // container null
-    // module 'R/4.1.3'
+    // module 'R/4.2.1'
     publishDir "output/cavalier", mode: 'copy', pattern: "*.pptx"
     publishDir "output/cavalier", mode: 'copy', pattern: "*.filter_stats.csv"
     tag { "$fam:$set" }

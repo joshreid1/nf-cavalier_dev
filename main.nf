@@ -18,7 +18,6 @@ params.bams = ''
 params.lists = ''
 params.chunk_size = 200000
 params.sv_chunk_size = 10000
-params.snp_caller = 'GATK'
 
 // filter params
 params.max_af = 0.1
@@ -45,6 +44,7 @@ params.cavalier_cache_dir = "$workflow.homeDir/.cavalier"
 // exec params
 params.sv_types = ['DEL', 'DUP', 'INS', 'INV', 'BND']
 params.sv_type_match = [DEL: ['DEL'], DUP: ['CNV', 'DUP']]
+params.no_slides = false // skip making slides in cavalier
 
 include { vcf_channel; families_channel } from './nf/functions'
 include { GetSamples } from './nf/GetSamples'
