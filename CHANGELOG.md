@@ -1,6 +1,11 @@
 # Changelog: nf-cavalier
 <!--- https://keepachangelog.com/en/1.0.0/ --->
 
+## [23.03.1](https://github.com/bahlolab/nf-cavalier/releases/tag/23.03.1) - 17 Mar 2023
+### Added
+- support for mutect2 variant calls
+- pedigree validity detection and correction in cavalier package
+
 ## [22.07.1](https://github.com/bahlolab/nf-cavalier/releases/tag/22.07.1) - 04 Jul 2022
 ### Added
 - "filter stats" csv output to cavalier_wrapper.R to keep track of reasons variants are filtered
