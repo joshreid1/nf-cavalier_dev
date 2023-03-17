@@ -9,6 +9,9 @@ TODO:
 //imput params
 params.id = ''
 params.snp_vcf = ''
+params.snp_caller = 'GATK'
+params.fill_tags = false
+params.remove_fields = 'INFO/CSQ'
 params.sv_vcf = ''
 params.ped = ''
 params.bams = ''
