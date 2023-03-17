@@ -89,8 +89,8 @@ process family_subset {
 
 process cavalier {
     label 'C2M4T2'
-    container null
-    module 'R/4.1.3'
+    // container null
+    // module 'R/4.1.3'
     publishDir "output/cavalier", mode: 'copy', pattern: "*.pptx"
     publishDir "output/cavalier", mode: 'copy', pattern: "*.filter_stats.csv"
     tag { "$fam:$set" }
@@ -126,7 +126,8 @@ process cavalier {
         --max-cohort-af $params.max_cohort_af \\
         --max-cohort-ac $params.max_cohort_ac \\
         --min-impact $params.min_impact \\
-        --cache-dir $cache_dir
+        --cache-dir $cache_dir \\
+        ${params.no_slides ? '--no-slides' : '' }
     """
 }
 

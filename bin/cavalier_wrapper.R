@@ -16,6 +16,7 @@ Options:
   sample_bams                 Sample names and bam files in format name=/path/to/bam.
   --exclude-benign-missense   Exclude missense variants that are predicted to be benign by sift, polyphen and ClinVar
   --sv                        Run in structural variant mode.
+  --no-slides                 Don't create pptx output.
   --out=<f>                   Output file prefix [default: out].
   --family=<f>                Name of sample/family [default: Family].
   --genome=<f>                Reference genome for IGV snapshot [default: hg38].
@@ -185,19 +186,30 @@ if (!opts$sv) { # SNPS
   
   
   # create slides
-  create_slides(cand_vars,
-                output = str_c(opts$out, '.pptx'),
-                bam_files = sample_bams,
-                ped_file = opts$ped,
-                layout = layout,
-                var_info = c(cavalier::get_var_info(),
-                             cohort_AC_AF = 'cohort_AC_AF'))
+  if (!opts$no_slides) {
+    create_slides(cand_vars,
+                  output = str_c(opts$out, '.pptx'),
+                  bam_files = sample_bams,
+                  ped_file = opts$ped,
+                  layout = layout,
+                  var_info = c(cavalier::get_var_info(),
+                               cohort_AC_AF = 'cohort_AC_AF'))
+  } else {
+    file.create(str_c(opts$out, '.pptx'))
+  }
   
   cand_vars %>%
     mutate(set = 'SNP',
-           family = opts$family) %>%
-    select(set, family, gene, consequence, inheritance, id, hgvs_genomic, hgvs_coding, hgvs_protein) %>%
-    distinct() %>%
+           family = opts$family,
+           genotype = map_chr(seq_len(nrow(cand_vars)), function(i) {
+             str_c(names(genotype), ':', genotype[i,], collapse = ';')
+           }),
+           baf = map_chr(seq_len(nrow(cand_vars)), function(i) {
+             str_c(names(depth_ref), ':', depth_alt[i,], '/', depth_alt[i,] + depth_ref[i,], collapse = ';')
+           })) %>% 
+    select(set, family, gene, consequence, inheritance, id, hgvs_genomic, hgvs_coding, hgvs_protein,
+           genotype, baf) %>%
+    distinct() %>% 
     write_csv(str_c(opts$out, '.candidates.csv'))
   
   write_csv(filter_stats, str_c(opts$out, '.filter_stats.csv'))
@@ -280,13 +292,17 @@ if (!opts$sv) { # SNPS
   # For SV, makes more sense to summarise across all affected genes
   
   # create slides
-  create_slides(cand_vars,
-                output = str_c(opts$out, '.pptx'),
-                bam_files = sample_bams,
-                ped_file = opts$ped,
-                layout = layout,
-                var_info = c(cavalier::get_var_info(sv=TRUE),
-                             cohort_AC_AF = 'cohort_AC_AF'))
+  if (!opts$no_slides) {
+    create_slides(cand_vars,
+                  output = str_c(opts$out, '.pptx'),
+                  bam_files = sample_bams,
+                  ped_file = opts$ped,
+                  layout = layout,
+                  var_info = c(cavalier::get_var_info(sv=TRUE),
+                               cohort_AC_AF = 'cohort_AC_AF'))
+  } else {
+    file.create(str_c(opts$out, '.pptx'))
+  }
   
   # write candidate info
   cand_vars %>%

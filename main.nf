@@ -18,6 +18,7 @@ params.bams = ''
 params.lists = ''
 params.chunk_size = 200000
 params.sv_chunk_size = 10000
+params.snp_caller = 'GATK'
 
 // filter params
 params.max_af = 0.1
