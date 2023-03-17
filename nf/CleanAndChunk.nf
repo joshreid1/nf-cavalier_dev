@@ -74,10 +74,11 @@ process clean_and_chunk {
     """
     bcftools view --no-version $vcf -R $regions -Ou |
         bcftools norm --no-version -m-any -f $ref -Ou |
-        bcftools annotate --no-version --threads 2 -Ou \\
-            --remove INFO/CSQ \\
+        bcftools annotate --no-version --threads $task.cpus -Ou \\
+            --remove $params.remove_fields \\
             --set-id '%CHROM\\_%POS\\_%REF\\_%FIRST_ALT' | \\
-         split_variants.py --bcf --index \\
+        ${params.fill_tags ? 'bcftools +fill-tags -Ou -- -t AC,AF,AN |' : ''}\\
+        split_variants.py --bcf --index \\
             --chunk-size ${params.chunk_size} \\
             --pref $pref
     """

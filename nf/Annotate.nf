@@ -1,6 +1,6 @@
 include { path; ref_data_channel; pop_sv_channel } from './functions'
 include { vep; vep_sv } from './vep'
-include { vcf_concat} from './vcf_concat'
+include { vcf_concat as vcf_concat_1 } from './vcf_concat'
 include { vcf_concat as vcf_concat_sv } from './vcf_concat' addParams(allow_overlap: true)
 include { ConcatVCF as ConcatPopVCF } from './ConcatVCF' addParams(id: 'PopSV')
 include { SplitSVs as SplitPopSVs } from './SplitSVs'
@@ -67,7 +67,7 @@ workflow Annotate {
             ["${it[0]}.${it[1]}.files.txt", it[2].toString()]
         } |
         map { (it.name =~ /([^.]+)\.([^.]+)\.files\.txt/)[0][1..2] + [it] } |
-        vcf_concat |
+        vcf_concat_1 |
         filter { it[1] == 'vep' } |
         map { it[0, 2, 3] } |
         branch { snp: it[0] == 'SNP'; sv: true }

@@ -16,9 +16,11 @@ Options:
   sample_bams                 Sample names and bam files in format name=/path/to/bam.
   --exclude-benign-missense   Exclude missense variants that are predicted to be benign by sift, polyphen and ClinVar
   --sv                        Run in structural variant mode.
+  --no-slides                 Don't create pptx output.
   --out=<f>                   Output file prefix [default: out].
   --family=<f>                Name of sample/family [default: Family].
   --genome=<f>                Reference genome for IGV snapshot [default: hg38].
+  --caller=<f>                Name of variant caller [default: GATK].
   --gene-lists=<f>            Comma serparated list of gene list names.
   --min-impact=<f>            Minimum VEP impact [default: MODERATE].
   --maf-dom=<f>               Maximum MAF for dominant [default: 0.0001].
@@ -69,7 +71,7 @@ sv_chr_exclude <-  c(str_split(opts$sv_chr_exclude, ',', simplify = T))
 set_cavalier_opt(ref_genome = opts$genome)
 set_cavalier_opt(cache_dir = opts$cache_dir)
 # set_cavalier_opt(
-#   singularity_img = '~/links/singularity_cache/bahlolab-cavalier-dev.img',
+#   singularity_img = '~/singularity_cache/bahlolab-cavalier-dev.img',
 #   singularity_cmd = '/stornext/System/data/apps/singularity/singularity-3.7.3/bin/singularity')
 insecure()
 
@@ -129,7 +131,7 @@ if (!opts$sv) { # SNPS
   vars <-
     load_vcf(opts$vcf,
              samples = names(sample_bams),
-             caller = 'GATK',
+             caller = opts$caller,
              annotater = 'VEP') %>%
     mutate(AN = pmax(0, AN - rowSums(mutate_all(genotype, ~str_count(., '[01]')))),
            AC = pmax(0, AC - rowSums(mutate_all(genotype, ~str_count(., '[1]')))),
@@ -184,19 +186,30 @@ if (!opts$sv) { # SNPS
   
   
   # create slides
-  create_slides(cand_vars,
-                output = str_c(opts$out, '.pptx'),
-                bam_files = sample_bams,
-                ped_file = opts$ped,
-                layout = layout,
-                var_info = c(cavalier::get_var_info(),
-                             cohort_AC_AF = 'cohort_AC_AF'))
+  if (!opts$no_slides) {
+    create_slides(cand_vars,
+                  output = str_c(opts$out, '.pptx'),
+                  bam_files = sample_bams,
+                  ped_file = opts$ped,
+                  layout = layout,
+                  var_info = c(cavalier::get_var_info(),
+                               cohort_AC_AF = 'cohort_AC_AF'))
+  } else {
+    file.create(str_c(opts$out, '.pptx'))
+  }
   
   cand_vars %>%
     mutate(set = 'SNP',
-           family = opts$family) %>%
-    select(set, family, gene, consequence, inheritance, id, hgvs_genomic, hgvs_coding, hgvs_protein) %>%
-    distinct() %>%
+           family = opts$family,
+           genotype = map_chr(seq_len(nrow(cand_vars)), function(i) {
+             str_c(names(genotype), ':', genotype[i,], collapse = ';')
+           }),
+           baf = map_chr(seq_len(nrow(cand_vars)), function(i) {
+             str_c(names(depth_ref), ':', depth_alt[i,], '/', depth_alt[i,] + depth_ref[i,], collapse = ';')
+           })) %>% 
+    select(set, family, gene, consequence, inheritance, id, hgvs_genomic, hgvs_coding, hgvs_protein,
+           genotype, baf) %>%
+    distinct() %>% 
     write_csv(str_c(opts$out, '.candidates.csv'))
   
   write_csv(filter_stats, str_c(opts$out, '.filter_stats.csv'))
@@ -279,13 +292,17 @@ if (!opts$sv) { # SNPS
   # For SV, makes more sense to summarise across all affected genes
   
   # create slides
-  create_slides(cand_vars,
-                output = str_c(opts$out, '.pptx'),
-                bam_files = sample_bams,
-                ped_file = opts$ped,
-                layout = layout,
-                var_info = c(cavalier::get_var_info(sv=TRUE),
-                             cohort_AC_AF = 'cohort_AC_AF'))
+  if (!opts$no_slides) {
+    create_slides(cand_vars,
+                  output = str_c(opts$out, '.pptx'),
+                  bam_files = sample_bams,
+                  ped_file = opts$ped,
+                  layout = layout,
+                  var_info = c(cavalier::get_var_info(sv=TRUE),
+                               cohort_AC_AF = 'cohort_AC_AF'))
+  } else {
+    file.create(str_c(opts$out, '.pptx'))
+  }
   
   # write candidate info
   cand_vars %>%

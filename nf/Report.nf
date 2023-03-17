@@ -89,8 +89,8 @@ process family_subset {
 
 process cavalier {
     label 'C2M4T2'
-//    container null
-//    module 'R/4.1.2'
+    // container null
+    // module 'R/4.2.1'
     publishDir "output/cavalier", mode: 'copy', pattern: "*.pptx"
     publishDir "output/cavalier", mode: 'copy', pattern: "*.filter_stats.csv"
     tag { "$fam:$set" }
@@ -116,6 +116,7 @@ process cavalier {
     cavalier_wrapper.R $vcf $ped $sam_bam $flags \\
         --out $pref \\
         --family $fam \\
+        --caller $params.snp_caller \\
         --genome ${params.ref_hg38 ? 'hg38' : 'hg19'} \\
         --gene-lists ${lists.join(',')} \\
         --maf-dom $params.maf_dom \\
@@ -125,13 +126,14 @@ process cavalier {
         --max-cohort-af $params.max_cohort_af \\
         --max-cohort-ac $params.max_cohort_ac \\
         --min-impact $params.min_impact \\
-        --cache-dir $cache_dir
+        --cache-dir $cache_dir \\
+        ${params.no_slides ? '--no-slides' : '' }
     """
 }
 
 process svpv {
     label 'C2M4T2'
-    container = 'bahlolab/svpv:latest'
+    container 'bahlolab/svpv:latest'
     publishDir "output/svpv", mode: 'copy'
     tag { fam }
 

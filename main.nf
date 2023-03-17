@@ -9,6 +9,9 @@ TODO:
 //imput params
 params.id = ''
 params.snp_vcf = ''
+params.snp_caller = 'GATK'
+params.fill_tags = false
+params.remove_fields = 'INFO/CSQ'
 params.sv_vcf = ''
 params.ped = ''
 params.bams = ''
@@ -41,6 +44,7 @@ params.cavalier_cache_dir = "$workflow.homeDir/.cavalier"
 // exec params
 params.sv_types = ['DEL', 'DUP', 'INS', 'INV', 'BND']
 params.sv_type_match = [DEL: ['DEL'], DUP: ['CNV', 'DUP']]
+params.no_slides = false // skip making slides in cavalier
 
 include { vcf_channel; families_channel } from './nf/functions'
 include { GetSamples } from './nf/GetSamples'
