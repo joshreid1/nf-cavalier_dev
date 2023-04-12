@@ -25,7 +25,7 @@ RUN conda update -n base conda -y \
 
 # Install Cavalier R package
 RUN /opt/conda/envs/$NAME/bin/R --slave --vanilla -e \
-    "devtools::install_github('jemunro/cavalier@6e41c2a1838da71cf18c336f47107fb1496dbb23', \
+    "devtools::install_github('jemunro/cavalier@a0f2fd9bbf60aaa11f27734fe131c6fbfc2257e1', \
         force = TRUE, upgrade = 'never')"
 
 # ensure igv.sh exists and add conda executables to R PATH
