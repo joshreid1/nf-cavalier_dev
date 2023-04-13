@@ -11,9 +11,40 @@
             "fa_icon": "fas fa-terminal",
             "description": "Define where the pipeline should find input data and save output data.",
             "required": [
+                "id",
+                "snp_vcf",
+                "sv_vcf",
+                "bams",
+                "ped",
+                "lists",
                 "outdir"
             ],
             "properties": {
+                "id": {
+                    "type": "string",
+                    "default": "'my-cohort'",
+                    "description": "Name for cohort"
+                },
+                "snp_vcf": {
+                    "type": "string",
+                    "default": "None"
+                },
+                "sv_vcf": {
+                    "type": "string",
+                    "default": "None"
+                },
+                "bams": {
+                    "type": "string",
+                    "default": "None"
+                },
+                "ped": {
+                    "type": "string",
+                    "default": "None"
+                },
+                "lists": {
+                    "type": "string",
+                    "default": "None"
+                },
                 "outdir": {
                     "type": "string",
                     "format": "directory-path",
@@ -21,168 +52,172 @@
                     "fa_icon": "fas fa-folder-open"
                 }
             }
+        },
+        "filtering": {
+            "title": "Filtering",
+            "type": "object",
+            "description": "Define how variants should be filtered",
+            "default": "",
+            "properties": {
+                "max_af": {
+                    "type": "string",
+                    "default": "0.1"
+                },
+                "maf_dom": {
+                    "type": "string",
+                    "default": "0.0001"
+                },
+                "maf_de_novo": {
+                    "type": "string",
+                    "default": "0.0001"
+                },
+                "maf_rec": {
+                    "type": "string",
+                    "default": "0.01"
+                },
+                "maf_comp_het": {
+                    "type": "string",
+                    "default": "0.01"
+                },
+                "max_cohort_af": {
+                    "type": "string",
+                    "default": "1"
+                },
+                "max_cohort_ac": {
+                    "type": "string",
+                    "default": "'Inf'"
+                },
+                "min_impact": {
+                    "type": "string",
+                    "default": "'MODERATE'"
+                },
+                "exclude_benign_missense": {
+                    "type": "string",
+                    "default": "true"
+                },
+                "include_sv_csv": {
+                    "type": "string",
+                    "default": "true"
+                },
+                "sv_types": {
+                    "type": "string",
+                    "default": "None",
+                    "hidden": true
+                }
+            },
+            "required": [
+                "max_af",
+                "maf_dom",
+                "maf_de_novo",
+                "maf_rec",
+                "maf_comp_het",
+                "max_cohort_af",
+                "max_cohort_ac"
+            ]
+        },
+        "reference_data": {
+            "title": "Reference Data",
+            "type": "object",
+            "description": "",
+            "default": "",
+            "properties": {
+                "ref_fasta": {
+                    "type": "string",
+                    "default": "None"
+                },
+                "ref_hg38": {
+                    "type": "string",
+                    "default": "true"
+                },
+                "vep_cache": {
+                    "type": "string",
+                    "default": "None"
+                },
+                "vep_cache_ver": {
+                    "type": "string",
+                    "default": "None"
+                },
+                "vep_assembly": {
+                    "type": "string",
+                    "default": "None",
+                    "hidden": true
+                },
+                "pop_sv": {
+                    "type": "string",
+                    "default": "None"
+                },
+                "ref_gene": {
+                    "type": "string",
+                    "default": "None"
+                }
+            },
+            "required": [
+                "ref_fasta",
+                "vep_cache",
+                "vep_cache_ver"
+            ]
+        },
+        "miscellaneous": {
+            "title": "Miscellaneous",
+            "type": "object",
+            "description": "Additional parameters",
+            "default": "",
+            "properties": {
+                "snp_caller": {
+                    "type": "string",
+                    "default": "'GATK'"
+                },
+                "fill_tags": {
+                    "type": "string",
+                    "default": "false",
+                    "hidden": true
+                },
+                "remove_fields": {
+                    "type": "string",
+                    "default": "'INFO/CSQ'",
+                    "hidden": true
+                },
+                "chunk_size": {
+                    "type": "integer",
+                    "default": 200000,
+                    "hidden": true,
+                    "description": "For parallelization of VCF processing"
+                },
+                "sv_chunk_size": {
+                    "type": "string",
+                    "default": "10000",
+                    "hidden": true
+                },
+                "cavalier_cache_dir": {
+                    "type": "string",
+                    "default": "None",
+                    "hidden": true
+                },
+                "sv_type_match": {
+                    "type": "string",
+                    "default": "None",
+                    "hidden": true
+                },
+                "no_slides": {
+                    "type": "string",
+                    "default": "None",
+                    "hidden": true
+                }
+            }
         }
     },
     "allOf": [
         {
             "$ref": "#/definitions/input_output_options"
+        },
+        {
+            "$ref": "#/definitions/filtering"
+        },
+        {
+            "$ref": "#/definitions/reference_data"
+        },
+        {
+            "$ref": "#/definitions/miscellaneous"
         }
-    ],
-    "properties": {
-        "id": {
-            "type": "string",
-            "default": "'my-cohort'",
-            "description": "Name for cohort"
-        },
-        "snp_vcf": {
-            "type": "string",
-            "default": null
-        },
-        "snp_caller": {
-            "type": "string",
-            "default": "'GATK'"
-        },
-        "fill_tags": {
-            "type": "string",
-            "default": "false",
-            "hidden": true
-        },
-        "remove_fields": {
-            "type": "string",
-            "default": "'INFO/CSQ'",
-            "hidden": true
-        },
-        "sv_vcf": {
-            "type": "string",
-            "default": null
-        },
-        "ped": {
-            "type": "string",
-            "default": null
-        },
-        "bams": {
-            "type": "string",
-            "default": null
-        },
-        "lists": {
-            "type": "string",
-            "default": null
-        },
-        "chunk_size": {
-            "type": "integer",
-            "default": 200000,
-            "hidden": true,
-            "description": "For parallelization of VCF processing"
-        },
-        "sv_chunk_size": {
-            "type": "string",
-            "default": "10000",
-            "hidden": true
-        },
-        "max_af": {
-            "type": "string",
-            "default": "0.1"
-        },
-        "maf_dom": {
-            "type": "string",
-            "default": "0.0001"
-        },
-        "maf_de_novo": {
-            "type": "string",
-            "default": "0.0001"
-        },
-        "maf_rec": {
-            "type": "string",
-            "default": "0.01"
-        },
-        "maf_comp_het": {
-            "type": "string",
-            "default": "0.01"
-        },
-        "max_cohort_af": {
-            "type": "string",
-            "default": "1"
-        },
-        "max_cohort_ac": {
-            "type": "string",
-            "default": "'Inf'"
-        },
-        "min_impact": {
-            "type": "string",
-            "default": "'MODERATE'"
-        },
-        "exclude_benign_missense": {
-            "type": "string",
-            "default": "true"
-        },
-        "include_sv_csv": {
-            "type": "string",
-            "default": "true"
-        },
-        "ref_fasta": {
-            "type": "string",
-            "default": null
-        },
-        "ref_hg38": {
-            "type": "string",
-            "default": "true"
-        },
-        "vep_cache": {
-            "type": "string",
-            "default": null
-        },
-        "vep_cache_ver": {
-            "type": "string",
-            "default": null
-        },
-        "vep_assembly": {
-            "type": "string",
-            "default": null,
-            "hidden": true
-        },
-        "pop_sv": {
-            "type": "string",
-            "default": null
-        },
-        "ref_gene": {
-            "type": "string",
-            "default": null
-        },
-        "cavalier_cache_dir": {
-            "type": "string",
-            "default": null,
-            "hidden": true
-        },
-        "sv_types": {
-            "type": "string",
-            "default": null,
-            "hidden": true
-        },
-        "sv_type_match": {
-            "type": "string",
-            "default": null,
-            "hidden": true
-        },
-        "no_slides": {
-            "type": "string",
-            "default": null,
-            "hidden": true
-        }
-    },
-    "required": [
-        "id",
-        "bams",
-        "ped",
-        "lists",
-        "max_af",
-        "maf_dom",
-        "maf_de_novo",
-        "max_cohort_ac",
-        "max_cohort_af",
-        "maf_comp_het",
-        "maf_rec",
-        "ref_fasta",
-        "vep_cache",
-        "vep_cache_ver"
     ]
 }
