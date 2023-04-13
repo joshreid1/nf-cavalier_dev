@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema",
     "$id": "https://raw.githubusercontent.com/./master/nextflow_schema.json",
-    "title": ". pipeline parameters",
+    "title": "nf-cavalier parameters",
     "description": "",
     "type": "object",
     "definitions": {
@@ -23,27 +23,38 @@
                 "id": {
                     "type": "string",
                     "default": "'my-cohort'",
-                    "description": "Name for cohort"
+                    "description": "Name for cohort",
+                    "fa_icon": "fas fa-address-card"
                 },
                 "snp_vcf": {
                     "type": "string",
-                    "default": "None"
+                    "default": "None",
+                    "fa_icon": "fas fa-database",
+                    "description": "Path to SNP VCF"
                 },
                 "sv_vcf": {
                     "type": "string",
-                    "default": "None"
+                    "default": "None",
+                    "fa_icon": "fas fa-database",
+                    "description": "Path to SVVCF"
                 },
                 "bams": {
                     "type": "string",
-                    "default": "None"
+                    "default": "None",
+                    "fa_icon": "fas fa-align-left",
+                    "description": "Path to BAMs TSV (sample_id, bam_path)"
                 },
                 "ped": {
                     "type": "string",
-                    "default": "None"
+                    "default": "None",
+                    "fa_icon": "fas fa-users",
+                    "description": "Path to ped file"
                 },
                 "lists": {
                     "type": "string",
-                    "default": "None"
+                    "default": "None",
+                    "fa_icon": "fas fa-list-ul",
+                    "description": "Path to gene lists TSV file"
                 },
                 "outdir": {
                     "type": "string",
