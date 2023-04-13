@@ -4,7 +4,7 @@ params.allow_overlap = false
 
 process vcf_concat {
     label 'C2M2T2'
-    publishDir "output/vcf_concat", mode: 'copy'
+    publishDir "${params.outdir}/vcf_concat", mode: 'copy'
     tag { "$set:$type" }
 
     input:

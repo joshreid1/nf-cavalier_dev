@@ -68,7 +68,7 @@ workflow Report {
 
 process family_subset {
     label 'C2M2T2'
-    publishDir "output/family_subset", mode: 'copy'
+    publishDir "${params.outdir}/family_subset", mode: 'copy'
     tag { "$fam:$set" }
 
     input:
@@ -91,8 +91,8 @@ process cavalier {
     label 'C2M4T2'
     // container null
     // module 'R/4.2.1'
-    publishDir "output/cavalier", mode: 'copy', pattern: "*.pptx"
-    publishDir "output/cavalier", mode: 'copy', pattern: "*.filter_stats.csv"
+    publishDir "${params.outdir}/cavalier", mode: 'copy', pattern: "*.pptx"
+    publishDir "${params.outdir}/cavalier", mode: 'copy', pattern: "*.filter_stats.csv"
     tag { "$fam:$set" }
 
     input:
@@ -134,7 +134,7 @@ process cavalier {
 process svpv {
     label 'C2M4T2'
     container 'bahlolab/svpv:latest'
-    publishDir "output/svpv", mode: 'copy'
+    publishDir "${params.outdir}/svpv", mode: 'copy'
     tag { fam }
 
     input:

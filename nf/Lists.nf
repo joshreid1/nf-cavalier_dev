@@ -40,7 +40,7 @@ workflow Lists {
 process pull_latest {
     label 'C1M1T1'
     label 'Cavalier'
-    publishDir "output/pull_latest_list", mode: 'copy'
+    publishDir "${params.outdir}/pull_latest_list", mode: 'copy'
     tag { "$id:v$ver" }
 
     input:
@@ -60,7 +60,7 @@ process pull_latest {
 process update_versions {
     label 'C1M1T1'
     label 'Cavalier'
-    publishDir "progress/update_list_versions", mode: 'symlink'
+    // publishDir "progress/update_list_versions", mode: 'symlink'
     tag { date }
 
     input:

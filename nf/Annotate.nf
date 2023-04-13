@@ -86,7 +86,7 @@ workflow Annotate {
 
 process vcf_stub {
     label 'C1T1M1'
-    publishDir "progress/vcf_stub", mode: 'symlink'
+    // publishDir "progress/vcf_stub", mode: 'symlink'
 
     input:
     tuple path(vcf), path(index)

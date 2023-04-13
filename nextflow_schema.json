@@ -1,0 +1,188 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "https://raw.githubusercontent.com/./master/nextflow_schema.json",
+    "title": ". pipeline parameters",
+    "description": "",
+    "type": "object",
+    "definitions": {
+        "input_output_options": {
+            "title": "Input/output options",
+            "type": "object",
+            "fa_icon": "fas fa-terminal",
+            "description": "Define where the pipeline should find input data and save output data.",
+            "required": [
+                "outdir"
+            ],
+            "properties": {
+                "outdir": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "description": "The output directory where the results will be saved. You have to use absolute paths to storage on Cloud infrastructure.",
+                    "fa_icon": "fas fa-folder-open"
+                }
+            }
+        }
+    },
+    "allOf": [
+        {
+            "$ref": "#/definitions/input_output_options"
+        }
+    ],
+    "properties": {
+        "id": {
+            "type": "string",
+            "default": "'my-cohort'",
+            "description": "Name for cohort"
+        },
+        "snp_vcf": {
+            "type": "string",
+            "default": null
+        },
+        "snp_caller": {
+            "type": "string",
+            "default": "'GATK'"
+        },
+        "fill_tags": {
+            "type": "string",
+            "default": "false",
+            "hidden": true
+        },
+        "remove_fields": {
+            "type": "string",
+            "default": "'INFO/CSQ'",
+            "hidden": true
+        },
+        "sv_vcf": {
+            "type": "string",
+            "default": null
+        },
+        "ped": {
+            "type": "string",
+            "default": null
+        },
+        "bams": {
+            "type": "string",
+            "default": null
+        },
+        "lists": {
+            "type": "string",
+            "default": null
+        },
+        "chunk_size": {
+            "type": "integer",
+            "default": 200000,
+            "hidden": true,
+            "description": "For parallelization of VCF processing"
+        },
+        "sv_chunk_size": {
+            "type": "string",
+            "default": "10000",
+            "hidden": true
+        },
+        "max_af": {
+            "type": "string",
+            "default": "0.1"
+        },
+        "maf_dom": {
+            "type": "string",
+            "default": "0.0001"
+        },
+        "maf_de_novo": {
+            "type": "string",
+            "default": "0.0001"
+        },
+        "maf_rec": {
+            "type": "string",
+            "default": "0.01"
+        },
+        "maf_comp_het": {
+            "type": "string",
+            "default": "0.01"
+        },
+        "max_cohort_af": {
+            "type": "string",
+            "default": "1"
+        },
+        "max_cohort_ac": {
+            "type": "string",
+            "default": "'Inf'"
+        },
+        "min_impact": {
+            "type": "string",
+            "default": "'MODERATE'"
+        },
+        "exclude_benign_missense": {
+            "type": "string",
+            "default": "true"
+        },
+        "include_sv_csv": {
+            "type": "string",
+            "default": "true"
+        },
+        "ref_fasta": {
+            "type": "string",
+            "default": null
+        },
+        "ref_hg38": {
+            "type": "string",
+            "default": "true"
+        },
+        "vep_cache": {
+            "type": "string",
+            "default": null
+        },
+        "vep_cache_ver": {
+            "type": "string",
+            "default": null
+        },
+        "vep_assembly": {
+            "type": "string",
+            "default": null,
+            "hidden": true
+        },
+        "pop_sv": {
+            "type": "string",
+            "default": null
+        },
+        "ref_gene": {
+            "type": "string",
+            "default": null
+        },
+        "cavalier_cache_dir": {
+            "type": "string",
+            "default": null,
+            "hidden": true
+        },
+        "sv_types": {
+            "type": "string",
+            "default": null,
+            "hidden": true
+        },
+        "sv_type_match": {
+            "type": "string",
+            "default": null,
+            "hidden": true
+        },
+        "no_slides": {
+            "type": "string",
+            "default": null,
+            "hidden": true
+        }
+    },
+    "required": [
+        "id",
+        "bams",
+        "ped",
+        "lists",
+        "max_af",
+        "maf_dom",
+        "maf_de_novo",
+        "max_cohort_ac",
+        "max_cohort_af",
+        "maf_comp_het",
+        "maf_rec",
+        "ref_fasta",
+        "vep_cache",
+        "vep_cache_ver"
+    ]
+}

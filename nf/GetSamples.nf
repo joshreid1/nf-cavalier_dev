@@ -14,7 +14,7 @@ workflow GetSamples {
 
 process proc {
     label 'C1M1T1'
-    publishDir "progress/GetSamples", mode: 'symlink'
+    // publishDir "progress/GetSamples", mode: 'symlink'
     tag { id }
 
     input:

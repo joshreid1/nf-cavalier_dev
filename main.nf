@@ -1,13 +1,12 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl=2
-
 /*
 TODO:
     - Add download URLs for reference files (similar to PLASTER) as default to simplify configuration
  */
-
 //imput params
 params.id = ''
+params.outdir = 'output'
 params.snp_vcf = ''
 params.snp_caller = 'GATK'
 params.fill_tags = false

@@ -23,7 +23,7 @@ workflow SplitSVs {
 
 process split_svs {
     label 'C1M1T1'
-    publishDir "progress/SplitSVs", mode: 'symlink'
+    // publishDir "progress/SplitSVs", mode: 'symlink'
 
     input:
         tuple path(vcf), path(index)

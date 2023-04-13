@@ -19,7 +19,7 @@ workflow ConcatVCF {
 
 process concat_vcf {
     label 'C2M2T2'
-    publishDir "progress/ConcatVCF", mode: 'symlink'
+    // publishDir "progress/ConcatVCF", mode: 'symlink'
     tag { "$set" }
 
     input:
