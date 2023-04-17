@@ -30,31 +30,36 @@
                     "type": "string",
                     "default": "None",
                     "fa_icon": "fas fa-database",
-                    "description": "Path to SNP VCF"
+                    "description": "Path to SNP VCF",
+                    "format": "file-path"
                 },
                 "sv_vcf": {
                     "type": "string",
                     "default": "None",
                     "fa_icon": "fas fa-database",
-                    "description": "Path to SVVCF"
+                    "description": "Path to SV VCF",
+                    "format": "file-path"
                 },
                 "bams": {
                     "type": "string",
                     "default": "None",
                     "fa_icon": "fas fa-align-left",
-                    "description": "Path to BAMs TSV (sample_id, bam_path)"
+                    "description": "Path to BAMs TSV (sample_id, bam_path)",
+                    "format": "file-path"
                 },
                 "ped": {
                     "type": "string",
                     "default": "None",
                     "fa_icon": "fas fa-users",
-                    "description": "Path to ped file"
+                    "description": "Path to ped file",
+                    "format": "file-path"
                 },
                 "lists": {
                     "type": "string",
                     "default": "None",
                     "fa_icon": "fas fa-list-ul",
-                    "description": "Path to gene lists TSV file"
+                    "description": "Path to gene lists TSV file",
+                    "format": "file-path"
                 },
                 "outdir": {
                     "type": "string",
@@ -142,7 +147,8 @@
                 "ref_fasta": {
                     "type": "string",
                     "default": "None",
-                    "description": "Path to reference fasta file"
+                    "description": "Path to reference fasta file",
+                    "format": "file-path"
                 },
                 "ref_hg38": {
                     "type": "boolean",
@@ -152,7 +158,8 @@
                 "vep_cache": {
                     "type": "string",
                     "default": "None",
-                    "description": "Path to VEP cache"
+                    "description": "Path to VEP cache",
+                    "format": "file-path"
                 },
                 "vep_cache_ver": {
                     "type": "string",
@@ -161,19 +168,21 @@
                 },
                 "vep_assembly": {
                     "type": "string",
-                    "default": "None",
+                    "default": "GRCh38",
                     "hidden": true,
                     "description": "VEP assembly"
                 },
                 "pop_sv": {
                     "type": "string",
                     "default": "None",
-                    "description": "Path to Pop SV VCF file"
+                    "description": "Path to Pop SV VCF file",
+                    "format": "file-path"
                 },
                 "ref_gene": {
                     "type": "string",
                     "default": "None",
-                    "description": "Path to UCSC refgene file"
+                    "description": "Path to UCSC refgene file",
+                    "format": "file-path"
                 }
             },
             "required": [
@@ -203,7 +212,7 @@
                 },
                 "remove_fields": {
                     "type": "string",
-                    "default": "'INFO/CSQ",
+                    "default": "INFO/CSQ",
                     "hidden": true,
                     "description": "VCF fields to remove prior to annotation with VEP"
                 },
@@ -218,17 +227,6 @@
                     "default": "10000",
                     "hidden": true,
                     "description": "For parallelization of VCF processing"
-                },
-                "cavalier_cache_dir": {
-                    "type": "string",
-                    "hidden": true,
-                    "description": "Directory for cavalier to cache reference db results"
-                },
-                "sv_type_match": {
-                    "type": "string",
-                    "default": "None",
-                    "hidden": true,
-                    "description": "Mapping for different SV types produced by different callers"
                 },
                 "no_slides": {
                     "type": "boolean",
