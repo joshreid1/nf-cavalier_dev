@@ -22,7 +22,7 @@
             "properties": {
                 "id": {
                     "type": "string",
-                    "default": "'my-cohort'",
+                    "default": "my-cohort",
                     "description": "Name for cohort",
                     "fa_icon": "fas fa-address-card"
                 },
@@ -60,7 +60,8 @@
                     "type": "string",
                     "format": "directory-path",
                     "description": "The output directory where the results will be saved. You have to use absolute paths to storage on Cloud infrastructure.",
-                    "fa_icon": "fas fa-folder-open"
+                    "fa_icon": "fas fa-folder-open",
+                    "default": "output"
                 }
             }
         },
@@ -70,50 +71,56 @@
             "description": "Define how variants should be filtered",
             "default": "",
             "properties": {
-                "max_af": {
-                    "type": "string",
-                    "default": "0.1"
-                },
                 "maf_dom": {
-                    "type": "string",
-                    "default": "0.0001"
+                    "type": "number",
+                    "default": 0.0001,
+                    "description": "Max gnomAD AF for dominantly inherited variant"
                 },
                 "maf_de_novo": {
-                    "type": "string",
-                    "default": "0.0001"
+                    "type": "number",
+                    "default": 0.0001,
+                    "description": "Max gnomAD AF for de novo variant"
                 },
                 "maf_rec": {
-                    "type": "string",
-                    "default": "0.01"
+                    "type": "number",
+                    "default": 0.01,
+                    "description": "Max gnomAD AF for recessively inherited variant"
                 },
                 "maf_comp_het": {
-                    "type": "string",
-                    "default": "0.01"
+                    "type": "number",
+                    "default": 0.01,
+                    "description": "Max gnomAD AF for compound heterozygous inherited variant"
                 },
                 "max_cohort_af": {
-                    "type": "string",
-                    "default": "1"
+                    "type": "number",
+                    "default": 1,
+                    "description": "Max AF in cohort (excluding family of interest)"
                 },
                 "max_cohort_ac": {
                     "type": "string",
-                    "default": "'Inf'"
+                    "default": "Inf",
+                    "description": "Max AC in cohort (excluding family of interest)"
                 },
                 "min_impact": {
                     "type": "string",
-                    "default": "'MODERATE'"
+                    "default": "MODERATE",
+                    "description": "Minimum VEP impact, one of: 'MODIFIER', 'LOW', 'MODERATE', 'HIGH'"
                 },
                 "exclude_benign_missense": {
-                    "type": "string",
-                    "default": "true"
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Exclude missense variants universally predicted/classified as benign"
                 },
                 "include_sv_csv": {
-                    "type": "string",
-                    "default": "true"
+                    "type": "boolean",
+                    "description": "Retain all SVs that with classification 'coding sequence variant'",
+                    "default": true
                 },
                 "sv_types": {
                     "type": "string",
-                    "default": "None",
-                    "hidden": true
+                    "default": "DEL,DUP,INS,INV,BND",
+                    "hidden": true,
+                    "description": "Comma separated list SV types to include"
                 }
             },
             "required": [
@@ -134,38 +141,47 @@
             "properties": {
                 "ref_fasta": {
                     "type": "string",
-                    "default": "None"
+                    "default": "None",
+                    "description": "Path to reference fasta file"
                 },
                 "ref_hg38": {
-                    "type": "string",
-                    "default": "true"
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Reference is hg38 (not hg19)"
                 },
                 "vep_cache": {
                     "type": "string",
-                    "default": "None"
+                    "default": "None",
+                    "description": "Path to VEP cache"
                 },
                 "vep_cache_ver": {
                     "type": "string",
-                    "default": "None"
+                    "default": "None",
+                    "description": "VEP cache version to use"
                 },
                 "vep_assembly": {
                     "type": "string",
                     "default": "None",
-                    "hidden": true
+                    "hidden": true,
+                    "description": "VEP assembly"
                 },
                 "pop_sv": {
                     "type": "string",
-                    "default": "None"
+                    "default": "None",
+                    "description": "Path to Pop SV VCF file"
                 },
                 "ref_gene": {
                     "type": "string",
-                    "default": "None"
+                    "default": "None",
+                    "description": "Path to UCSC refgene file"
                 }
             },
             "required": [
                 "ref_fasta",
                 "vep_cache",
-                "vep_cache_ver"
+                "vep_cache_ver",
+                "pop_sv",
+                "ref_gene"
             ]
         },
         "miscellaneous": {
@@ -176,17 +192,20 @@
             "properties": {
                 "snp_caller": {
                     "type": "string",
-                    "default": "'GATK'"
+                    "default": "GATK",
+                    "description": "SNP caller used"
                 },
                 "fill_tags": {
                     "type": "string",
                     "default": "false",
-                    "hidden": true
+                    "hidden": true,
+                    "description": "Use bcftools +fill-tags to calculate cohort AC and AF"
                 },
                 "remove_fields": {
                     "type": "string",
-                    "default": "'INFO/CSQ'",
-                    "hidden": true
+                    "default": "'INFO/CSQ",
+                    "hidden": true,
+                    "description": "VCF fields to remove prior to annotation with VEP"
                 },
                 "chunk_size": {
                     "type": "integer",
@@ -197,22 +216,24 @@
                 "sv_chunk_size": {
                     "type": "string",
                     "default": "10000",
-                    "hidden": true
+                    "hidden": true,
+                    "description": "For parallelization of VCF processing"
                 },
                 "cavalier_cache_dir": {
                     "type": "string",
-                    "default": "None",
-                    "hidden": true
+                    "hidden": true,
+                    "description": "Directory for cavalier to cache reference db results"
                 },
                 "sv_type_match": {
                     "type": "string",
                     "default": "None",
-                    "hidden": true
+                    "hidden": true,
+                    "description": "Mapping for different SV types produced by different callers"
                 },
                 "no_slides": {
-                    "type": "string",
-                    "default": "None",
-                    "hidden": true
+                    "type": "boolean",
+                    "hidden": true,
+                    "description": "Don't output powerpoint slides, allowing for speedier pipeline run"
                 }
             }
         }
