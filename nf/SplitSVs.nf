@@ -3,7 +3,9 @@ workflow SplitSVs {
     take: vcfs // set, vcf, tbi
 
     main:
-    all_sv_types = (params.sv_types.split(',') + params.sv_type_match.collectMany{ k,v -> v }).unique()
+    all_sv_types = (params.sv_types.split(',') as ArrayList)
+        .plus(params.sv_type_match.collectMany { k,v -> v })
+        .unique()
 
     if (params.sv_vcf) { // only run if sv vcf present
         output = vcfs |
