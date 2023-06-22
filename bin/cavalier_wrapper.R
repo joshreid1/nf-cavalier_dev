@@ -252,7 +252,7 @@ if (!opts$sv) { # SNPS
       # variants that intersect gene lists
       gl_vars <-
         filter(x,
-               # gene %in% list_df$symbol,
+               gene %in% list_df$symbol,
                impact >= min_impact |
                  (opts$include_sv_csv & str_detect(consequence, 'coding_sequence_variant')))
       # large event CNVs
@@ -260,7 +260,7 @@ if (!opts$sv) { # SNPS
         anti_join(x, gl_vars, 'variant_id') %>%
         filter(SVTYPE %in% c('DEL', 'DUP'),
                abs(SVLEN) >= min_large_event) %>%
-        select(variant_id, chrom, pos, ref, alt, AF, AC, AN, END, SVTYPE, SVLEN, genotype, af_gnomad) %>%
+        select(variant_id, chrom, pos, ref, alt, AF, AC, AN, END, SVTYPE, SVLEN, genotype, af_gnomad, id) %>%
         distinct() %>%
         mutate(gene = 'Large CNV')
       # combine
