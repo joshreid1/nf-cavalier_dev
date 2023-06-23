@@ -22,7 +22,7 @@ RUN micromamba install -y -n base -f /tmp/env.yaml \
 
 # Install Cavalier R package
 RUN /opt/conda/bin/R --slave --vanilla -e \
-    "devtools::install_github('jemunro/cavalier@6e41c2a1838da71cf18c336f47107fb1496dbb23', \
+    "devtools::install_github('jemunro/cavalier@e74a8c977a7e69d25aba0d9f2ce2a8e386c50434', \
         force = TRUE, upgrade = 'never')"
 
 ENV PATH="/opt/conda/bin:${PATH}" \
