@@ -1,0 +1,8 @@
+name: base
+channels:
+    - conda-forge
+    - bioconda
+dependencies:
+    - bcftools
+    - pysam
+    - ensembl-vep=104.3
