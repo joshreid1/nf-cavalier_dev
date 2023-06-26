@@ -20,7 +20,7 @@ RUN micromamba install -y -n base -f /tmp/env.yaml \
   && micromamba clean --all --yes
 
 # Install SVPV
-RUN git clone https://github.com/VCCRI/SVPV.git \
+RUN git clone https://github.com/VCCRI/SVPV.git /SVPV \
     && echo "python /SVPV/SVPV \$@" > /opt/conda/bin/SVPV \
     && chmod +x /opt/conda/bin/SVPV
 
