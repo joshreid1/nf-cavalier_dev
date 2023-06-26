@@ -89,8 +89,6 @@ process family_subset {
 
 process cavalier {
     label 'C2M4T2'
-    // container null
-    // module 'R/4.2.1'
     publishDir "${params.outdir}/cavalier", mode: 'copy', pattern: "*.pptx"
     publishDir "${params.outdir}/cavalier", mode: 'copy', pattern: "*.filter_stats.csv"
     tag { "$fam:$set" }
@@ -133,7 +131,6 @@ process cavalier {
 
 process svpv {
     label 'C2M4T2'
-    container 'bahlolab/svpv:latest'
     publishDir "${params.outdir}/svpv", mode: 'copy'
     tag { fam }
 
