@@ -5,6 +5,7 @@ channels:
 dependencies:
     - igv
     - xorg-libxtst
+    - openssl < 3.0.0
     - r >= 4.2
     - r-tidyverse
     - r-docopt
