@@ -20,6 +20,11 @@ COPY environment.yml /tmp/env.yaml
 RUN micromamba install -y -n base -f /tmp/env.yaml \ 
   && micromamba clean --all --yes
 
+# create igv.sh
+RUN cp /opt/conda/bin/igv /opt/conda/bin/igv.sh \
+    && echo "PATH=/opt/conda/bin:${PATH}" >> \
+    /opt/conda/lib/R/etc/Renviron
+
 # Install Cavalier R package
 RUN /opt/conda/bin/R --slave --vanilla -e \
     "devtools::install_github('jemunro/cavalier@237b423f76d66b2f8d51a25a49bbda5ce43d5100', \
