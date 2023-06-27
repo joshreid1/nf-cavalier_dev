@@ -42,7 +42,7 @@ workflow CleanAndChunk {
 
 process split_intervals {
     label 'C2M2T8'
-    label 'Cavalier'
+    label 'cavalier'
     // publishDir "progress/split_intervals", mode: 'symlink'
     tag { set }
 

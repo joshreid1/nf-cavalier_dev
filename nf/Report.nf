@@ -89,6 +89,7 @@ process family_subset {
 
 process cavalier {
     label 'C2M4T2'
+    label 'cavalier'
     publishDir "${params.outdir}/cavalier", mode: 'copy', pattern: "*.pptx"
     publishDir "${params.outdir}/cavalier", mode: 'copy', pattern: "*.filter_stats.csv"
     tag { "$fam:$set" }
