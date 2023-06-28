@@ -298,6 +298,7 @@ if (!opts$sv) { # SNPS
                   bam_files = sample_bams,
                   ped_file = opts$ped,
                   layout = layout,
+                  is_sv = TRUE,
                   var_info = c(cavalier::get_var_info(sv=TRUE),
                                cohort_AC_AF = 'cohort_AC_AF'))
   } else {
