@@ -27,7 +27,7 @@ RUN cp /opt/conda/bin/igv /opt/conda/bin/igv.sh \
 
 # Install Cavalier R package
 RUN /opt/conda/bin/R --slave --vanilla -e \
-    "devtools::install_github('jemunro/cavalier@237b423f76d66b2f8d51a25a49bbda5ce43d5100', \
+    "devtools::install_github('jemunro/cavalier@d90c6038af72194df1fc1882bdcfe6bab581160a', \
         force = TRUE, upgrade = 'never')"
 
 ENV PATH="/opt/conda/bin:${PATH}" \
