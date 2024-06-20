@@ -1,4 +1,5 @@
 import java.text.SimpleDateFormat
+import groovy.json.JsonOutput
 
 Path path(filename) {
     file(filename, checkIfExists: true).toAbsolutePath()
@@ -138,4 +139,14 @@ def bam_channel() {
         map { it[[3,0,1,2]] } |
         groupTuple(by: 0)
     // fam, iid, bam, bai
+}
+
+def get_options_json(escape='"') {
+    options = (params.cavalier_options ?: [:]) +
+    [ 
+        'cache_dir' : params.cache_dir,
+        'ref_genome': params.ref_hg38 ? 'hg38' : 'hg19'
+    ]
+    println options
+    JsonOutput.toJson(options).replace('"', escape)
 }

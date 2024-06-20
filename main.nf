@@ -37,7 +37,10 @@ params.vep_cache_ver = ''
 params.vep_assembly = params.ref_hg38 ? 'GRCh38' : 'GRCh37'
 params.pop_sv = ''
 params.ref_gene = ''
-params.cavalier_cache_dir = "$workflow.homeDir/.cavalier"
+params.cache_dir = 'cavalier_cache'
+
+// map additional options for cavalier R pacakge
+params.cavalier_options = [:]
 
 // exec params
 params.sv_types = 'DEL,DUP,INS,INV,BND'

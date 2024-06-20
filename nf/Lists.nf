@@ -1,5 +1,5 @@
 
-include { read_lists; path; date_ymd } from './functions'
+include { read_lists; path; date_ymd; get_options_json } from './functions'
 
 workflow Lists {
 
@@ -10,7 +10,7 @@ workflow Lists {
             lists = Channel.from(lists) |
                 map { it.values() as ArrayList } |
                 branch {
-                    web: it[1]  ==~ '^(HP|PA[AE]):.+'
+                    web: it[1]  ==~ '^(HP|PA.+|G4E):.+'
                     file: true
                 }
 
@@ -37,30 +37,9 @@ workflow Lists {
         list_channel // fam, lists
 }
 
-process pull_latest {
-    label 'C1M1T1'
-    label 'Cavalier'
-    publishDir "${params.outdir}/pull_latest_list", mode: 'copy'
-    tag { "$id:v$ver" }
-
-    input:
-    tuple val(id), val(ver)
-
-    output:
-    tuple val(id), path(output)
-
-    script:
-    output = id.replaceAll(':', '_') + '_v' + ver + '.tsv'
-    cmd = "cavalier::get_web_list('$id', version='$ver', save='$output', secure=FALSE)"
-    """
-    R --slave --vanilla -e "$cmd"
-    """
-}
-
 process update_versions {
     label 'C1M1T1'
-    label 'Cavalier'
-    // publishDir "progress/update_list_versions", mode: 'symlink'
+    label 'cavalier'
     tag { date }
 
     input:
@@ -71,8 +50,36 @@ process update_versions {
 
     script:
     output = "list_versions_${date}.tsv"
-    cmd = "cavalier::get_web_list_version(readr::read_lines('$id_file'), '$output')"
+    cmd = "cavalier::get_gene_list_versions(readr::read_lines('$id_file'), '$output')"
     """
-    R --slave --vanilla -e "$cmd"
+    R --slave --vanilla -e "\\
+        cavalier::set_options_from_json('${get_options_json('\\\\\\"')}');\\
+        cavalier::get_gene_list_versions(readr::read_lines('$id_file'), '$output')\\
+    "
+    """
+
+        
+}
+
+process pull_latest {
+    label 'C1M1T1'
+    label 'cavalier'
+    storeDir "${params.outdir}/gene_lists"
+    tag "$id:$ver"
+
+    input:
+    tuple val(id), val(ver)
+
+    output:
+    tuple val(id), path(output)
+
+    script:
+    output = id.replaceAll(':', '_') + '_' + ver + '.tsv'
+    """
+    R --slave --vanilla -e "\\
+        cavalier::set_options_from_json('${get_options_json('\\\\\\"')}');\\
+        cavalier::get_gene_list('$id', version='$ver', save='$output')\\
+    "
     """
 }
+

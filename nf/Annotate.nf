@@ -85,7 +85,9 @@ workflow Annotate {
 }
 
 process vcf_stub {
-    label 'C1T1M1'
+    cpus 1
+    memory '2 GB'
+    time '1 h'
     // publishDir "progress/vcf_stub", mode: 'symlink'
 
     input:

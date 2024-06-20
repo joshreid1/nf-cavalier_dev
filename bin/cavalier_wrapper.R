@@ -19,7 +19,6 @@ Options:
   --no-slides                 Don't create pptx output.
   --out=<f>                   Output file prefix [default: out].
   --family=<f>                Name of sample/family [default: Family].
-  --genome=<f>                Reference genome for IGV snapshot [default: hg38].
   --caller=<f>                Name of variant caller [default: GATK].
   --gene-lists=<f>            Comma serparated list of gene list names.
   --min-impact=<f>            Minimum VEP impact [default: MODERATE].
@@ -33,7 +32,7 @@ Options:
   --large-event=<f>           Minimum size for a large CNV event to be kept regardless of gene intersections [default: 1e6]
   --include-sv-csv            Flag to retain all coding sequence variants (i.e. whole/partial exon)
   --sv-chr-exclude=<f>        Chromosomes to exclude from SV callsets [default: chrM,chrY,M,Y].
-  --cache-dir=<f>             Cavalier cache dir [default: ~/.cavalier].
+  --cavalier-options=<f>      Additional Cavalier options in json format
 "
 opts <- docopt(doc)
 # print options
@@ -42,7 +41,8 @@ opts[names(opts) %>%
        keep(~str_detect(., '^[:alpha:]'))] %>%
   { class(.) <- c('list', 'docopt'); .} %>%
   print()
-
+# for debugging
+saveRDS(opts, '.opts.rds')
 # set and check options
 sample_bams <-
   setNames(str_extract(opts$sample_bam, '[^=]+$'),
@@ -50,12 +50,14 @@ sample_bams <-
 
 lists <- c(str_split(opts$gene_lists, ',', simplify = T))
 
+set_options_from_json(opts$cavalier_options)
+
 invisible(
   assert_that(file.exists(opts$vcf),
               file.exists(opts$ped),
               all(file.exists(lists)),
               all(file.exists(sample_bams)),
-              opts$genome %in% c('hg19', 'hg38')))
+              get_cavalier_opt("ref_genome") %in% c('hg19', 'hg38')))
 
 maf_dom <- as.numeric(opts$`--maf-dom`)
 maf_rec <- as.numeric(opts$`--maf-rec`)
@@ -68,17 +70,34 @@ min_large_event <- as.numeric(opts$large_event)
 min_impact <- ordered(opts$min_impact, c('MODIFIER', 'LOW', 'MODERATE', 'HIGH'))
 sv_chr_exclude <-  c(str_split(opts$sv_chr_exclude, ',', simplify = T))
 
-set_cavalier_opt(ref_genome = opts$genome)
-set_cavalier_opt(cache_dir = opts$cache_dir)
-# set_cavalier_opt(
-#   singularity_img = '~/singularity_cache/bahlolab-cavalier-dev.img',
-#   singularity_cmd = '/stornext/System/data/apps/singularity/singularity-3.7.3/bin/singularity')
-insecure()
-
 list_df <-
-  map_df(lists, function(l) {
-    read_tsv(l, col_types = cols(.default = "c")) %T>%
-      { assert_that(all(c('list_id', 'list_name', 'gene') %in% names(.))) }
+  map_df(lists, function(fn) {
+    list <- read_tsv(fn, col_types = cols(.default = "c"))
+    # check required columns are present
+    req_cols <- c('symbol', 'gene', 'hgnc_id', 'ensembl_gene_id', 'entrez_id')
+    assert_that(
+      'list_id'   %in% colnames(list),
+      'list_name' %in% colnames(list),
+      length(intersect(colnames(list), req_cols)) > 0
+    )
+    # map gene identifiers to ensembl_gene_id
+    list <-
+      list %>% 
+      bind_rows(req_cols %>% setNames(.,.) %>% map_dfc(~ character())) %>% 
+      mutate(entrez_id = as.integer(entrez_id)) %>% 
+      mutate(ensembl_gene_id = coalesce(
+        ensembl_gene_id,
+        hgnc_id2ensembl(hgnc_id),
+        hgnc_entrez2ensembl(entrez_id),
+        hgnc_sym2ensembl(symbol),
+        hgnc_sym2ensembl(gene)
+      )) %>% 
+      select(
+        list_id, list_name, ensembl_gene_id, 
+        any_of(c('list_version', 'inheritance'))
+      ) %>% 
+      filter(!is.na(ensembl_gene_id)) %>% 
+      distinct()
   }) %>%
   mutate(list_name_url = case_when(
     str_starts(list_id, 'PAA:') ~ str_c('https://panelapp.agha.umccr.org/panels/',
@@ -86,23 +105,14 @@ list_df <-
     str_starts(list_id, 'PAE:') ~ str_c('https://panelapp.genomicsengland.co.uk/panels/',
                                         str_extract(list_id, '(?<=PAE:)\\d+')),
     str_starts(list_id, 'HP:') ~ str_c('https://hpo.jax.org/app/browse/term/',
-                                       list_id)
+                                       list_id),
+    str_starts(list_id, 'G4E:') ~ 'https://bahlolab.github.io/Genes4Epilepsy/'
   )) %>%
-  rename(symbol = gene) %>%
-  filter(!is.na(symbol)) %>%
-  mutate(symbol = hgnc_sym2sym(symbol),
-         list_id_url = list_name_url) %>%
+  mutate(list_id_url = list_name_url) %>%
   distinct() %>%
-  group_by(list_id, list_name, list_id_url, list_name_url, symbol) %>%
-  (function(x)
-    `if`(n_groups(x) < nrow(x),
-         summarise(x,
-                   across(everything(), ~ str_c(sort(unique(na.omit(.))), collapse = '; ')),
-                   .groups = 'drop'),
-         ungroup(x))) %>%
-  nest(data = -symbol)
+  nest(panel_data = -ensembl_gene_id)
 
-
+filter_stats <- tibble(set = character(), n = integer())
 update_filter_stats <- function(data, set) {
   n <- n_distinct(data$variant_id)
   filter_stats <-
@@ -111,7 +121,6 @@ update_filter_stats <- function(data, set) {
   assign('filter_stats', filter_stats, envir = .GlobalEnv)
   return(data)
 }
-
 
 if (!opts$sv) { # SNPS
   # slide_layout
@@ -137,12 +146,10 @@ if (!opts$sv) { # SNPS
            AC = pmax(0, AC - rowSums(mutate_all(genotype, ~str_count(., '[1]')))),
            AF = if_else(AN > 0, AC / AN, 0))
   
-  
-  filter_stats <- tibble(set = 'all', n = n_distinct(vars$variant_id))
-  
   # get candidates
   cand_vars <-
     vars %>%
+    update_filter_stats('all') %>%
     filter(is.na(af_gnomad) | af_gnomad <= maf_rec) %>% 
     update_filter_stats('gnomad_allele_freq') %>% 
     filter(AC <= max_cohort_ac,
@@ -150,44 +157,41 @@ if (!opts$sv) { # SNPS
     update_filter_stats('cohort_allele_freq') %>% 
     filter(impact >= min_impact) %>% 
     update_filter_stats('min_impact') %>% 
-    (function(x) {
-      if (opts$exclude_benign_missense) {
-        x %>%
-          mutate(idx = seq_along(variant_id)) %>%
-          filter(consequence == 'missense_variant') %>%
-          select(idx, sift, polyphen, clin_sig) %>%
-          mutate(sift = sift > ordered('tolerated', levels(sift)),
-                 polyphen = polyphen > ordered('benign', levels(polyphen)),
-                 clin_sig = clin_sig > ordered('likely_benign ', levels(clin_sig)),
-                 all_na = is.na(sift) & is.na(polyphen) & is.na(clin_sig),
-                 any_pass = replace_na(sift | polyphen | clin_sig, FALSE) | all_na) %>%
-          filter(any_pass) %>%
-          pull(idx) %>%
-          { filter(x, consequence != 'missense_variant' | (seq_along(variant_id) %in% .)) }
-      } else { x }
-    }) %>%
+    # bening_missense 
+    mutate(
+      non_benign_sift =  sift > ordered('tolerated', levels(sift)),
+      non_benign_polyphen = polyphen > ordered('benign', levels(polyphen)),
+      non_benign_clin_sig = clin_sig > ordered('likely_benign ', levels(clin_sig)),
+      non_benign_all_na = is.na(non_benign_sift) & is.na(non_benign_polyphen) & is.na(non_benign_clin_sig),
+      benign_missense = 
+        consequence == 'missense_variant' &
+        !(replace_na(non_benign_sift | non_benign_polyphen | non_benign_clin_sig, FALSE) | non_benign_all_na)
+    ) %>% 
+    select(-starts_with('non_benign')) %>% 
+    filter(!(opts$exclude_benign_missense & benign_missense)) %>% 
     update_filter_stats('benign_missense') %>%
-    filter(gene %in% list_df$symbol) %>%
+    semi_join(list_df, by = 'ensembl_gene_id') %>% 
     update_filter_stats('gene_list') %>% 
     add_inheritance(ped_file = opts$ped,
                     af_column = 'af_gnomad',
+                    gene_column = 'ensembl_gene_id',
+                    uid_column = 'hgvs_genomic',
                     af_compound_het = maf_comp_het,
                     af_dominant = maf_dom,
                     af_recessive = maf_rec,
                     af_de_novo = maf_dom,
-                    min_depth = min_depth) %>%
+                    min_depth = min_depth)  %>% 
     filter(!is.na(inheritance)) %>%
     update_filter_stats('inheritance') %>% 
-    left_join(select(list_df, gene = symbol, panel_data = data),
-              by = 'gene') %>%
-    mutate(title = str_c(opts$family, ' - ', gene),
+    left_join(list_df, by = 'ensembl_gene_id') %>%
+    mutate(title = str_c(opts$family, ' - ', symbol),
            cohort_AC_AF = str_c(AC, ' (', round(AF, 2), ')')) %>%
-    arrange(gene, chrom, pos)
+    arrange(symbol, chrom, pos)
   
   
   # create slides
   if (!opts$no_slides) {
-    create_slides(cand_vars,
+    create_slides(variants = cand_vars,
                   output = str_c(opts$out, '.pptx'),
                   bam_files = sample_bams,
                   ped_file = opts$ped,
@@ -207,7 +211,7 @@ if (!opts$sv) { # SNPS
            baf = map_chr(seq_len(nrow(cand_vars)), function(i) {
              str_c(names(depth_ref), ':', depth_alt[i,], '/', depth_alt[i,] + depth_ref[i,], collapse = ';')
            })) %>% 
-    select(set, family, gene, consequence, inheritance, id, hgvs_genomic, hgvs_coding, hgvs_protein,
+    select(set, family, symbol, consequence, inheritance, id, hgvs_genomic, hgvs_coding, hgvs_protein,
            genotype, baf) %>%
     distinct() %>% 
     write_csv(str_c(opts$out, '.candidates.csv'))
@@ -237,63 +241,62 @@ if (!opts$sv) { # SNPS
            AC = pmax(0, AC - rowSums(mutate_all(genotype, ~str_count(., '[1]')))),
            AF = if_else(AN > 0, AC / AN, 0)) %>% 
     filter(!chrom %in% sv_chr_exclude)
-  
-  filter_stats <- tibble(set = 'all', n = n_distinct(vars$variant_id))
-  
+
   # get candidates
   cand_vars <-
     vars %>%
+    update_filter_stats('all') %>% 
     filter(is.na(af_gnomad) | af_gnomad <= maf_rec) %>% 
     update_filter_stats('gnomad_allele_freq') %>% 
     filter(AC <= max_cohort_ac,
            AF <= max_cohort_af) %>%
-    update_filter_stats('cohort_allele_freq')  %>% 
-    (function(x) {
-      # variants that intersect gene lists
-      gl_vars <-
-        filter(x,
-               gene %in% list_df$symbol,
-               impact >= min_impact |
-                 (opts$include_sv_csv & str_detect(consequence, 'coding_sequence_variant')))
-      # large event CNVs
-      le_vars <-
-        anti_join(x, gl_vars, 'variant_id') %>%
-        filter(SVTYPE %in% c('DEL', 'DUP'),
-               abs(SVLEN) >= min_large_event) %>%
-        select(variant_id, chrom, pos, ref, alt, AF, AC, AN, END, SVTYPE, SVLEN, genotype, af_gnomad, id) %>%
-        distinct() %>%
-        mutate(gene = 'Large CNV')
-      # combine
-      bind_rows(gl_vars, le_vars)
-    }) %>%
-    update_filter_stats('min_impact') %>% 
-    filter(gene %in% c('Large CNV', list_df$symbol)) %>% 
+    update_filter_stats('cohort_allele_freq') %>% 
+    (function(data) {
+      bind_rows(
+        # variants that intersect gene lists
+        data %>% 
+          semi_join(list_df, by = 'ensembl_gene_id'),
+        # large event CNVs
+        data %>% 
+          filter(SVTYPE %in% c('DEL', 'DUP'),
+                 abs(SVLEN) >= min_large_event) %>%
+          select(variant_id, chrom, pos, ref, alt, AF, AC, AN, END, SVTYPE, SVLEN, genotype, af_gnomad, id, hgvs_genomic) %>%
+          distinct() %>%
+          mutate(symbol = 'Large CNV')
+      )
+    }) %>% 
     update_filter_stats('gene_list') %>% 
+    filter(
+      impact >= min_impact |
+        (opts$include_sv_csv & str_detect(consequence, 'coding_sequence_variant') |
+           symbol == 'Large CNV'
+        )
+    ) %>% 
+    update_filter_stats('min_impact') %>% 
     add_inheritance(ped_file = opts$ped,
                     af_column = 'af_gnomad',
                     af_compound_het = maf_comp_het,
                     af_dominant = maf_dom,
                     af_recessive = maf_rec,
-                    min_depth = NULL) %>%
+                    min_depth = NULL) %>% 
     filter(!is.na(inheritance)) %>%
     update_filter_stats('inheritance') %>% 
     annotate_gaps() %>%
     filter(is.na(gap_type)) %>%
     update_filter_stats('gaps') %>% 
-    left_join(select(list_df, gene = symbol, panel_data = data),
-              by = 'gene') %>%
-    mutate(title = str_c(opts$family, ' - ', gene),
-           cohort_AC_AF = str_c(AC, ' (', round(AF, 2), ')')) %>%
+    left_join(list_df, by = 'ensembl_gene_id') %>%
+    mutate(title = str_c(opts$family, ' - ', symbol),
+           cohort_AC_AF = str_c(AC, ' (', round(AF, 2), ')')) %>% 
     group_by(variant_id) %>%
-    mutate(other_genes = map(gene, ~setdiff(gene, .)) %>% map_chr(str_c, collapse = ',')) %>%
+    mutate(other_genes = map(symbol, ~ setdiff(symbol, .)) %>% map_chr(str_c, collapse = ',')) %>%
     ungroup() %>%
-    arrange(gene, chrom, pos)
+    arrange(symbol, chrom, pos)
   
   # For SV, makes more sense to summarise across all affected genes
   
   # create slides
   if (!opts$no_slides) {
-    create_slides(cand_vars,
+    create_slides(variants = cand_vars,
                   output = str_c(opts$out, '.pptx'),
                   bam_files = sample_bams,
                   ped_file = opts$ped,
@@ -309,7 +312,7 @@ if (!opts$sv) { # SNPS
   cand_vars %>%
     mutate(set = 'SV',
            family = opts$family) %>%
-    select(set, family, gene, consequence, inheritance, id, SVTYPE, chrom, pos, END, SVLEN) %>%
+    select(set, family, symbol, consequence, inheritance, id, SVTYPE, chrom, pos, END, SVLEN) %>%
     distinct() %>%
     write_csv(str_c(opts$out, '.candidates.csv'))
   
