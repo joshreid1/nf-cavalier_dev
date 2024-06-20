@@ -6,6 +6,7 @@
 - `params.cavalier_options` to pass arbitrary options to cavalier package
 - support for Genes4Epilepsy lists with "G4E" prefix
 - switch to ensembl_gene_id as primary gene identifier, but also accept hgnc_id, symbol or entrez_id
+- output pdf in addition to powerpoint slides
 ### Fixed
 - Breaking changes to HPO API fixed in cavalier R pacakge
 
