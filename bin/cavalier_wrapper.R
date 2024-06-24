@@ -35,22 +35,24 @@ Options:
   --cavalier-options=<f>      Additional Cavalier options in json format
 "
 opts <- docopt(doc)
+set_options_from_json(opts$cavalier_options)
 # print options
 message('Using options:')
 opts[names(opts) %>%
        keep(~str_detect(., '^[:alpha:]'))] %>%
   { class(.) <- c('list', 'docopt'); .} %>%
   print()
+
 # for debugging
 saveRDS(opts, '.opts.rds')
+saveRDS(as.list(cavalier:::cavalier_opts), '.cavalier_opts.rds')
+
 # set and check options
 sample_bams <-
   setNames(str_extract(opts$sample_bam, '[^=]+$'),
            str_extract(opts$sample_bam, '^[^=]+'))
 
 lists <- c(str_split(opts$gene_lists, ',', simplify = T))
-
-set_options_from_json(opts$cavalier_options)
 
 invisible(
   assert_that(file.exists(opts$vcf),
@@ -72,33 +74,19 @@ sv_chr_exclude <-  c(str_split(opts$sv_chr_exclude, ',', simplify = T))
 
 list_df <-
   map_df(lists, function(fn) {
-    list <- read_tsv(fn, col_types = cols(.default = "c"))
-    # check required columns are present
-    req_cols <- c('symbol', 'gene', 'hgnc_id', 'ensembl_gene_id', 'entrez_id')
-    assert_that(
-      'list_id'   %in% colnames(list),
-      'list_name' %in% colnames(list),
-      length(intersect(colnames(list), req_cols)) > 0
-    )
-    # map gene identifiers to ensembl_gene_id
-    list <-
-      list %>% 
-      bind_rows(req_cols %>% setNames(.,.) %>% map_dfc(~ character())) %>% 
-      mutate(entrez_id = as.integer(entrez_id)) %>% 
-      mutate(ensembl_gene_id = coalesce(
-        ensembl_gene_id,
-        hgnc_id2ensembl(hgnc_id),
-        hgnc_entrez2ensembl(entrez_id),
-        hgnc_sym2ensembl(symbol),
-        hgnc_sym2ensembl(gene)
-      )) %>% 
+    list_df <- read_tsv(fn, col_types = cols(.default = "c"))
+    assert_that('ensembl_gene_id' %in% colnames(list_df))
+    
+    list_df %>% 
       select(
-        list_id, list_name, ensembl_gene_id, 
-        any_of(c('list_version', 'inheritance'))
+        any_of(c('list_id', 'list_name', 'list_version', 'inheritance')),
+        any_of(starts_with('meta_'))
       ) %>% 
+      rename_with(~ str_replace(., '^meta_', '')) %>% 
       filter(!is.na(ensembl_gene_id)) %>% 
       distinct()
   }) %>%
+  bind_rows(tibble(list_id = character(), list_name = character())) %>% 
   mutate(list_name_url = case_when(
     str_starts(list_id, 'PAA:') ~ str_c('https://panelapp.agha.umccr.org/panels/',
                                         str_extract(list_id, '(?<=PAA:)\\d+')),
@@ -109,7 +97,6 @@ list_df <-
     str_starts(list_id, 'G4E:') ~ 'https://bahlolab.github.io/Genes4Epilepsy/'
   )) %>%
   mutate(list_id_url = list_name_url) %>%
-  distinct() %>%
   nest(panel_data = -ensembl_gene_id)
 
 filter_stats <- tibble(set = character(), n = integer())

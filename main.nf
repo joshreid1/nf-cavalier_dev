@@ -5,7 +5,6 @@ TODO:
     - Add download URLs for reference files (similar to PLASTER) as default to simplify configuration
  */
 //imput params
-params.id = ''
 params.outdir = 'output'
 params.snp_vcf = ''
 params.snp_caller = 'GATK'
@@ -37,9 +36,11 @@ params.vep_cache_ver = ''
 params.vep_assembly = params.ref_hg38 ? 'GRCh38' : 'GRCh37'
 params.pop_sv = ''
 params.ref_gene = ''
-params.cache_dir = 'cavalier_cache'
+
 
 // map additional options for cavalier R pacakge
+params.cache_dir = 'cavalier_cache'
+params.database_mode = 'fallback' // one of 'latest', 'fallback' or 'offline'
 params.cavalier_options = [:]
 
 // exec params

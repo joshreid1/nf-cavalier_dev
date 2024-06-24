@@ -2,8 +2,6 @@
 include { pedigree_channel; bam_channel; pop_sv_channel; ref_gene_channel; make_path; get_options_json } from './functions'
 include { Lists } from './Lists'
 
-cache_dir = make_path(params.cache_dir)
-
 workflow Report {
     take:
         input // set, vcf, tbi, fam, aff, unaff
@@ -16,10 +14,9 @@ workflow Report {
         map { it[[1,0,2]] } | //fam, set, vcf
         combine(pedigree_channel(), by:0) |
         combine(bam_channel(), by:0) | //fam, set, vcf, ped, sam, bam, bai
-        combine(Lists(), by:0) | //fam, set, vcf, ped, sam, bam, bai, lists
-       map { it[[1,0,2,3,7,4,5,6]] + [cache_dir] }   //set, fam, vcf, ped, lists, sam, bam, bai
+       map { it[[1,0,2,3,4,5,6]] }  //set, fam, vcf, ped, sam, bam, bai
 
-    cavalier_input | cavalier
+    cavalier(cavalier_input, Lists(), make_path(params.cache_dir))
 
     // create pdf from pptx
     cavalier.out |
@@ -33,7 +30,7 @@ workflow Report {
         map { it[[1,3]] } | //fam, vcf
         combine( cavalier_input |
                      filter { it[0] == 'SV' } |
-                     map { it[[1,5,6,7]] }, // fam, sam, bam, bai,
+                     map { it[[1,4,5,6]] }, // fam, sam, bam, bai,
                  by:0 ) |
         combine(pop_sv_channel()) |
         combine(ref_gene_channel()) |
@@ -54,7 +51,7 @@ workflow Report {
                 toSortedList |
                 flatten
         ) |
-        collectFile(name: "${params.id}.SNP_candidates.csv", storeDir: params.outdir,
+        collectFile(name: "SNP_candidates.csv", storeDir: params.outdir,
                     newLine:true, sort: false, cache: false)
 
     candidates.sv |
@@ -66,7 +63,7 @@ workflow Report {
                 toSortedList |
                 flatten
         ) |
-        collectFile(name: "${params.id}.SV_candidates.csv", storeDir: params.outdir,
+        collectFile(name: "SV_candidates.csv", storeDir: params.outdir,
                     newLine:true, sort: false, cache: false)
 
 }
@@ -100,15 +97,17 @@ process cavalier {
     tag { "$fam:$set" }
 
     input:
-    tuple val(set), val(fam), path(vcf), path(ped), path(lists), val(sam), path(bam), path(bai),
-        path(cache_dir)
+    tuple val(set), val(fam), path(vcf), path(ped), val(sam), path(bam), path(bai)
+    path lists
+    path cache_dir
+    
 
     output:
     tuple val(set), val(fam), path("${pref}.pptx"), path("${pref}.candidates.vcf.gz"),
           path("${pref}.candidates.csv"), path("${pref}.filter_stats.csv")
 
     script:
-    pref = "${params.id}.$fam.$set"
+    pref = "$fam.$set"
     sam_bam = [sam, bam instanceof List ? bam: [bam]]
         .transpose().collect {it.join('=') }.join(' ')
     flags =(
@@ -166,7 +165,7 @@ process svpv {
     tuple val(fam), path(output)
 
     script:
-    output = "${params.id}.$fam"
+    output = "$fam"
     sam_bam = [sam, bam instanceof List ? bam : [bam]]
         .transpose().collect { it.join('=') }.join(' ')
     """

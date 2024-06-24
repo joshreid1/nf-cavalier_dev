@@ -29,7 +29,7 @@ process concat_vcf {
     tuple val(set), path(out_vcf), path("${out_vcf}.csi")
 
     script:
-    out_vcf = "${params.id}.${set}.bcf"
+    out_vcf = "${set}.bcf"
     """
     bcftools concat $vcfs --allow-overlaps -Ob -o $out_vcf
     bcftools index --threads 2 $out_vcf

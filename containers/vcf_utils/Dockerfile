@@ -1,4 +1,4 @@
-FROM mambaorg/micromamba:1.4.4-bionic
+FROM mambaorg/micromamba:1.5.8-noble
 
 LABEL \
   author="Jacob Munro" \
