@@ -44,7 +44,7 @@ Nextflow Pipeline for singleton and family based candidate variant prioritisatio
 
 * **Params**  
   * `outdir` - Output directory
-  * `vcf` - (Optional) Input VCF file with SNP variant calls for all samples.
+  * `snp_vcf` - (Optional) Input VCF file with SNP variant calls for all samples.
   * `sv_vcf` - (Optional) Input VCF file with SV variant calls for all samples.
   * `ped` - A [Ped format file](https://gatk.broadinstitute.org/hc/en-us/articles/360035531972-PED-Pedigree-format) describing familial relationships, with 1/2 coding for unaffected/affected phenotypes (missing phenotype not supported).
   * `bams` - TSV file with first column containing individual ID, second column containing path to indexed BAM file (no header row/  column names).
@@ -63,13 +63,12 @@ Nextflow Pipeline for singleton and family based candidate variant prioritisatio
           ```
           
           or:
-
-            ```
+          
             list_id	list_name	list_version	ensembl_gene_id	inheritance
             PAA:202	Genetic Epilepsy	1.26	ENSG00000090861	AR
             PAA:202	Genetic Epilepsy	1.26	ENSG00000183044	AR
             PAA:202	Genetic Epilepsy	1.26	ENSG00000107331	AR
-            ```  
+              
     * **Web List** - Cavalier will automatically retrieve the latest version of these web lists
       * **PanelApp**: PanelApp Australia or PanelApp Genomics England lists may be specified with "PAA:" or "PAE:" prefix respectively. e.g. [PAA:289](https://panelapp.agha.umccr.org/panels/289/)
       * **HPO**: Human phenotype ontology terms may be specified with the "HP:" prefex, e.g. [HP:0001250](https://hpo.jax.org/browse/term/HP:0001250)
