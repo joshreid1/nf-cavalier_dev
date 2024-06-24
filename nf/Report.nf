@@ -148,8 +148,7 @@ process pptx_to_pdf {
     script:
     pdf = pptx.name.replaceAll('.pptx', '.pdf')
     """
-    HOME=\$PWD soffice --headless --accept="socket,host=localhost;urp;" --nofirststartwizard &
-    HOME=\$PWD soffice --headless --convert-to pdf $pptx
+    HOME=\$PWD soffice --headless --convert-to pdf $pptx || echo 'done'
     """
 }
 

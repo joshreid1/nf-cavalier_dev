@@ -79,6 +79,7 @@ list_df <-
     
     list_df %>% 
       select(
+        ensembl_gene_id,
         any_of(c('list_id', 'list_name', 'list_version', 'inheritance')),
         any_of(starts_with('meta_'))
       ) %>% 
