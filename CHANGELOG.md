@@ -1,6 +1,19 @@
 # Changelog: nf-cavalier
 <!--- https://keepachangelog.com/en/1.0.0/ --->
 
+## [Unreleased](https://github.com/bahlolab/nf-cavalier/releases/tag/unrealeased) - 20 Jun 2024
+### Added
+- `params.cavalier_options` to pass arbitrary options to cavalier package
+- support for Genes4Epilepsy lists with "G4E" prefix
+- switch to ensembl_gene_id as primary gene identifier, but also accept hgnc_id, symbol or entrez_id
+- output pdf in addition to powerpoint slides
+- `params.database_mode` to control how online data resource are used
+### Fixed
+- Breaking changes to HPO API fixed in cavalier R pacakge
+### Changed
+- `params.lists` now specifies lists for whole batch, removed ability to run specific gene lists for each families (if required this should  be done in a separate run). This simplifies set-up for a typical use cases.
+- remove `params.id` in favour of using `params.outdir` to name outputs
+
 ## [23.03.1](https://github.com/bahlolab/nf-cavalier/releases/tag/23.03.1) - 17 Mar 2023
 ### Added
 - support for mutect2 variant calls

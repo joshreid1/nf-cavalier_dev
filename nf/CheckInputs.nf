@@ -1,4 +1,4 @@
-include { read_ped; read_bams; read_lists } from './functions'
+include { read_ped; read_bams; list_channels } from './functions'
 
 workflow CheckInputs {
     take: vcf_samples
@@ -6,24 +6,17 @@ workflow CheckInputs {
     main:
     ped = read_ped()
     bams = read_bams()
-    lists = read_lists()
+
     // check families
     ped_families = ped.collect { it.fid }.unique()
-    list_families = lists.collect { it.fid }.unique()
     ped_w_aff =
         ped.groupBy { it.fid }
         .collect { k, v -> [
             k,  v.findAll {it.phe == '2'}.collect {it.iid} ] }
         .findAll { it[1].size() > 0 }
         .collect { it[0] }
-    ped_list_samples = ped
-        .findAll { list_families.intersect(ped_w_aff).contains(it.fid) }
-        .collect { it.iid }
-        .unique()
 
-    [['with no affected members', ped_families - ped_w_aff],
-     ['in "lists" but not in "ped"', list_families - ped_families],
-     ['in "ped" but not in "lists"', ped_families - list_families]]
+    [['with no affected members', ped_families - ped_w_aff]]
         .findAll { it[1].size() > 0}
         .forEach { warn, fams ->
             n = fams.size()
@@ -54,7 +47,7 @@ workflow CheckInputs {
     sets =
         vcf_samples |
         map { set, samples ->
-            complete = samples.intersect(ped_list_samples).intersect(bam_samples)
+            complete = samples.intersect(bam_samples)
             if (complete.size() == 0) {
                 throw new Exception("ERROR: No samples to process in $set VCF")
             }

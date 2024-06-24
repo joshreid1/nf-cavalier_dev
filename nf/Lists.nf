@@ -1,66 +1,58 @@
 
-include { read_lists; path; date_ymd } from './functions'
+include { list_channels; path; date_ymd; get_options_json } from './functions'
 
 workflow Lists {
 
     main:
-        lists = read_lists()
+        
+        list_channel = channel.fromList([])
 
-        if (lists.any { it.list  ==~ '^(HP|PA[AE]):.+'}) {
-            lists = Channel.from(lists) |
-                map { it.values() as ArrayList } |
-                branch {
-                    web: it[1]  ==~ '^(HP|PA[AE]):.+'
-                    file: true
-                }
-
-            list_channel =
-                lists.web |
-                    map { it[1] } |
-                    unique |
-                    collectFile(name: 'list_ids.txt', newLine: true) |
-                    combine([date_ymd()]) |
-                    update_versions |
-                    splitCsv(sep: '\t', skip: 1, strip: true) |
-                    pull_latest |
-                    combine(lists.web.map {it[[1,0]]}, by:0) |
-                    map { [it[2], it[1]] } |
-                    mix(lists.file.map { [it[0], path(it[1])] }) |
-                    groupTuple(by: 0)
-        } else {
-            list_channel = Channel.from(lists) |
-                map { it.values() as ArrayList } |
-                map { [it[0], path(it[1])] } |
-                groupTuple(by: 0)
+        (web_lists, local_lists) = list_channels()
+        
+        if (web_lists != null) {
+            list_channel =  web_lists |
+                unique |
+                collectFile(name: 'list_ids.txt', newLine: true) |
+                combine([date_ymd()]) |
+                update_versions |
+                splitCsv(sep: '\t', skip: 1, strip: true) |
+                pull_latest |
+                map { it[1] }
         }
+        if (local_lists != null) {
+            list_channel = 
+                local_lists | 
+                map { path(it) } |
+                map_list_ids |
+                mix(list_channel)
+        }
+
+        list_channel = list_channel.collect()
+
     emit:
-        list_channel // fam, lists
+        list_channel
 }
 
-process pull_latest {
+process map_list_ids {
     label 'C1M1T1'
-    label 'Cavalier'
-    publishDir "output/pull_latest_list", mode: 'copy'
-    tag { "$id:v$ver" }
+    label 'cavalier'
+    tag "${input.name}"
+    publishDir "${params.outdir}/gene_lists"
 
-    input:
-    tuple val(id), val(ver)
+    input: path(input)
 
-    output:
-    tuple val(id), path(output)
+    output: path(output)
 
     script:
-    output = id.replaceAll(':', '_') + '_v' + ver + '.tsv'
-    cmd = "cavalier::get_web_list('$id', version='$ver', save='$output', secure=FALSE)"
+    output = input.name.replaceAll('\\.tsv$', '') + '.mapped.tsv'
     """
-    R --slave --vanilla -e "$cmd"
+    cavalier_map_list_ids.R $input $output '${get_options_json()}'
     """
 }
 
 process update_versions {
     label 'C1M1T1'
-    label 'Cavalier'
-    publishDir "progress/update_list_versions", mode: 'symlink'
+    label 'cavalier'
     tag { date }
 
     input:
@@ -71,8 +63,34 @@ process update_versions {
 
     script:
     output = "list_versions_${date}.tsv"
-    cmd = "cavalier::get_web_list_version(readr::read_lines('$id_file'), '$output')"
+    cmd = "cavalier::get_gene_list_versions(readr::read_lines('$id_file'), '$output')"
     """
-    R --slave --vanilla -e "$cmd"
+    R --slave --vanilla -e "\\
+        cavalier::set_options_from_json('${get_options_json('\\\\\\"')}');\\
+        cavalier::get_gene_list_versions(readr::read_lines('$id_file'), '$output')\\
+    "
     """
 }
+
+process pull_latest {
+    label 'C1M1T1'
+    label 'cavalier'
+    storeDir "${params.outdir}/gene_lists"
+    tag "$id:$ver"
+
+    input:
+    tuple val(id), val(ver)
+
+    output:
+    tuple val(id), path(output)
+
+    script:
+    output = id.replaceAll(':', '_') + '_' + ver + '.tsv'
+    """
+    R --slave --vanilla -e "\\
+        cavalier::set_options_from_json('${get_options_json('\\\\\\"')}');\\
+        cavalier::get_gene_list('$id', version='$ver', save='$output')\\
+    "
+    """
+}
+
