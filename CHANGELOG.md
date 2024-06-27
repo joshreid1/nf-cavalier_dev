@@ -1,7 +1,7 @@
 # Changelog: nf-cavalier
 <!--- https://keepachangelog.com/en/1.0.0/ --->
 
-## [Unreleased](https://github.com/bahlolab/nf-cavalier/releases/tag/unrealeased) - 20 Jun 2024
+## [24.06.0](https://github.com/bahlolab/nf-cavalier/releases/tag/24.06.0) - 27 Jun 2024
 ### Added
 - `params.cavalier_options` to pass arbitrary options to cavalier package
 - support for Genes4Epilepsy lists with "G4E" prefix
