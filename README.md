@@ -72,7 +72,7 @@ Nextflow Pipeline for singleton and family based candidate variant prioritisatio
     * **Web List** - Cavalier will automatically retrieve the latest version of these web lists
       * **PanelApp**: PanelApp Australia or PanelApp Genomics England lists may be specified with "PAA:" or "PAE:" prefix respectively. e.g. [PAA:289](https://panelapp.agha.umccr.org/panels/289/)
       * **HPO**: Human phenotype ontology terms may be specified with the "HP:" prefex, e.g. [HP:0001250](https://hpo.jax.org/browse/term/HP:0001250)
-      * **Genes4Epilepsy**: [Genes4Epilepsy](https://github.com/bahlolab/Genes4Epilepsy) lists may be specified with the "G4E:" prexif, e.g. "G4E:All" for All Epilepsy genes, or "G4E:Focal" for Focal epilepsy genes only
+      * **Genes4Epilepsy**: [Genes4Epilepsy](https://github.com/bahlolab/Genes4Epilepsy) lists may be specified with the "G4E:" prexif, e.g. "G4E:ALL" for All Epilepsy genes, or "G4E:Focal" for Focal epilepsy genes only
       * **HGNC**: Gene subsets by locus group can be extracted from HGNC, for example "HGNC:protein-coding" will give a list of all protein coding genes
   * `exclude_benign_missense` - exclude missense variants that are predicted/annotated as benign by all of Sift, 
   Polyphen and ClinVar. Missing annotations are ignored.
