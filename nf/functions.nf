@@ -1,4 +1,5 @@
 import java.text.SimpleDateFormat
+import groovy.json.JsonOutput
 
 Path path(filename) {
     file(filename, checkIfExists: true).toAbsolutePath()
@@ -67,10 +68,25 @@ def read_bams() {
     read_tsv(path(params.bams), ['iid', 'bam'])
 }
 
-def read_lists() {
-    read_tsv(path(params.lists), ['fid', 'list'])
-}
+// def read_lists() {
+//     read_tsv(path(params.lists), ['fid', 'list'])
+// }
 
+def list_channels() {
+
+    if (params.lists == null) {
+        error("params.lists must not be null")
+    }
+    lists_list = params.lists.split(',') as ArrayList
+    regex = /(HP|PA[A-Z]+|HGNC|G4E):.*/
+    web = lists_list.findAll { it ==~ regex }
+    local =  lists_list.findAll { !(it ==~ regex) }
+
+    [ 
+       (web ? Channel.fromList(web) : null),
+       (local ? Channel.fromList(local) : null) 
+    ]
+}
 
 def ref_data_channel() {
     ref_fa = path(params.ref_fasta)
@@ -138,4 +154,14 @@ def bam_channel() {
         map { it[[3,0,1,2]] } |
         groupTuple(by: 0)
     // fam, iid, bam, bai
+}
+
+def get_options_json(escape='"') {
+    options = (params.cavalier_options ?: [:]) +
+    [ 
+        database_mode: params.database_mode,
+        cache_dir : params.cache_dir,
+        ref_genome: params.ref_hg38 ? 'hg38' : 'hg19'
+    ]
+    JsonOutput.toJson(options).replace('"', escape)
 }

@@ -1,8 +1,6 @@
 
-include { pedigree_channel; bam_channel; pop_sv_channel; ref_gene_channel; make_path } from './functions'
+include { pedigree_channel; bam_channel; pop_sv_channel; ref_gene_channel; make_path; get_options_json } from './functions'
 include { Lists } from './Lists'
-
-cavalier_cache_dir = make_path(params.cavalier_cache_dir)
 
 workflow Report {
     take:
@@ -16,10 +14,14 @@ workflow Report {
         map { it[[1,0,2]] } | //fam, set, vcf
         combine(pedigree_channel(), by:0) |
         combine(bam_channel(), by:0) | //fam, set, vcf, ped, sam, bam, bai
-        combine(Lists(), by:0) | //fam, set, vcf, ped, sam, bam, bai, lists
-       map { it[[1,0,2,3,7,4,5,6]] + [cavalier_cache_dir] }   //set, fam, vcf, ped, lists, sam, bam, bai
+       map { it[[1,0,2,3,4,5,6]] }  //set, fam, vcf, ped, sam, bam, bai
 
-    cavalier_input | cavalier
+    cavalier(cavalier_input, Lists(), make_path(params.cache_dir))
+
+    // create pdf from pptx
+    cavalier.out |
+        map { it[0..2] } |
+        pptx_to_pdf
 
     // run svpv on candidate SVs
     cavalier.out |
@@ -28,7 +30,7 @@ workflow Report {
         map { it[[1,3]] } | //fam, vcf
         combine( cavalier_input |
                      filter { it[0] == 'SV' } |
-                     map { it[[1,5,6,7]] }, // fam, sam, bam, bai,
+                     map { it[[1,4,5,6]] }, // fam, sam, bam, bai,
                  by:0 ) |
         combine(pop_sv_channel()) |
         combine(ref_gene_channel()) |
@@ -49,7 +51,7 @@ workflow Report {
                 toSortedList |
                 flatten
         ) |
-        collectFile(name: "${params.id}.SNP_candidates.csv", storeDir: 'output',
+        collectFile(name: "SNP_candidates.csv", storeDir: params.outdir,
                     newLine:true, sort: false, cache: false)
 
     candidates.sv |
@@ -61,14 +63,14 @@ workflow Report {
                 toSortedList |
                 flatten
         ) |
-        collectFile(name: "${params.id}.SV_candidates.csv", storeDir: 'output',
+        collectFile(name: "SV_candidates.csv", storeDir: params.outdir,
                     newLine:true, sort: false, cache: false)
 
 }
 
 process family_subset {
     label 'C2M2T2'
-    publishDir "output/family_subset", mode: 'copy'
+    publishDir "${params.outdir}/family_subset", mode: 'copy'
     tag { "$fam:$set" }
 
     input:
@@ -89,35 +91,36 @@ process family_subset {
 
 process cavalier {
     label 'C2M4T2'
-    // container null
-    // module 'R/4.2.1'
-    publishDir "output/cavalier", mode: 'copy', pattern: "*.pptx"
-    publishDir "output/cavalier", mode: 'copy', pattern: "*.filter_stats.csv"
+    label 'cavalier'
+    publishDir "${params.outdir}/cavalier", mode: 'copy', pattern: "*.pptx"
+    publishDir "${params.outdir}/cavalier", mode: 'copy', pattern: "*.filter_stats.csv"
     tag { "$fam:$set" }
 
     input:
-    tuple val(set), val(fam), path(vcf), path(ped), path(lists), val(sam), path(bam), path(bai),
-        path(cache_dir)
+    tuple val(set), val(fam), path(vcf), path(ped), val(sam), path(bam), path(bai)
+    path lists
+    path cache_dir
+    
 
     output:
     tuple val(set), val(fam), path("${pref}.pptx"), path("${pref}.candidates.vcf.gz"),
           path("${pref}.candidates.csv"), path("${pref}.filter_stats.csv")
 
     script:
-    pref = "${params.id}.$fam.$set"
+    pref = "$fam.$set"
     sam_bam = [sam, bam instanceof List ? bam: [bam]]
         .transpose().collect {it.join('=') }.join(' ')
     flags =(
-        (set == 'SV' ? ['--sv ']: []) +
-            (params.exclude_benign_missense ? ['--exclude-benign-missense']: []) +
-            (params.include_sv_csv ? ['--include-sv-csv']: [])
+        (set == 'SV' ? ['--sv']: []) +
+        (params.exclude_benign_missense ? ['--exclude-benign-missense']: []) +
+        (params.include_sv_csv ? ['--include-sv-csv']: []) +
+        (params.no_slides ? ['--no-slides']: [])
     ).join(' ')
     """
     cavalier_wrapper.R $vcf $ped $sam_bam $flags \\
         --out $pref \\
         --family $fam \\
         --caller $params.snp_caller \\
-        --genome ${params.ref_hg38 ? 'hg38' : 'hg19'} \\
         --gene-lists ${lists.join(',')} \\
         --maf-dom $params.maf_dom \\
         --maf-de-novo $params.maf_de_novo \\
@@ -126,15 +129,32 @@ process cavalier {
         --max-cohort-af $params.max_cohort_af \\
         --max-cohort-ac $params.max_cohort_ac \\
         --min-impact $params.min_impact \\
-        --cache-dir $cache_dir \\
-        ${params.no_slides ? '--no-slides' : '' }
+        --cavalier-options '${get_options_json()}'
+    """
+}
+
+process pptx_to_pdf {
+    container 'linuxserver/libreoffice:7.6.7'
+    memory '4G'
+    tag { "$fam:$set" }
+    publishDir "${params.outdir}/cavalier", mode: 'copy', pattern: "*.pdf"
+    
+    input:
+    tuple val(set), val(fam), path(pptx)
+
+    output:
+    tuple val(set), val(fam), path(pdf)
+
+    script:
+    pdf = pptx.name.replaceAll('.pptx', '.pdf')
+    """
+    HOME=\$PWD soffice --headless --convert-to pdf $pptx || echo 'done'
     """
 }
 
 process svpv {
     label 'C2M4T2'
-    container 'bahlolab/svpv:latest'
-    publishDir "output/svpv", mode: 'copy'
+    publishDir "${params.outdir}/svpv", mode: 'copy'
     tag { fam }
 
     input:
@@ -144,7 +164,7 @@ process svpv {
     tuple val(fam), path(output)
 
     script:
-    output = "${params.id}.$fam"
+    output = "$fam"
     sam_bam = [sam, bam instanceof List ? bam : [bam]]
         .transpose().collect { it.join('=') }.join(' ')
     """

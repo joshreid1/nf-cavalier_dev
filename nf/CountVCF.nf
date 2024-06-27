@@ -13,7 +13,7 @@ workflow CountVCF {
 
 process count_vcf {
     label 'C1M1T1'
-    publishDir "progress/CountVCF", mode: 'symlink'
+    // publishDir "progress/CountVCF", mode: 'symlink'
     tag { id }
 
     input:

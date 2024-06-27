@@ -22,7 +22,7 @@ params.vep_filter_opts = [
 
 process vep {
     label 'C4M4T1'
-    publishDir "progress/vep", mode: 'symlink'
+    // publishDir "progress/vep", mode: 'symlink'
     tag { "$set:$i:$j" }
 
     input:
@@ -81,7 +81,7 @@ process vep {
 
 process vep_sv {
     label 'C4M4T2'
-    publishDir "progress/vep_sv", mode: 'symlink'
+    // publishDir "progress/vep_sv", mode: 'symlink'
     tag { "$set:$i:$j" }
 
     input:

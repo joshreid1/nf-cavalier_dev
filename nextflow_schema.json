@@ -1,0 +1,253 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "https://raw.githubusercontent.com/./master/nextflow_schema.json",
+    "title": "nf-cavalier parameters",
+    "description": "",
+    "type": "object",
+    "definitions": {
+        "input_output_options": {
+            "title": "Input/output options",
+            "type": "object",
+            "fa_icon": "fas fa-terminal",
+            "description": "Define where the pipeline should find input data and save output data.",
+            "required": [
+                "id",
+                "snp_vcf",
+                "sv_vcf",
+                "bams",
+                "ped",
+                "lists",
+                "outdir"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "default": "my-cohort",
+                    "description": "Name for cohort",
+                    "fa_icon": "fas fa-address-card"
+                },
+                "snp_vcf": {
+                    "type": "string",
+                    "default": "None",
+                    "fa_icon": "fas fa-database",
+                    "description": "Path to SNP VCF",
+                    "format": "file-path"
+                },
+                "sv_vcf": {
+                    "type": "string",
+                    "default": "None",
+                    "fa_icon": "fas fa-database",
+                    "description": "Path to SV VCF",
+                    "format": "file-path"
+                },
+                "bams": {
+                    "type": "string",
+                    "default": "None",
+                    "fa_icon": "fas fa-align-left",
+                    "description": "Path to BAMs TSV (sample_id, bam_path)",
+                    "format": "file-path"
+                },
+                "ped": {
+                    "type": "string",
+                    "default": "None",
+                    "fa_icon": "fas fa-users",
+                    "description": "Path to ped file",
+                    "format": "file-path"
+                },
+                "lists": {
+                    "type": "string",
+                    "default": "None",
+                    "fa_icon": "fas fa-list-ul",
+                    "description": "Path to gene lists TSV file",
+                    "format": "file-path"
+                },
+                "outdir": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "description": "The output directory where the results will be saved. You have to use absolute paths to storage on Cloud infrastructure.",
+                    "fa_icon": "fas fa-folder-open",
+                    "default": "output"
+                }
+            }
+        },
+        "filtering": {
+            "title": "Filtering",
+            "type": "object",
+            "description": "Define how variants should be filtered",
+            "default": "",
+            "properties": {
+                "maf_dom": {
+                    "type": "number",
+                    "default": 0.0001,
+                    "description": "Max gnomAD AF for dominantly inherited variant"
+                },
+                "maf_de_novo": {
+                    "type": "number",
+                    "default": 0.0001,
+                    "description": "Max gnomAD AF for de novo variant"
+                },
+                "maf_rec": {
+                    "type": "number",
+                    "default": 0.01,
+                    "description": "Max gnomAD AF for recessively inherited variant"
+                },
+                "maf_comp_het": {
+                    "type": "number",
+                    "default": 0.01,
+                    "description": "Max gnomAD AF for compound heterozygous inherited variant"
+                },
+                "max_cohort_af": {
+                    "type": "number",
+                    "default": 1,
+                    "description": "Max AF in cohort (excluding family of interest)"
+                },
+                "max_cohort_ac": {
+                    "type": "string",
+                    "default": "Inf",
+                    "description": "Max AC in cohort (excluding family of interest)"
+                },
+                "min_impact": {
+                    "type": "string",
+                    "default": "MODERATE",
+                    "description": "Minimum VEP impact, one of: 'MODIFIER', 'LOW', 'MODERATE', 'HIGH'"
+                },
+                "exclude_benign_missense": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Exclude missense variants universally predicted/classified as benign"
+                },
+                "include_sv_csv": {
+                    "type": "boolean",
+                    "description": "Retain all SVs that with classification 'coding sequence variant'",
+                    "default": true
+                },
+                "sv_types": {
+                    "type": "string",
+                    "default": "DEL,DUP,INS,INV,BND",
+                    "hidden": true,
+                    "description": "Comma separated list SV types to include"
+                }
+            },
+            "required": [
+                "max_af",
+                "maf_dom",
+                "maf_de_novo",
+                "maf_rec",
+                "maf_comp_het",
+                "max_cohort_af",
+                "max_cohort_ac"
+            ]
+        },
+        "reference_data": {
+            "title": "Reference Data",
+            "type": "object",
+            "description": "",
+            "default": "",
+            "properties": {
+                "ref_fasta": {
+                    "type": "string",
+                    "default": "None",
+                    "description": "Path to reference fasta file",
+                    "format": "file-path"
+                },
+                "ref_hg38": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Reference is hg38 (not hg19)"
+                },
+                "vep_cache": {
+                    "type": "string",
+                    "default": "None",
+                    "description": "Path to VEP cache",
+                    "format": "file-path"
+                },
+                "vep_cache_ver": {
+                    "type": "string",
+                    "default": "None",
+                    "description": "VEP cache version to use"
+                },
+                "vep_assembly": {
+                    "type": "string",
+                    "default": "GRCh38",
+                    "hidden": true,
+                    "description": "VEP assembly"
+                },
+                "pop_sv": {
+                    "type": "string",
+                    "default": "None",
+                    "description": "Path to Pop SV VCF file",
+                    "format": "file-path"
+                },
+                "ref_gene": {
+                    "type": "string",
+                    "default": "None",
+                    "description": "Path to UCSC refgene file",
+                    "format": "file-path"
+                }
+            },
+            "required": [
+                "ref_fasta",
+                "vep_cache",
+                "vep_cache_ver",
+                "pop_sv",
+                "ref_gene"
+            ]
+        },
+        "miscellaneous": {
+            "title": "Miscellaneous",
+            "type": "object",
+            "description": "Additional parameters",
+            "default": "",
+            "properties": {
+                "snp_caller": {
+                    "type": "string",
+                    "default": "GATK",
+                    "description": "SNP caller used"
+                },
+                "fill_tags": {
+                    "type": "string",
+                    "default": "false",
+                    "hidden": true,
+                    "description": "Use bcftools +fill-tags to calculate cohort AC and AF"
+                },
+                "remove_fields": {
+                    "type": "string",
+                    "default": "INFO/CSQ",
+                    "hidden": true,
+                    "description": "VCF fields to remove prior to annotation with VEP"
+                },
+                "chunk_size": {
+                    "type": "integer",
+                    "default": 200000,
+                    "hidden": true,
+                    "description": "For parallelization of VCF processing"
+                },
+                "sv_chunk_size": {
+                    "type": "string",
+                    "default": "10000",
+                    "hidden": true,
+                    "description": "For parallelization of VCF processing"
+                },
+                "no_slides": {
+                    "type": "boolean",
+                    "hidden": true,
+                    "description": "Don't output powerpoint slides, allowing for speedier pipeline run"
+                }
+            }
+        }
+    },
+    "allOf": [
+        {
+            "$ref": "#/definitions/input_output_options"
+        },
+        {
+            "$ref": "#/definitions/filtering"
+        },
+        {
+            "$ref": "#/definitions/reference_data"
+        },
+        {
+            "$ref": "#/definitions/miscellaneous"
+        }
+    ]
+}

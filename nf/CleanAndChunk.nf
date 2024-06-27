@@ -42,8 +42,8 @@ workflow CleanAndChunk {
 
 process split_intervals {
     label 'C2M2T8'
-    label 'Cavalier'
-    publishDir "progress/split_intervals", mode: 'symlink'
+    label 'cavalier'
+    // publishDir "progress/split_intervals", mode: 'symlink'
     tag { set }
 
     input:
@@ -60,7 +60,7 @@ process split_intervals {
 
 process clean_and_chunk {
     label 'C2M2T2'
-    publishDir "progress/clean_and_chunk", mode: 'symlink'
+    // publishDir "progress/clean_and_chunk", mode: 'symlink'
     tag { i }
 
     input:
@@ -86,7 +86,7 @@ process clean_and_chunk {
 
 process clean_and_chunk_sv {
     label 'C2M2T2'
-    publishDir "progress/clean_and_chunk_sv", mode: 'symlink'
+    // publishDir "progress/clean_and_chunk_sv", mode: 'symlink'
     tag { set }
 
     input:

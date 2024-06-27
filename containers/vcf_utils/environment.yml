@@ -4,7 +4,5 @@ channels:
     - bioconda
 dependencies:
     - bcftools
-    - samtools
-    - python=2.7
-    - numpy
-    - r-base=3.6.3
+    - pysam
+    - ensembl-vep=110.1
