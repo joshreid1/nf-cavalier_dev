@@ -11,13 +11,14 @@ workflow Annotate {
 
     main:
     ref_data = ref_data_channel() | map { it[[0, 1, 3]] } // ref_fa, ref_fai, vep_cache
-
+    
     // SNP/Indel VCFs
     if (params.snp_vcf) {
         snp_ann = vcf_chunks |
             filter { it[0] == 'SNP' } |
             map { it[0..3] } |
             combine(ref_data) |
+            gnomad_annotate |
             vep |
             flatMap {
                 [['SNP', 'vep', it[1]],
@@ -102,5 +103,40 @@ process vcf_stub {
     bcftools view --no-version -h $vcf | 
         bcftools view --no-version -Oz -o $stub
     bcftools index -t $stub
+    """
+}
+
+process gnomad_annotate {
+    label 'C4M4T1'
+    
+    tag { "vcfanno:$set:$i:$j" }
+
+    input:
+      tuple val(set), val(i), val(j), path(vcf), path(fasta), path(fai), path(cache)
+
+    output:
+      tuple val(set), val(i), val(j), path(vcf), path(fasta), path(fai), path(cache)
+
+    script:
+    vcf_path = vcf
+    formatted_vcf = vcf_path.name.replaceAll(/(\.vcf\.gz)|(\.bcf)$/, '.vcf')
+    zipped_vcf = vcf_path.name.replaceAll(/(\.vcf\.gz)|(\.bcf)$/, '.vcf.gz')
+    annotated_vcf = vcf_path.name.replaceAll(/(\.vcf\.gz)|(\.bcf)$/, '.gnomad.vcf')
+    config_file_path = 'config.toml'
+
+    // TODO: Move following to a process to make it more robust
+    """
+    cat <<EOF > ${config_file_path}
+    [[annotation]]
+    file="${params.gnomad_db}"
+    fields = ["gnomad_genomes_AC", "gnomad_genomes_nhomalt", "gnomad_genomes_AN", "cadd_phred"]
+    ops=["self", "self", "self", "self"]
+    names=["gnomAD_AC", "gnomAD_nhomalt", "gnomAD_AN", "CADD"]
+    EOF
+
+    bcftools view ${vcf_path} > ${formatted_vcf}
+    bgzip -f ${formatted_vcf} > ${zipped_vcf}
+    ${params.vcfanno} ${config_file_path} ${zipped_vcf} > ${annotated_vcf}
+    bcftools view ${annotated_vcf} -o ${vcf_path}
     """
 }
