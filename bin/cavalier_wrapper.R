@@ -132,11 +132,7 @@ if (!opts$sv) { # SNPS
              annotater = 'VEP') %>%
     mutate(AN = pmax(0, AN - rowSums(mutate_all(genotype, ~str_count(., '[01]')))),
            AC = pmax(0, AC - rowSums(mutate_all(genotype, ~str_count(., '[1]')))),
-           AF = if_else(AN > 0, AC / AN, 0),
-           gnomAD_AC = gnomAD_AC, 
-           gnomAD_nhomalt = gnomAD_nhomalt,
-           gnomAD_AN = gnomAD_AN,
-           CADD = CADD)
+           AF = if_else(AN > 0, AC / AN, 0))
   
   # get candidates
   cand_vars <-
@@ -177,11 +173,7 @@ if (!opts$sv) { # SNPS
     update_filter_stats('inheritance') %>% 
     left_join(list_df, by = 'ensembl_gene_id') %>%
     mutate(title = str_c(opts$family, ' - ', symbol),
-           cohort_AC_AF = str_c(AC, ' (', round(AF, 2), ')'),
-           gnomAD_AC = gnomAD_AC, 
-           gnomAD_nhomalt = gnomAD_nhomalt,
-           gnomAD_AN = gnomAD_AN,
-           CADD = CADD) %>%
+           cohort_AC_AF = str_c(AC, ' (', round(AF, 2), ')')) %>%
     arrange(symbol, chrom, pos)
   
   
@@ -193,11 +185,7 @@ if (!opts$sv) { # SNPS
                   ped_file = opts$ped,
                   layout = layout,
                   var_info = c(cavalier::get_var_info(),
-                               cohort_AC_AF = 'cohort_AC_AF',
-                               gnomAD_AC = 'gnomAD_AC', 
-           gnomAD_nhomalt = 'gnomAD_nhomalt',
-           gnomAD_AN = 'gnomAD_AN',
-           CADD = 'CADD'))
+                               cohort_AC_AF = 'cohort_AC_AF'))
   } else {
     file.create(str_c(opts$out, '.pptx'))
   }
