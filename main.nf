@@ -37,7 +37,7 @@ params.vep_assembly = params.ref_hg38 ? 'GRCh38' : 'GRCh37'
 params.pop_sv = ''
 params.ref_gene = ''
 params.vcfanno = ''
-params.gnomad_db = ''
+params.vcfanno_config = ''
 
 // map additional options for cavalier R pacakge
 params.cache_dir = 'cavalier_cache'
