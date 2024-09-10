@@ -116,6 +116,19 @@ process cavalier {
         (params.include_sv_csv ? ['--include-sv-csv']: []) +
         (params.no_slides ? ['--no-slides']: [])
     ).join(' ')
+
+    if (params.vcfanno_config == '') {
+        vcfanno_config = 'NULL'
+    } else { 
+        vcfanno_config = params.vcfanno_config
+    }
+
+    if (params.filter_by_annotation == '') {
+        filter_by_annotation = 'NULL'
+    } else {
+        filter_by_annotation = params.filter_by_annotation
+    }
+
     """
     cavalier_wrapper.R $vcf $ped $sam_bam $flags \\
         --out $pref \\
@@ -129,6 +142,10 @@ process cavalier {
         --max-cohort-af $params.max_cohort_af \\
         --max-cohort-ac $params.max_cohort_ac \\
         --min-impact $params.min_impact \\
+        --vcfanno_config $vcfanno_config \\
+        --filter_by_annotation $filter_by_annotation \\
+        --min_value $params.min_value \\
+        --max_value $params.max_value \\
         --cavalier-options '${get_options_json()}'
     """
 }
