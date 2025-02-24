@@ -158,9 +158,9 @@ if (!opts$sv) { # SNPS
       if (max_value == 'Inf') {
         max_value = Inf
       }
-      if (min_value < max_value) {
+      if (min_value <= max_value) {
         data <- data %>%
-        filter(!!sym(filter_column) <= max_value & !!sym(filter_column) >= min_value)
+        filter((!!sym(filter_column) <= max_value & !!sym(filter_column) >= min_value) | is.na(!!sym(filter_column)))
       }
     }
     if (!(filter_column %in% colnames(data))) {

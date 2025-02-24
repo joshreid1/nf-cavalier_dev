@@ -152,7 +152,7 @@ process cavalier {
 
 process pptx_to_pdf {
     container 'linuxserver/libreoffice:7.6.7'
-    memory '4G'
+    memory '10G'
     tag { "$fam:$set" }
     publishDir "${params.outdir}/cavalier", mode: 'copy', pattern: "*.pdf"
     

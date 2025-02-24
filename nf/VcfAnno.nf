@@ -17,7 +17,7 @@ workflow VcfAnno {
 }
 
 process run_vcfanno {
-    label 'C4M4T1'
+    label 'C1M20T1'
     
     tag { "$set" }
 
@@ -25,7 +25,7 @@ process run_vcfanno {
       tuple val(set), val(i), val(j), path(vcf), val(configFile)
 
     output:
-      tuple val(set), val(i), val(j), path(vcf)
+      tuple val(set), val(i), val(j), path(annotated_vcf_path)
 
     script:
     vcf_path = vcf
@@ -33,10 +33,17 @@ process run_vcfanno {
     zipped_vcf = vcf_path.name.replaceAll(/(\.vcf\.gz)|(\.bcf)$/, '.vcf.gz')
     annotated_vcf = vcf_path.name.replaceAll(/(\.vcf\.gz)|(\.bcf)$/, '.gnomad.vcf')
 
+    // Define annotated_vcf based on the original file's suffix
+    if (vcf_path.name.endsWith('.vcf.gz')) {
+        annotated_vcf_path = vcf_path.name.replaceAll(/\.vcf\.gz$/, '.gnomad.vcf.gz')
+    } else if (vcf_path.name.endsWith('.bcf')) {
+        annotated_vcf_path = vcf_path.name.replaceAll(/\.bcf$/, '.gnomad.bcf')
+    }
+
     """
     bcftools view ${vcf_path} > ${formatted_vcf}
     bgzip -f ${formatted_vcf} > ${zipped_vcf}
     ${params.vcfanno} ${configFile} ${zipped_vcf} > ${annotated_vcf}
-    bcftools view ${annotated_vcf} -o ${vcf_path}
+    bcftools view ${annotated_vcf} -o ${annotated_vcf_path}
     """
 }
