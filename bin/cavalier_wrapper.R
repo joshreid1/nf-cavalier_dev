@@ -152,7 +152,6 @@ if (!opts$sv) { # SNPS
     mutate(AN = pmax(0, AN - rowSums(mutate_all(genotype, ~str_count(., '[01]')))),
            AC = pmax(0, AC - rowSums(mutate_all(genotype, ~str_count(., '[1]')))),
            AF = if_else(AN > 0, AC / AN, 0))
-
   additional_filter <- function(data, filter_column, min_value, max_value) {
     if (filter_column != 'NULL' && filter_column %in% colnames(data)) {
       if (max_value == 'Inf') {
@@ -223,6 +222,7 @@ if (!opts$sv) { # SNPS
                   var_info = c(cavalier::get_var_info(),
                                cohort_AC_AF = 'cohort_AC_AF',
                                add_anno))
+    
   } else {
     file.create(str_c(opts$out, '.pptx'))
   }

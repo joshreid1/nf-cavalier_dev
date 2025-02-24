@@ -12,7 +12,7 @@ workflow Annotate {
 
     main:
     ref_data = ref_data_channel() | map { it[[0, 1, 3]] } // ref_fa, ref_fai, vep_cache
-    
+
     // SNP/Indel VCFs
     if (params.snp_vcf) {
         snp_ann = vcf_chunks |
