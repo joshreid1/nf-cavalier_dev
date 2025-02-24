@@ -30,6 +30,9 @@ Nextflow Pipeline for singleton and family based candidate variant prioritisatio
       min_impact = 'LOW'
       exclude_benign_missense = false
       include_sv_csv = true
+      filter_by_annotation = 'gnomAD_AC'
+      min_value = 0
+      max_value = 10
   
       // reference config
       ref_hg38 = true
@@ -38,6 +41,8 @@ Nextflow Pipeline for singleton and family based candidate variant prioritisatio
       ref_gene = '/PATH/TO/RefSeqGene.hg38.UCSC.txt'
       vep_cache = '/PATH/T0/vep-cache'
       vep_cache_ver = '104'
+      vcfanno = '/PATH/TO/vcfanno'
+      vcfanno_config = '/PATH/TO/vcfanno_config.toml'
     }
     ```
 * Note: Bahlo Lab members should use this [config](https://github.com/bahlolab/nextflow-config/blob/master/nf-cavalier/milton.config) as a starting point.

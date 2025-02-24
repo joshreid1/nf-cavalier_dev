@@ -21,7 +21,7 @@ params.vep_filter_opts = [
 
 
 process vep {
-    label 'C4M4T1'
+    label 'C4M4T2'
     // publishDir "progress/vep", mode: 'symlink'
     tag { "$set:$i:$j" }
 

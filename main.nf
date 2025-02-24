@@ -27,6 +27,9 @@ params.max_cohort_ac = 'Inf'
 params.min_impact = 'MODERATE'
 params.exclude_benign_missense = true
 params.include_sv_csv = true
+params.filter_by_annotation = ''
+params.min_value = 0
+params.max_value = 'Inf'
 
 // ref params
 params.ref_fasta = ''
@@ -36,7 +39,8 @@ params.vep_cache_ver = ''
 params.vep_assembly = params.ref_hg38 ? 'GRCh38' : 'GRCh37'
 params.pop_sv = ''
 params.ref_gene = ''
-
+params.vcfanno = ''
+params.vcfanno_config = ''
 
 // map additional options for cavalier R pacakge
 params.cache_dir = 'cavalier_cache'

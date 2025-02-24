@@ -22,6 +22,10 @@ Options:
   --caller=<f>                Name of variant caller [default: GATK].
   --gene-lists=<f>            Comma serparated list of gene list names.
   --min-impact=<f>            Minimum VEP impact [default: MODERATE].
+  --vcfanno_config=<f>        vcfanno config.
+  --filter_by_annotation=<f>  Filter variants by column name.
+  --min_value=<f>             Filter variants by min column value.
+  --max_value=<f>             Filter variants by max column value.
   --maf-dom=<f>               Maximum MAF for dominant [default: 0.0001].
   --maf-de-novo=<f>           Maximum MAF for dominant [default: 0.0001].
   --maf-rec=<f>               Maximum MAF for recessive [default: 0.01].
@@ -68,6 +72,10 @@ maf_de_novo <- as.numeric(opts$`--maf-de-novo`)
 min_depth <- as.numeric(opts$`--min-depth`)
 max_cohort_ac <- as.numeric(opts$`--max-cohort-ac`)
 max_cohort_af <- as.numeric(opts$`--max-cohort-af`)
+vcfanno_config <- as.character(opts$`--vcfanno_config`)
+filter_by_annotation <- as.character(opts$`--filter_by_annotation`)
+min_filter_value <- as.numeric(opts$`--min_value`)
+max_filter_value <- as.numeric(opts$`--max_value`)
 min_large_event <- as.numeric(opts$large_event)
 min_impact <- ordered(opts$min_impact, c('MODIFIER', 'LOW', 'MODERATE', 'HIGH'))
 sv_chr_exclude <-  c(str_split(opts$sv_chr_exclude, ',', simplify = T))
@@ -124,6 +132,17 @@ if (!opts$sv) { # SNPS
            slide_layout(c('igv'),
                         slide_num = 2L))
     )
+  
+  # Extract list of annotations from vcfanno config file to add on the slides
+  add_anno = c()
+  if (vcfanno_config != 'NULL') {
+    file_content <- readLines(vcfanno_config)
+    names_line <- file_content[grep("^names", file_content)] # TODO: update this line to make it more robust
+    matches <- gregexpr('"([^"]*)"', names_line)
+    extracted_strings <- regmatches(names_line, matches)
+    add_anno = unlist(lapply(extracted_strings, function(x) gsub('"', '', x)))
+  }
+  
   # load variants
   vars <-
     load_vcf(opts$vcf,
@@ -133,12 +152,28 @@ if (!opts$sv) { # SNPS
     mutate(AN = pmax(0, AN - rowSums(mutate_all(genotype, ~str_count(., '[01]')))),
            AC = pmax(0, AC - rowSums(mutate_all(genotype, ~str_count(., '[1]')))),
            AF = if_else(AN > 0, AC / AN, 0))
-  
+  additional_filter <- function(data, filter_column, min_value, max_value) {
+    if (filter_column != 'NULL' && filter_column %in% colnames(data)) {
+      if (max_value == 'Inf') {
+        max_value = Inf
+      }
+      if (min_value <= max_value) {
+        data <- data %>%
+        filter((!!sym(filter_column) <= max_value & !!sym(filter_column) >= min_value) | is.na(!!sym(filter_column)))
+      }
+    }
+    if (!(filter_column %in% colnames(data))) {
+      message(paste0('Missing annotation: ', filter_column))
+      message(paste0('Available annotations: ', colnames(data)))
+    }
+    return(data)
+  }
   # get candidates
   cand_vars <-
     vars %>%
     update_filter_stats('all') %>%
     filter(is.na(af_gnomad) | af_gnomad <= maf_rec) %>% 
+    additional_filter(filter_column = filter_by_annotation, min = min_filter_value, max = max_filter_value) %>%
     update_filter_stats('gnomad_allele_freq') %>% 
     filter(AC <= max_cohort_ac,
            AF <= max_cohort_af) %>% 
@@ -185,7 +220,9 @@ if (!opts$sv) { # SNPS
                   ped_file = opts$ped,
                   layout = layout,
                   var_info = c(cavalier::get_var_info(),
-                               cohort_AC_AF = 'cohort_AC_AF'))
+                               cohort_AC_AF = 'cohort_AC_AF',
+                               add_anno))
+    
   } else {
     file.create(str_c(opts$out, '.pptx'))
   }

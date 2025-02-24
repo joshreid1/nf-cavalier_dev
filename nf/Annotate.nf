@@ -4,10 +4,11 @@ include { vcf_concat as vcf_concat_1 } from './vcf_concat'
 include { vcf_concat as vcf_concat_sv } from './vcf_concat' addParams(allow_overlap: true)
 include { ConcatVCF as ConcatPopVCF } from './ConcatVCF' addParams(id: 'PopSV')
 include { SplitSVs as SplitPopSVs } from './SplitSVs'
+include { VcfAnno } from './VcfAnno'
 
 workflow Annotate {
     take:
-        vcf_chunks // // set, i, j, vcf, index
+        vcf_chunks // set, i, j, vcf, index
 
     main:
     ref_data = ref_data_channel() | map { it[[0, 1, 3]] } // ref_fa, ref_fai, vep_cache
@@ -17,6 +18,9 @@ workflow Annotate {
         snp_ann = vcf_chunks |
             filter { it[0] == 'SNP' } |
             map { it[0..3] } |
+            VcfAnno
+            
+        snp_vep = snp_ann |
             combine(ref_data) |
             vep |
             flatMap {
@@ -25,7 +29,7 @@ workflow Annotate {
                  ['SNP', 'unannotated', it[3]]]
             }
     } else {
-        snp_ann = Channel.fromList([])
+        snp_vep = Channel.fromList([])
     }
 
     // SV VCFs
@@ -61,7 +65,7 @@ workflow Annotate {
         sv_ann = Channel.fromList([])
     }
 
-    ann_vcfs = snp_ann |
+    ann_vcfs = snp_vep |
         mix(sv_ann) |
         collectFile(newLine: true, sort: { new File(it).toPath().fileName.toString() }) {
             ["${it[0]}.${it[1]}.files.txt", it[2].toString()]
