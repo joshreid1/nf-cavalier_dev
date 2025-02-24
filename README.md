@@ -3,7 +3,7 @@
 Nextflow Pipeline for singleton and family based candidate variant prioritisation based on gene lists using the Cavalier R package. This pipeline is a work in progress.
 
 ## Installation
-* Clone this repositoty
+* Clone this repository
 
 ## Usage
 * Create and navigate to run working directory
