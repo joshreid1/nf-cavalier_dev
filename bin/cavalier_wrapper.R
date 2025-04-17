@@ -184,7 +184,7 @@ if (!opts$sv) { # SNPS
     mutate(
       non_benign_sift =  sift > ordered('tolerated', levels(sift)),
       non_benign_polyphen = polyphen > ordered('benign', levels(polyphen)),
-      non_benign_clin_sig = clin_sig > ordered('likely_benign ', levels(clin_sig)),
+      non_benign_clin_sig = clin_sig > ordered('likely_benign', levels(clin_sig)), #removed trailing whitespace that was causing all variants to be assigned 'non_benign_clin_sig = NA'
       non_benign_all_na = is.na(non_benign_sift) & is.na(non_benign_polyphen) & is.na(non_benign_clin_sig),
       benign_missense = 
         consequence == 'missense_variant' &
