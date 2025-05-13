@@ -50,11 +50,17 @@ def extract_tbi_block_starts(tbi_path: str):
         buf.read(8 * n_intv)
     return sorted(starts)
 
+_scan_bgzf_cache = {}
+
 def scan_bgzf_block_starts(vcf_path: str, start_at=0, end_at=None):
     starts = []
     with open(vcf_path, "rb") as f:
         cur = start_at
         while end_at is None or cur < end_at:
+            if cur in _scan_bgzf_cache:
+                starts.append(cur)
+                cur = _scan_bgzf_cache[cur]
+                continue
             f.seek(cur)
             hdr = f.read(12)
             if len(hdr) < 12 or hdr[:3] != b"\x1f\x8b\x08":
@@ -74,6 +80,7 @@ def scan_bgzf_block_starts(vcf_path: str, start_at=0, end_at=None):
                 break
             blk_size = bsize_m1 + 1
             starts.append(cur)
+            _scan_bgzf_cache[cur] = cur + blk_size
             cur += blk_size
     return starts
 
@@ -91,6 +98,14 @@ def get_header_and_first_block(vcf_path: str):
                 return header, block_offset
     logger.error("No data records found in VCF header")
     sys.exit(1)
+
+def is_valid_boundary(vcf_path: str, start:int, length:int):
+    """return true if a newline is within the boundary"""
+    with bgzf.open(vcf_path, "rb") as rdr:
+        rdr.seek(bgzf.make_virtual_offset(start, 0))
+        if not rdr.readline().endswith(b'\n'):
+            return False
+        return (rdr.tell() >> 16) < (start + length)
 
 def compress_to_bgzf(data: bytes, compresslevel: int = 6, eof=False) -> bytes:
     """
@@ -153,7 +168,7 @@ def partition_boundaries(lengths, n):
     so that you get as close as possible to n equal‐sized parts.
     """
     if len(lengths) < n-1:
-        logger.error("Not enough intervals to partition")
+        logger.error(f"Not enough BGZF blocks to partition into {n} chunks. Set --n_chunks to {len(lengths) +1 } or lower")
         sys.exit(1)
         
     cum = list(accumulate(lengths))
@@ -163,10 +178,45 @@ def partition_boundaries(lengths, n):
     # find which chunk each target lies in
     return [bisect_left(cum, t) for t in targets]
 
+def get_lengths(starts, file_size):
+    return [starts[i + 1] - starts[i] for i in range(len(starts) - 1)] + [file_size - starts[-1]]
+
+def optimise_boundaries(vcf_path, starts, n_chunks, maxit=1000):
+    """
+    Find optimal boundary blocks to split VCF into roughly equal size pieces
+    """
+    logger.info(f"Optimising BGZF block boundaries")
+    file_size = os.path.getsize(vcf_path)
+    excluded = set()
+    scanned = set()
+    lengths = get_lengths(starts, file_size)
+    bounds = partition_boundaries(lengths, n_chunks)  
+    i = 0
+    while True:
+        # scan for finer boundaries
+        new_starts = set()
+        for s, l in ((starts[i], lengths[i]) for i in bounds):
+            if not s in scanned:
+                scanned.add(s)
+                new_starts = new_starts | set(scan_bgzf_block_starts(str(vcf_path), s, s+l))
+        starts = sorted((set(starts) | new_starts) - excluded)
+        lengths = get_lengths(starts, file_size)
+        bounds = partition_boundaries(lengths, n_chunks)
+        # check for invalid boundaries 
+        invalid = [i for i in bounds if not is_valid_boundary(vcf_path, starts[i], lengths[i])]
+        if len(invalid) == 0:
+            break
+        excluded = excluded | {starts[i] for i in invalid}
+        i += 1
+        if i == maxit:
+            logger.error("Could not find optimal partition, try with smaller --n_chunks")
+            exit(1)
+    
+    return bounds, starts, lengths
+
 
 def write_chunk(vcf_path: str, output_path: Path, prepend: bytes, start: int, length: int, append: bytes):
     # Phase 2: raw copy of complete compressed blocks
-  
     binout = sys.stdout.buffer if output_path == '<stdout>' else open(output_path, "wb")
     if prepend is not None:
         binout.write(prepend)
@@ -175,6 +225,7 @@ def write_chunk(vcf_path: str, output_path: Path, prepend: bytes, start: int, le
     if append is not None:
         binout.write(append)
     binout.close()
+
 
 def main():
     p = argparse.ArgumentParser()
@@ -198,41 +249,28 @@ def main():
     output_prefix = args.output
     n_chunks      = args.n_chunks
 
+    if (n_chunks == 1):
+        logger.warning("Setting n_chunks to 1 is redundant")
+
     # gather BGZF block starts
     tbi_path = vcf_path.with_suffix(vcf_path.suffix + ".tbi")
-    if tbi_path.exists():
-        starts = extract_tbi_block_starts(str(tbi_path))
-    else:
-        logger.info("Warning: No .tbi index found - scanning entire file for bgzf block. This would be much faster if an was available.")
-        starts = scan_bgzf_block_starts(str(vcf_path))
-
+    if not tbi_path.exists():
+        logger.error("Warning: No .tbi index found - please index file with bcftools or tabix.")
+        sys.exit(1)
+    starts = extract_tbi_block_starts(str(tbi_path))
     logger.info(f"Found {len(starts)} BGZF blocks")
 
+    logger.info(f"Extracting header")
     header, first_block = get_header_and_first_block(str(vcf_path))
+    # improve resolution of chopping of first chunk and header
     starts = sorted(set(starts) | {first_block})
     starts = sorted(set(starts + scan_bgzf_block_starts(str(vcf_path), starts[0], starts[1])))
 
-    # fine tune boundaries
     file_size = os.path.getsize(vcf_path)
-    logger.info(f"Optimising BGZF block boundaries")
-    lengths = [starts[i + 1] - starts[i] for i in range(len(starts) - 1)] + [file_size - starts[-1]]
-    bounds = partition_boundaries(lengths, n_chunks)
-    scanned = set()
-    
-    while True:
-        n_scanned = len(scanned)
-        for s, l in ((starts[i], lengths[i]) for i in bounds):
-            if not s in scanned:
-                scanned.add(s)
-                starts.extend(scan_bgzf_block_starts(str(vcf_path), s, s+l))
-        if len(scanned) > n_scanned:
-            starts = sorted(set(starts))
-            lengths = [starts[i + 1] - starts[i] for i in range(len(starts) - 1)] + [file_size - starts[-1]]
-            bounds = partition_boundaries(lengths, n_chunks)
-        else:
-            break
+    bounds, starts, lengths = optimise_boundaries(vcf_path, starts, n_chunks)
 
     # build write_args
+    logger.info(f"Splitting boundary BGZF blocks")
     bounds_split = [split_chunk(str(vcf_path), starts[i], lengths[i]) for i in bounds]
     write_args = []
     for i in range(n_chunks):
@@ -259,14 +297,17 @@ def main():
     # If only one chunk requested, filter down
     if args.chunk:
         write_args = [write_args[args.chunk - 1]]
-        write_args[0] = tuple([str(vcf_path), '<stdout>'] + list(write_args[0][2:]))
     
     if args.threads > 1 and len(write_args) > 1:
         logger.info(f"Writing {len(write_args)} chunks with {args.threads} threads")
         with multiprocessing.Pool(args.threads) as pool:
             pool.starmap(write_chunk, write_args)
     else:
-        logger.info(f"Writing {len(write_args)} chunks")
+        if args.stdout:
+            write_args[0] = tuple([str(vcf_path), '<stdout>'] + list(write_args[0][2:]))
+            logger.info(f"Writing chunk {args.chunk} to stdout")
+        else:
+            logger.info(f"Writing {len(write_args)} chunks")
         for wa in write_args:
             write_chunk(*wa)
 
