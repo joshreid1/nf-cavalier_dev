@@ -1,21 +1,41 @@
 #!/usr/bin/env nextflow
-nextflow.enable.dsl=2
 /*
 TODO:
-    - Add download URLs for reference files (similar to PLASTER) as default to simplify configuration
+    - Add download URLs for reference files as default to simplify configuration
  */
-//imput params
+//input params
 params.outdir = 'output'
-params.snp_vcf = ''
-params.snp_caller = 'GATK'
-params.fill_tags = false
+
+params.fill_tags = true
 params.remove_fields = 'INFO/CSQ'
 params.sv_vcf = ''
 params.ped = ''
 params.bams = ''
 params.lists = ''
-params.chunk_size = 200000
-params.sv_chunk_size = 10000
+
+// SNP args
+params.snp_vcf = ''
+params.snp_caller = 'GATK'
+params.snp_n_shards = 200
+params.snp_format_keep = 'FORMAT/GT,FORMAT/AD'
+params.snp_info_keep = 'INFO/AC,INFO/AF,INFO/AN'
+// optional
+params.snp_vcfanno = [
+    [   vcf: '/vast/projects/bahlo_cache/gnomAD/joint_sites_4.1.vcf.gz', 
+        index: 'csi', 
+        fields: [gnomad_AF: 'AF', gnomad_AC: 'AC', gnomad_FAF95: 'fafmax_faf95_max', gnomad_nhomalt: 'nhomalt']
+    ],
+    [   tsv: '/vast/projects/munro_data/ref-data/whole_genome_SNVs.tsv.gz',
+        index: 'tbi',
+        fields: [CADD: 6]
+    ],
+    [   tsv: '/vast/projects/bahlo_cache/CADD/1.7/gnomad.genomes.r4.0.indel.tsv.gz',
+        index: 'tbi',
+        fields: [CADD: 6]
+    ]
+]
+
+params.sv_n_shards  = 20
 
 // filter params
 params.maf_dom = 0.0001
@@ -38,7 +58,6 @@ params.vep_assembly = params.ref_hg38 ? 'GRCh38' : 'GRCh37'
 params.pop_sv = ''
 params.ref_gene = ''
 
-
 // map additional options for cavalier R pacakge
 params.cache_dir = 'cavalier_cache'
 params.database_mode = 'fallback' // one of 'latest', 'fallback' or 'offline'
@@ -49,24 +68,13 @@ params.sv_types = 'DEL,DUP,INS,INV,BND'
 params.sv_type_match = [DEL: ['DEL'], DUP: ['CNV', 'DUP']]
 params.no_slides = false // skip making slides in cavalier
 
-include { vcf_channel; families_channel } from './nf/functions'
-include { GetSamples } from './nf/GetSamples'
-include { CheckInputs } from './nf/CheckInputs'
-include { CleanAndChunk } from './nf/CleanAndChunk'
-include { Annotate } from './nf/Annotate'
-include { Report } from './nf/Report'
+
+include { validate_params } from './functions/validate'
+
+validate_params()
+
+include { CAVALIER } from './workflows/cavalier'
 
 workflow {
-
-    vcfs = vcf_channel()
-
-    vcf_samples = GetSamples(vcfs)
-
-    ann_vcf = vcf_samples |
-        CheckInputs |
-        combine(vcfs, by: 0) |
-        CleanAndChunk |
-        Annotate |
-        combine(families_channel(vcf_samples), by: 0) |
-        Report
+    CAVALIER()
 }

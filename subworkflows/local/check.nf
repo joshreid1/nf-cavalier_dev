@@ -1,0 +1,53 @@
+
+
+include { read_ped    } from '../../functions/helpers'
+include { read_bams   } from '../../functions/helpers'
+
+include { SAMPLES } from '../../modules/local/samples'
+
+
+workflow CHECK {
+    take:
+    vcf_channel
+    name
+    
+    main:
+    ped = read_ped()
+    bams = read_bams()
+
+    // check samples
+    ped_samples = ped.collect { it.iid }.unique()
+    bam_samples = bams.collect { it.iid }.unique()
+
+    vcf_samples = SAMPLES(vcf_channel).splitText().map{ it.trim() }.toSortedList()
+
+    vcf_samples \
+        | flatMap { samples -> 
+                [
+                    ["in \"${name}\" and \"bams\" but not in \"ped\"", samples.intersect(bam_samples) - ped_samples],
+                    ["in \"${name}\" and \"ped\" but not in \"bams\"", samples.intersect(ped_samples) - bam_samples],
+                    ["in \"${name}\" but not in \"ped\" or \"bams\"",  samples - ped_samples.intersect(bam_samples)],
+                    ["in \"bams\" but not in \"${name}\"",  bam_samples - samples],
+                ]
+          } \
+        | filter { it[1].size() > 0 } \
+        | map { warn, sm ->
+            n = sm.size()
+            sm = n > 5 ? sm[0..4] + ['...'] : sm
+            println "WARNING: $n sample${n > 1 ? 's':''} $warn: ${sm.join(', ')}"
+        }
+
+    // //     check there is any work to be done
+    output =
+        vcf_channel \
+        | combine(vcf_samples.map {[it]}) \
+        | map { vcf, tbi, samples ->
+            complete = samples.intersect(bam_samples).intersect(ped_samples)
+            if (complete.size() == 0) {
+                throw new Exception("ERROR: No samples to process in $set VCF")
+            }
+            return [vcf, tbi]
+        }
+
+    emit: output.first()
+}

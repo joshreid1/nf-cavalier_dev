@@ -14,7 +14,7 @@ Path make_path(filename) {
 
 ArrayList<Map> read_tsv(Path path, List<String> names ) {
     path.toFile().readLines().with { lines ->
-        lines.each {assert it.split('\t').size() == names.size() }
+        lines.each { assert it.split('\t').size() == names.size() }
         lines.collect {
             [names, it.split('\t')].transpose().collectEntries { k, v -> [(k): v] }
         }
@@ -42,8 +42,6 @@ ArrayList<Map> read_csv2(Path path, List<String> req_names, List<String> opt_nam
     }
 }
 
-
-
 String date_ymd() {
     date = new Date()
     sdf = new SimpleDateFormat("yyyy-MM-dd")
@@ -61,16 +59,36 @@ void checkMode(mode) {
 }
 
 def read_ped() {
-    read_tsv(path(params.ped), ['fid', 'iid', 'pid', 'mid', 'sex', 'phe'])
+    ped = read_tsv(path(params.ped), ['fid', 'iid', 'pid', 'mid', 'sex', 'phe'])
+    
+    ped_families = ped.collect { it.fid }.unique()
+    
+    fam_w_aff = ped
+        .groupBy { it.fid }
+        .collect { k, v -> [
+            k, v.findAll {it.phe == '2'}.collect {it.iid} ] 
+        }
+        .findAll { it[1].size() > 0 }
+        .collect { it[0] }
+
+    if (fam_w_aff.size() == 0) {
+        throw new Exception("No affected individuals in pedigree")
+    }
+    
+    fam_wo_aff = ped_families - fam_w_aff
+    
+    if (fam_wo_aff.size() > 0) {
+        n = fam_wo_aff.size()
+        fams =  n > 5 ? fam_wo_aff[0..4] + ['...'] : fam_wo_aff
+        println "WARNING: $n famil${n > 1 ? 'ies':'y'} with no affected members will be excluded: ${fams.join(', ')}"
+    }
+
+    ped.findAll { fam_w_aff.contains(it.fid) }
 }
 
 def read_bams() {
     read_tsv(path(params.bams), ['iid', 'bam'])
 }
-
-// def read_lists() {
-//     read_tsv(path(params.lists), ['fid', 'list'])
-// }
 
 def list_channels() {
 
@@ -88,6 +106,12 @@ def list_channels() {
     ]
 }
 
+def get_ref_fa_fai() {
+    ref_fa = path(params.ref_fasta)
+    ref_fai = path(params.ref_fasta + '.fai')
+    Channel.value([ref_fa, ref_fai])
+}
+
 def ref_data_channel() {
     ref_fa = path(params.ref_fasta)
     ref_fai = path(params.ref_fasta + '.fai')
@@ -102,15 +126,6 @@ def get_variants_override() {
     params.variants_override ? path(params.variants_override) : path("$projectDir/data/dummy/VARIANTS_OVERRIDE")
 }
 
-def vcf_channel() {
-    if (!params.snp_vcf & !params.sv_vcf){
-        throw new Exception("ERROR: Must specify at least one of 'params.snp_vcf' or 'params.sv_vcf'")
-    }
-    Channel.fromList(
-        (params.snp_vcf ? [['SNP', path(params.snp_vcf), path(params.snp_vcf + '.tbi')]] : []) +
-            (params.sv_vcf ? [['SV', path(params.sv_vcf), path(params.sv_vcf + '.tbi')]] : [])
-    )
-}
 def pop_sv_channel() {
     Channel.value([path(params.pop_sv), path(params.pop_sv + '.tbi')])
 }

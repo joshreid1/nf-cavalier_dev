@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-quick_split_vcf.py
+scatter_vcf.py
 
 Split a BGZF-compressed VCF into N roughly-equal-size chunks,
 preserving record boundaries and minimizing recompression.
@@ -41,8 +41,8 @@ def extract_tbi_block_starts(tbi_path: str):
         n_bin = struct.unpack("<I", buf.read(4))[0]
         for _ in range(n_bin):
             buf.read(4)  # bin_id
-            n_chunk = struct.unpack("<I", buf.read(4))[0]
-            for _ in range(n_chunk):
+            n_shard = struct.unpack("<I", buf.read(4))[0]
+            for _ in range(n_shard):
                 beg, end = struct.unpack("<QQ", buf.read(16))
                 if end > beg:
                     starts.add(beg >> 16)
@@ -168,7 +168,7 @@ def partition_boundaries(lengths, n):
     so that you get as close as possible to n equal‐sized parts.
     """
     if len(lengths) < n-1:
-        logger.error(f"Not enough BGZF blocks to partition into {n} chunks. Set --n_chunks to {len(lengths) +1 } or lower")
+        logger.error(f"Not enough BGZF blocks to partition into {n} chunks. Set --n_shards to {len(lengths) +1 } or lower")
         sys.exit(1)
         
     cum = list(accumulate(lengths))
@@ -181,7 +181,7 @@ def partition_boundaries(lengths, n):
 def get_lengths(starts, file_size):
     return [starts[i + 1] - starts[i] for i in range(len(starts) - 1)] + [file_size - starts[-1]]
 
-def optimise_boundaries(vcf_path, starts, n_chunks, maxit=1000):
+def optimise_boundaries(vcf_path, starts, n_shards, maxit=1000):
     """
     Find optimal boundary blocks to split VCF into roughly equal size pieces
     """
@@ -190,7 +190,7 @@ def optimise_boundaries(vcf_path, starts, n_chunks, maxit=1000):
     excluded = set()
     scanned = set()
     lengths = get_lengths(starts, file_size)
-    bounds = partition_boundaries(lengths, n_chunks)  
+    bounds = partition_boundaries(lengths, n_shards)  
     i = 0
     while True:
         # scan for finer boundaries
@@ -201,7 +201,7 @@ def optimise_boundaries(vcf_path, starts, n_chunks, maxit=1000):
                 new_starts = new_starts | set(scan_bgzf_block_starts(str(vcf_path), s, s+l))
         starts = sorted((set(starts) | new_starts) - excluded)
         lengths = get_lengths(starts, file_size)
-        bounds = partition_boundaries(lengths, n_chunks)
+        bounds = partition_boundaries(lengths, n_shards)
         # check for invalid boundaries 
         invalid = [i for i in bounds if not is_valid_boundary(vcf_path, starts[i], lengths[i])]
         if len(invalid) == 0:
@@ -209,7 +209,7 @@ def optimise_boundaries(vcf_path, starts, n_chunks, maxit=1000):
         excluded = excluded | {starts[i] for i in invalid}
         i += 1
         if i == maxit:
-            logger.error("Could not find optimal partition, try with smaller --n_chunks")
+            logger.error("Could not find optimal partition, try with smaller --n_shards")
             exit(1)
     
     return bounds, starts, lengths
@@ -230,7 +230,7 @@ def write_chunk(vcf_path: str, output_path: Path, prepend: bytes, start: int, le
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("vcf_input",        type=Path,             help="input BGZF VCF (.vcf.gz)")
-    p.add_argument("--n_chunks",       required=True, type=int, help="number of chunks")
+    p.add_argument("--n-shards",       required=True, type=int, help="number of chunks")
     p.add_argument("-t", "--threads",              type=int, default=1,  help="worker count")
     p.add_argument("-o", "--output",              help="output prefix (e.g. split.vcf.gz)")
     p.add_argument("--chunk",               type=int,        help="1-based chunk number to write")
@@ -242,15 +242,15 @@ def main():
         p.error("--stdout requires --chunk")
     if not args.stdout and not args.output:
         p.error("--output is required unless --stdout is set")
-    if args.chunk and (args.chunk < 1 or args.chunk > args.n_chunks):
-        p.error(f"--chunk must be between 1 and {args.n_chunks}")
+    if args.chunk and (args.chunk < 1 or args.chunk > args.n_shards):
+        p.error(f"--chunk must be between 1 and {args.n_shards}")
 
     vcf_path      = args.vcf_input
     output_prefix = args.output
-    n_chunks      = args.n_chunks
+    n_shards      = args.n_shards
 
-    if (n_chunks == 1):
-        logger.warning("Setting n_chunks to 1 is redundant")
+    if (n_shards == 1):
+        logger.warning("Setting n_shards to 1 is redundant")
 
     # gather BGZF block starts
     tbi_path = vcf_path.with_suffix(vcf_path.suffix + ".tbi")
@@ -267,20 +267,20 @@ def main():
     starts = sorted(set(starts + scan_bgzf_block_starts(str(vcf_path), starts[0], starts[1])))
 
     file_size = os.path.getsize(vcf_path)
-    bounds, starts, lengths = optimise_boundaries(vcf_path, starts, n_chunks)
+    bounds, starts, lengths = optimise_boundaries(vcf_path, starts, n_shards)
 
     # build write_args
     logger.info(f"Splitting boundary BGZF blocks")
     bounds_split = [split_chunk(str(vcf_path), starts[i], lengths[i]) for i in bounds]
     write_args = []
-    for i in range(n_chunks):
+    for i in range(n_shards):
         if i == 0:
             prepend = header + remove_header(str(vcf_path), 0, starts[1])
             start = starts[1]
         else:
             prepend = header + bounds_split[i-1][1]
             start = starts[bounds[i-1]+1]
-        if i == n_chunks-1:
+        if i == n_shards-1:
             length = file_size - start
             append = None
         else:
@@ -289,7 +289,7 @@ def main():
         write_args.append(
             (
                 str(vcf_path),
-                Path(f"{output_prefix}.{i+1:0{len(str(n_chunks))}d}.vcf.gz"),
+                Path(f"{output_prefix}.{i+1:0{len(str(n_shards))}d}.vcf.gz"),
                 prepend, start,  length, append
             )
         )
