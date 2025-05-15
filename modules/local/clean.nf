@@ -19,7 +19,7 @@ process CLEAN {
         | bcftools annotate --no-version -Ou --remove ${params.snp_info_keep   ? '^' + params.snp_info_keep   : 'INFO'} \\
         | bcftools norm --no-version -Ou -m-any -f $ref \\
         ${params.fill_tags ? '| bcftools +fill-tags --no-version -Ou -- -t AC,AF,AN' : ''} \\
-        | bcftools view -i "AF>0" --no-version -Oz -o $output --write-index=tbi
+        | bcftools view -e 'AF=0 || ALT="*"' --no-version -Oz -o $output --write-index=tbi
     """
     // is ID necessary ? makes files larger
     //| bcftools annotate --no-version -Ou --set-id '%CHROM\\_%POS\\_%REF\\_%FIRST_ALT' \\

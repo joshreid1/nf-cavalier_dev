@@ -1,7 +1,14 @@
 
 /* ----------- funtions ----------------*/
-include { path             } from '../../functions/helpers'
-include { get_ref_fa_fai   } from '../../functions/helpers'
+include { path                } from '../../functions/helpers'
+include { get_ref_fa_fai      } from '../../functions/helpers'
+include { get_vcfanno_conf    } from '../../functions/snp_helpers'
+include { get_vcfanno_files   } from '../../functions/snp_helpers'
+include { get_spliceai_files  } from '../../functions/snp_helpers'
+include { get_alphamiss_files } from '../../functions/snp_helpers'
+include { get_revel_files     } from '../../functions/snp_helpers'
+// include { get_dbnsfp_files   } from '../../functions/snp_helpers'
+
 
 /* ----------- workflows ----------------*/
 include { CHECK   } from './check'
@@ -10,43 +17,11 @@ include { CHECK   } from './check'
 include { SCATTER      } from '../../modules/local/scatter'
 include { CLEAN        } from '../../modules/local/clean'
 include { DROP         } from '../../modules/local/drop'
-include { BCFTOOLS_ANN } from '../../modules/local/bcftools_ann'
+include { VCFANNO_CONF } from '../../modules/local/vcfanno_conf'
 include { VCFANNO      } from '../../modules/local/vcfanno'
-
-def get_vcfanno_conf() {
-    Channel
-        .fromList(params.snp_vcfanno)
-        .map { ann ->
-            // choose file key and toml keyword
-            def file   = file(ann.vcf ?: ann.tsv).name
-            def is_vcf = ann.containsKey('vcf')
-            def key    = is_vcf ? 'fields' : 'columns'
-            // build the three arrays
-            def values = ann.fields.values().collect { it instanceof String ? "\"${it}\"" : "${it}" }.join(', ')
-            def names  = ann.fields.keySet().collect { "\"$it\"" }.join(', ')
-            def ops    = ann.fields.collect { '"self"' }.join(', ')
-            // one TOML block per annotation
-            def block =  
-                "[[annotation]]\n" +
-                "file    = \"${file}\"\n" +
-                "${key}  = [${values}]\n" +
-                "names   = [${names}]\n" +
-                "ops     = [${ops}]"
-            // println block
-            return block
-        }
-        .collectFile(name: 'vcfanno.conf', sort: false, newLine: true)
-        .first()
-}
-
-def get_vcfanno_files() {
-    Channel
-        .fromList(params.snp_vcfanno)
-        .flatMap { [path(it.vcf ?: it.tsv), path("${it.vcf ?: it.tsv}.${it.index}")] }
-        .collect()
-}
-
-
+include { FILTER       } from '../../modules/local/filter'
+include { VEP          } from '../../modules/local/vep'
+include { GATHER       } from '../../modules/local/gather'
 
 workflow SNP {
 
@@ -66,12 +41,47 @@ workflow SNP {
     )
 
     if (params.snp_vcfanno) {
+
+        VCFANNO_CONF(
+            get_vcfanno_conf()
+        )
+
         VCFANNO(
             CLEAN.out,
-            get_vcfanno_conf(),
+            VCFANNO_CONF.out,
             get_vcfanno_files()
         )
+
+        if (params.snp_vcfanno_filter) {
+            FILTER(
+                VCFANNO.out,
+                params.snp_vcfanno_filter
+            )
+            vep_input = FILTER.out
+        } else {
+            vep_input = VCFANNO.out
+        }
+
+    } else {
+        vep_input = CLEAN.out.map{ [it[0], it[1]] }
     }
+
+    VEP(
+        vep_input,
+        get_ref_fa_fai(),
+        path(params.vep_cache),
+        get_spliceai_files(),
+        get_alphamiss_files(),
+        get_revel_files()
+    )
+
+    
+
+    GATHER(
+        VEP.out.toSortedList { a, b -> a.name <=> b.name }
+    )
+
+
 
 //     if (params.snp_ann_sources) {
 //         DROP(CLEAN.out)

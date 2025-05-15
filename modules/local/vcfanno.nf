@@ -10,7 +10,7 @@ process VCFANNO {
         path(ann_files)
 
     output:
-        path(output)
+        tuple val(i), path(output)
 
     script:
     output  = in_vcf.name.replace('.vcf.gz', ".vcfanno.vcf.gz")

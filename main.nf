@@ -21,7 +21,7 @@ params.snp_format_keep = 'FORMAT/GT,FORMAT/AD'
 params.snp_info_keep = 'INFO/AC,INFO/AF,INFO/AN'
 // optional
 params.snp_vcfanno = [
-    [   vcf: '/vast/projects/bahlo_cache/gnomAD/joint_sites_4.1.vcf.gz', 
+    [   vcf: '/vast/projects/bahlo_cache/annotation/gnomAD/joint_sites_4.1.vcf.gz', 
         index: 'csi', 
         fields: [gnomad_AF: 'AF', gnomad_AC: 'AC', gnomad_FAF95: 'fafmax_faf95_max', gnomad_nhomalt: 'nhomalt']
     ],
@@ -29,11 +29,25 @@ params.snp_vcfanno = [
         index: 'tbi',
         fields: [CADD: 6]
     ],
-    [   tsv: '/vast/projects/bahlo_cache/CADD/1.7/gnomad.genomes.r4.0.indel.tsv.gz',
+    [   tsv: '/vast/projects/bahlo_cache/annotation/CADD/1.7/gnomad.genomes.r4.0.indel.tsv.gz',
         index: 'tbi',
         fields: [CADD: 6]
+    ],
+    [   tsv: '/vast/projects/bahlo_cache/annotation/phyloP/hg38.phyloP100way.bed.gz',
+        index: 'tbi',
+        fields: [phyloP100: 4],
+        op: 'mean'
     ]
 ]
+
+params.snp_vcfanno_filter = 'gnomad_AF<0.01 || gnomad_AF="."'
+params.vep_spliceai_snv   = '/vast/projects/munro_data/ref-data/spliceAI/1.3/spliceai_scores.raw.snv.hg38.vcf.gz'
+params.vep_spliceai_indel = '/vast/projects/munro_data/ref-data/spliceAI/1.3/spliceai_scores.raw.indel.hg38.vcf.gz'
+params.vep_alphamissense  = '/vast/projects/bahlo_cache/annotation/alphamissense/AlphaMissense_hg38.tsv.gz'
+params.vep_revel          = '/vast/projects/bahlo_cache/annotation/REVEL/revel_1.3.hg38.vep.tsv.gz'
+// params.vep_dbnsfp         = '/vast/projects/bahlo_cache/dbNSFP/dbNSFP5.1a_grch38.gz'
+// params.vep_dbnsfp_fileds  = 'REVEL_score,AlphaMissense_score,AlphaMissense_pred,MetaSVM_score,MetaSVM_pred'
+
 
 params.sv_n_shards  = 20
 
@@ -51,10 +65,10 @@ params.variants_override = null // disable filtering and report specific set of 
 
 // ref params
 params.ref_fasta = ''
-params.ref_hg38 = true
+// params.ref_hg38 = true
 params.vep_cache = ''
-params.vep_cache_ver = ''
-params.vep_assembly = params.ref_hg38 ? 'GRCh38' : 'GRCh37'
+params.vep_cache_ver = '114'
+// params.vep_assembly = params.ref_hg38 ? 'GRCh38' : 'GRCh37'
 params.pop_sv = ''
 params.ref_gene = ''
 
