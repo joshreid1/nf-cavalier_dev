@@ -134,7 +134,7 @@ def ref_gene_channel() {
     Channel.value([path(params.ref_gene)])
 }
 
-def families_channel(vcf_samples) {
+def families_aff_un() {
 
     fam_af_un = read_ped()
         .groupBy { it.fid }
@@ -144,12 +144,8 @@ def families_channel(vcf_samples) {
             v.findAll {it.phe == '1'}.collect {it.iid}
         ] }
 
-    vcf_samples |
-        combine(Channel.fromList(fam_af_un)) |
-        map { set, sam, fam, af, un ->
-            [set, fam, af.intersect(sam), un.intersect(sam)] } |
-        filter { it[2].size() > 0 }
-    // set, fam, aff, unaff
+    Channel.fromList(fam_af_un) // fam, aff, unaff
+    
 }
 
 def pedigree_channel() {

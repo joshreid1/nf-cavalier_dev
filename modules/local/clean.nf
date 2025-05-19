@@ -13,10 +13,12 @@ process CLEAN {
 
     script:
     output = vcf.name.replace('.vcf.gz', '.clean.vcf.gz')
+    remove = 'QUAL,FILTER' +
+        (params.snv_info    ? ',^' + params.snv_info  .collect{ "INF/$it" }.join(',') : '') +
+        (params.snv_format  ? ',^' + params.snv_format.collect{ "FMT/$it" }.join(',') : '')
     """
     bcftools view $vcf --no-version -Ou -f "PASS,." \\
-        | bcftools annotate --no-version -Ou --remove QUAL,FILTER,${params.snp_format_keep ? '^' + params.snp_format_keep :'FORMAT'} \\
-        | bcftools annotate --no-version -Ou --remove ${params.snp_info_keep   ? '^' + params.snp_info_keep   : 'INFO'} \\
+        | bcftools annotate --no-version -Ou --remove '$remove' \\
         | bcftools norm --no-version -Ou -m-any -f $ref \\
         ${params.fill_tags ? '| bcftools +fill-tags --no-version -Ou -- -t AC,AF,AN' : ''} \\
         | bcftools view -e 'AF=0 || ALT="*"' --no-version -Oz -o $output --write-index=tbi

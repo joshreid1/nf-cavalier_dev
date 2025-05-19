@@ -6,14 +6,14 @@
 // include { Annotate } from './nf/Annotate'
 // include { Report } from './nf/Report'
 
-include { SNP             } from '../../subworkflows/local/snp'
+include { SNV             } from '../../subworkflows/local/snv'
 // include { SV } from '../../subworkflows/local/snp'
 
 workflow CAVALIER {
 
 
-    if (params.snp_vcf) {
-        SNP()
+    if (params.snv_vcf) {
+        SNV()
     }
     // if (params.sv_vcf) {
     //     SV()

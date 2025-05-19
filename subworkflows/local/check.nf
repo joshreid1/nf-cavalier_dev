@@ -1,7 +1,9 @@
 
 
-include { read_ped    } from '../../functions/helpers'
-include { read_bams   } from '../../functions/helpers'
+include { read_ped        } from '../../functions/helpers'
+include { read_bams       } from '../../functions/helpers'
+include { families_aff_un } from '../../functions/helpers'
+
 
 include { SAMPLES } from '../../modules/local/samples'
 
@@ -38,16 +40,24 @@ workflow CHECK {
         }
 
     // //     check there is any work to be done
-    output =
-        vcf_channel \
-        | combine(vcf_samples.map {[it]}) \
-        | map { vcf, tbi, samples ->
+    vcf_output = vcf_channel
+        .combine(vcf_samples.map {[it]})
+        .map { vcf, tbi, samples ->
             complete = samples.intersect(bam_samples).intersect(ped_samples)
             if (complete.size() == 0) {
                 throw new Exception("ERROR: No samples to process in $set VCF")
             }
             return [vcf, tbi]
         }
+        .first()
 
-    emit: output.first()
+    fam_output = vcf_samples
+        .map { [it] }
+        .combine(families_aff_un())
+        .map { sam, fam, af, un -> [fam, af.intersect(sam), un.intersect(sam)] }
+        .filter { it[1].size() > 0 }
+
+    emit: 
+    vcf      = vcf_output
+    families = fam_output
 }

@@ -3,7 +3,7 @@ include { path } from './helpers'
 
 def get_vcfanno_conf() {
     Channel
-        .fromList(params.snp_vcfanno)
+        .fromList(params.snv_vcfanno)
         .map { ann ->
             // choose file key and toml keyword
             def file   = file(ann.vcf ?: ann.tsv).name
@@ -29,8 +29,8 @@ def get_vcfanno_conf() {
 
 def get_vcfanno_files() {
     Channel
-        .fromList(params.snp_vcfanno)
-        .flatMap { [path(it.vcf ?: it.tsv), path("${it.vcf ?: it.tsv}.${it.index}")] }
+        .fromList(params.snv_vcfanno)
+        .flatMap { [path(it.vcf ?: it.tsv), path("${it.vcf ?: it.tsv}.${it.csi ? 'csi' : 'tbi'}")] }
         .toSortedList()
 }
 

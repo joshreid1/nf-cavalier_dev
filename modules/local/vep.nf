@@ -32,9 +32,6 @@ process VEP {
             --assembly GRCh38 \\
             --fasta $fasta \\
             --pick_allele_gene \\
-            --ccds \\
-            --canonical \\
-            --mane \\
             --hgvs \\
             --hgvsg \\
             --symbol \\
@@ -46,8 +43,9 @@ process VEP {
             --dont_skip \\
             --sift b \\
             --polyphen b \\
+            --fields "${params.vep_fields.join(',')}" \\
             --plugin SpliceAI,snv=$spliceai_snv,indel=$spliceai_indel \\
-            --plugin AlphaMissense,file=$alphamiss \\
+            --plugin AlphaMissense,file=$alphamiss,transcript_match=1 \\
             --plugin REVEL,file=$revel \\
             --output_file STDOUT \\
         | bgzip -c > $output

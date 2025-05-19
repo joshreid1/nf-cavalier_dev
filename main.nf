@@ -5,46 +5,49 @@ TODO:
  */
 //input params
 params.outdir = 'output'
-
 params.fill_tags = true
 params.remove_fields = 'INFO/CSQ'
 params.sv_vcf = ''
 params.ped = ''
 params.bams = ''
 params.lists = ''
-
-// SNP args
-params.snp_vcf = ''
-params.snp_caller = 'GATK'
-params.snp_n_shards = 200
-params.snp_format_keep = 'FORMAT/GT,FORMAT/AD'
-params.snp_info_keep = 'INFO/AC,INFO/AF,INFO/AN'
+// SNV args
+params.snv_vcf = ''
+params.snv_caller = 'GATK'
+params.snv_n_shards = 200
+params.snv_info = ['AC', 'AF', 'AN']
+params.snv_format = ['GT', 'AD'] // TODO: ensure 'GT' is always present
 // optional
-params.snp_vcfanno = [
+params.snv_vcfanno = [
     [   vcf: '/vast/projects/bahlo_cache/annotation/gnomAD/joint_sites_4.1.vcf.gz', 
-        index: 'csi', 
+        csi: true, 
         fields: [gnomad_AF: 'AF', gnomad_AC: 'AC', gnomad_FAF95: 'fafmax_faf95_max', gnomad_nhomalt: 'nhomalt']
     ],
     [   tsv: '/vast/projects/munro_data/ref-data/whole_genome_SNVs.tsv.gz',
-        index: 'tbi',
         fields: [CADD: 6]
     ],
     [   tsv: '/vast/projects/bahlo_cache/annotation/CADD/1.7/gnomad.genomes.r4.0.indel.tsv.gz',
-        index: 'tbi',
         fields: [CADD: 6]
     ],
     [   tsv: '/vast/projects/bahlo_cache/annotation/phyloP/hg38.phyloP100way.bed.gz',
-        index: 'tbi',
         fields: [phyloP100: 4],
         op: 'mean'
     ]
 ]
+params.snv_vcfanno_filter = 'gnomad_AF<0.01 || gnomad_AF="."'
 
-params.snp_vcfanno_filter = 'gnomad_AF<0.01 || gnomad_AF="."'
 params.vep_spliceai_snv   = '/vast/projects/munro_data/ref-data/spliceAI/1.3/spliceai_scores.raw.snv.hg38.vcf.gz'
 params.vep_spliceai_indel = '/vast/projects/munro_data/ref-data/spliceAI/1.3/spliceai_scores.raw.indel.hg38.vcf.gz'
 params.vep_alphamissense  = '/vast/projects/bahlo_cache/annotation/alphamissense/AlphaMissense_hg38.tsv.gz'
 params.vep_revel          = '/vast/projects/bahlo_cache/annotation/REVEL/revel_1.3.hg38.vep.tsv.gz'
+params.vep_fields = [
+  'SYMBOL', 'Gene', 'VARIANT_CLASS', 'Consequence', 'IMPACT', 'Feature_type', 'Feature',
+  'BIOTYPE', 'EXON', 'INTRON', 'HGVSc', 'HGVSp', 'HGVSg', 'Amino_acids', 'Codons',
+  'HGNC_ID', 'MANE', 'MANE_SELECT', 'MANE_PLUS_CLINICAL', 'CCDS', 'ENSP',
+  'SIFT', 'PolyPhen',  'SpliceAI_pred_DP_AG', 'SpliceAI_pred_DP_AL', 'SpliceAI_pred_DP_DG',
+  'SpliceAI_pred_DP_DL', 'SpliceAI_pred_DS_AG', 'SpliceAI_pred_DS_AL', 'SpliceAI_pred_DS_DG',
+  'SpliceAI_pred_DS_DL', 'SpliceAI_pred_SYMBOL', 'am_class', 'am_pathogenicity', 'REVEL'
+]
 // params.vep_dbnsfp         = '/vast/projects/bahlo_cache/dbNSFP/dbNSFP5.1a_grch38.gz'
 // params.vep_dbnsfp_fileds  = 'REVEL_score,AlphaMissense_score,AlphaMissense_pred,MetaSVM_score,MetaSVM_pred'
 
