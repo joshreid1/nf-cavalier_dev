@@ -31,38 +31,103 @@ params.snv_vcfanno = [
     ],
     [   tsv: '/vast/projects/bahlo_cache/annotation/phyloP/hg38.phyloP100way.bed.gz',
         fields: [phyloP100: 4],
-        op: 'mean'
+        op: 'max'
     ]
 ]
+
 params.snv_vcfanno_filter = 'gnomad_AF<0.01 || gnomad_AF="."'
 
 params.vep_spliceai_snv   = '/vast/projects/munro_data/ref-data/spliceAI/1.3/spliceai_scores.raw.snv.hg38.vcf.gz'
 params.vep_spliceai_indel = '/vast/projects/munro_data/ref-data/spliceAI/1.3/spliceai_scores.raw.indel.hg38.vcf.gz'
 params.vep_alphamissense  = '/vast/projects/bahlo_cache/annotation/alphamissense/AlphaMissense_hg38.tsv.gz'
 params.vep_revel          = '/vast/projects/bahlo_cache/annotation/REVEL/revel_1.3.hg38.vep.tsv.gz'
-params.vep_fields = [
-  'SYMBOL', 'Gene', 'VARIANT_CLASS', 'Consequence', 'IMPACT', 'Feature_type', 'Feature',
-  'BIOTYPE', 'EXON', 'INTRON', 'HGVSc', 'HGVSp', 'HGVSg', 'Amino_acids', 'Codons',
-  'HGNC_ID', 'MANE', 'MANE_SELECT', 'MANE_PLUS_CLINICAL', 'CCDS', 'ENSP',
-  'SIFT', 'PolyPhen',  'SpliceAI_pred_DP_AG', 'SpliceAI_pred_DP_AL', 'SpliceAI_pred_DP_DG',
-  'SpliceAI_pred_DP_DL', 'SpliceAI_pred_DS_AG', 'SpliceAI_pred_DS_AL', 'SpliceAI_pred_DS_DG',
-  'SpliceAI_pred_DS_DL', 'SpliceAI_pred_SYMBOL', 'am_class', 'am_pathogenicity', 'REVEL'
-]
+params.vep_utr_annotator  = null
+// params.vep_utr_annotator  = '/vast/projects/bahlo_cache/annotation/UTRannotator/uORF_5UTR_GRCh38_PUBLIC.txt'
+
+
 // params.vep_dbnsfp         = '/vast/projects/bahlo_cache/dbNSFP/dbNSFP5.1a_grch38.gz'
 // params.vep_dbnsfp_fileds  = 'REVEL_score,AlphaMissense_score,AlphaMissense_pred,MetaSVM_score,MetaSVM_pred'
 
+// NB: filter_AF = pmax(replace_na(gnomad_FAF95, 0), replace_na(gnomad_AF, 0))
+
+// filter params
+
+// default missing values to 'Inf'
+params.freq_filters = [
+    snv: [
+        pop   : [AF: [dominant: 0.0001, recessive: 0.01 ], AC: [dominant: 'Inf' , recessive: 'Inf']],
+        cohort: [AF: [dominant: 'Inf' , recessive: 'Inf'], AC: [dominant: 'Inf' , recessive: 'Inf']]
+    ],
+    sv : [
+        pop   : [AF: [dominant: 0.0001, recessive: 0.01 ], AC: [dominant: 'Inf' , recessive: 'Inf']],
+        cohort: [AF: [dominant: 'Inf' , recessive: 'Inf'], AC: [dominant: 'Inf' , recessive: 'Inf']]
+    ]
+]
+
+params.snv_mutate = [
+    pop_AF: 'pmax(replace_na(gnomad_AF, 0), replace_na(gnomad_FAF95, 0))',
+    pop_AC: 'replace_na(gnomad_AC, 0)',
+    gnomAD: 'str_c("AF=", gnomad_AF, "; AC=", gnomad_AC, "; Hom=",  gnomad_nhomalt)',
+    SpliceAI_max: 'pmax(SpliceAI_pred_DS_AG, SpliceAI_pred_DS_AL, SpliceAI_pred_DS_DG, SpliceAI_pred_DS_DL)',
+    SpliceAI: 'str_c("AG=", SpliceAI_pred_DS_AG, "; DG=", SpliceAI_pred_DS_DG, "; AL=", SpliceAI_pred_DS_AL, "; DL=", SpliceAI_pred_DS_DL)'  
+]
+
+params.snv_report = ['gnomAD', 'Consequence', 'CADD']
+params.snv_subsets = [
+    splicing: [
+        or: [ 
+            'Consequence %in% c("splice_acceptor_variant", "splice_donor_variant")',
+            'SpliceAI_max_score > 0.5'
+        ],
+        report: ['PhyloP100', 'SpliceAI_*']
+    ],
+    missense: [
+        or: ['Consequence == "missense_variant"'],
+        report: ['REVEL', 'am_*', 'SIFT', 'PolyPhen']
+    ],
+    lof: [
+        or: ['IMPACT == "HIGH"'],
+        report: ['PhyloP100', 'SpliceAI_*']
+    ],
+    generic: [
+        or: [
+            'IMPACT %in% c("MODERATE", "HIGH")',
+            'CADD >= 20',
+        ],
+        report: ['PhyloP100', 'SpliceAI_*']
+    ]
+]
+
+//TODO: How flexible should this be?
+//  - whats the minimum level of code to support the most analyses?
+//  - subsets is pretty complicated, maybe these should be predefined
+//  - easier to assume run with specified vcfanno and specified vep, than be flexible
+//  - maintain flexibility for devs but not for users
+
+
+// TODO:
+// - framework for interpretting various predictor scores described here
+// - https://spliceailookup.broadinstitute.org/#variant=NM_001089.3(ABCA3)%3Ac.875A%3ET%20(p.Glu292Val)&hg=38&bc=basic&distance=500&mask=0&ra=0
+
+
+// params.snv_filter = [
+//     // entries combined with and, unless inside an 'or' block
+//     or: [
+//         'IMPACT >= MODERATE',
+//         'MAX_CLIN_SIG >= "pathogenic"',
+//         'CADD >= 20',
+//         'am_pathogenicity >= 0.564',
+//         'REVEL >= 0.7',
+//         'SpliceAI_max_score >= 0.5'
+//     ]
+// ]
 
 params.sv_n_shards  = 20
 
-// filter params
-params.maf_dom = 0.0001
-params.maf_de_novo = 0.0001
-params.maf_rec = 0.01
-params.maf_comp_het = 0.01
-params.max_cohort_af = 1.0
-params.max_cohort_ac = 'Inf'
-params.min_impact = 'MODERATE'
-params.exclude_benign_missense = true
+
+
+
+
 params.include_sv_csv = true
 params.variants_override = null // disable filtering and report specific set of variants by id in TSV file
 

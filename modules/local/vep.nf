@@ -1,6 +1,15 @@
 
+include { spliceai_enabled  } from '../../functions/vep_helpers'
+include { alphamiss_enabled } from '../../functions/vep_helpers'
+include { revel_enabled     } from '../../functions/vep_helpers'
+include { utr_ann_enabled   } from '../../functions/vep_helpers'
+include { get_vep_fields    } from '../../functions/vep_helpers'
+
 process VEP {
-    label 'C2M2T2'
+    /*
+        Run VEP with various plugins
+    */
+    label 'C2M4T8'
     label 'vep'
     tag "$i"
 
@@ -11,7 +20,7 @@ process VEP {
         tuple path(spliceai_snv), path(spliceai_snv_index), path(spliceai_indel), path(spliceai_indel_index)
         tuple path(alphamiss), path(alphamiss_index)
         tuple path(revel), path(revel_index)
-        // tuple path(dbnfsp), path(dbnfsp_index)
+        path(utr_annotator)
 
     output:
         tuple path(output)
@@ -24,6 +33,7 @@ process VEP {
             --input_file STDIN \\
             --format vcf \\
             --vcf \\
+            --fork $task.cpus \\
             --offline \\
             --dir_plugins /usr/local/share/ensembl-vep-114.0-0 \\
             --cache \\
@@ -32,6 +42,7 @@ process VEP {
             --assembly GRCh38 \\
             --fasta $fasta \\
             --pick_allele_gene \\
+            --check_existing \\
             --hgvs \\
             --hgvsg \\
             --symbol \\
@@ -43,15 +54,15 @@ process VEP {
             --dont_skip \\
             --sift b \\
             --polyphen b \\
-            --fields "${params.vep_fields.join(',')}" \\
-            --plugin SpliceAI,snv=$spliceai_snv,indel=$spliceai_indel \\
-            --plugin AlphaMissense,file=$alphamiss,transcript_match=1 \\
-            --plugin REVEL,file=$revel \\
+            --fields "${get_vep_fields().join(',')}" \\
+            ${spliceai_enabled()  ? "--plugin SpliceAI,snv=$spliceai_snv,indel=$spliceai_indel" : ''} \\
+            ${alphamiss_enabled() ? "--plugin AlphaMissense,file=$alphamiss,transcript_match=1" : ''} \\
+            ${revel_enabled()     ? "--plugin REVEL,file=$revel" : ''} \\
+            ${utr_ann_enabled()   ? "--plugin UTRAnnotator,file=$utr_annotator" : ''} \\
             --output_file STDOUT \\
         | bgzip -c > $output
     """
-     // --plugin dbNSFP,$dbnfsp,transcript_match=1,Ensembl_transcriptid,${params.vep_dbnsfp_fileds} \\
-
+    // --- FORMER BASH FOR CHECKING NO VARS DROPPED ---
     // NIN=\$(bcftools view --threads $task.cpus -H $vcf_input | wc -l)
     // NOUT=\$(bcftools view --threads $task.cpus -H $vep_bcf | wc -l)
     // if [[ "\$NIN" != "\$NOUT" ]]; then

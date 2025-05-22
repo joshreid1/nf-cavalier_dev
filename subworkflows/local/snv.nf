@@ -4,9 +4,10 @@ include { path                } from '../../functions/helpers'
 include { get_ref_fa_fai      } from '../../functions/helpers'
 include { get_vcfanno_conf    } from '../../functions/snv_helpers'
 include { get_vcfanno_files   } from '../../functions/snv_helpers'
-include { get_spliceai_files  } from '../../functions/snv_helpers'
-include { get_alphamiss_files } from '../../functions/snv_helpers'
-include { get_revel_files     } from '../../functions/snv_helpers'
+include { get_spliceai_files  } from '../../functions/vep_helpers'
+include { get_alphamiss_files } from '../../functions/vep_helpers'
+include { get_revel_files     } from '../../functions/vep_helpers'
+include { get_utr_ann_files   } from '../../functions/vep_helpers'
 
 // include { get_dbnsfp_files   } from '../../functions/snv_helpers'
 
@@ -17,7 +18,6 @@ include { CHECK        } from './check'
 /* ----------- processes ----------------*/
 include { SCATTER      } from '../../modules/local/scatter'
 include { CLEAN        } from '../../modules/local/clean'
-include { DROP         } from '../../modules/local/drop'
 include { VCFANNO_CONF } from '../../modules/local/vcfanno_conf'
 include { VCFANNO      } from '../../modules/local/vcfanno'
 include { FILTER       } from '../../modules/local/filter'
@@ -77,7 +77,8 @@ workflow SNV {
         path(params.vep_cache),
         get_spliceai_files(),
         get_alphamiss_files(),
-        get_revel_files()
+        get_revel_files(),
+        get_utr_ann_files()
     )
 
     GATHER(
