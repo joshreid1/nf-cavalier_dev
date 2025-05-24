@@ -1,0 +1,23 @@
+
+process UPDATE_VER {
+    label 'C1M1T1'
+    label 'cavalier'
+    tag { date }
+
+    input:
+    tuple path(id_file), val(date)
+    path(cav_opts)
+
+    output:
+    path(output)
+
+    script:
+    output = "list_versions_${date}.tsv"
+    cmd = "cavalier::get_gene_list_versions(readr::read_lines('$id_file'), '$output')"
+    """
+    R --slave --vanilla -e "\\
+        cavalier::set_options_from_json('$cav_opts');\\
+        cavalier::get_gene_list_versions(readr::read_lines('$id_file'), '$output')\\
+    "
+    """
+}

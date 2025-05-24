@@ -16,7 +16,7 @@ def get_spliceai_files() {
         snv       = path("$projectDir/misc/dummy/spliceai_snv")
         snv_index = path("$projectDir/misc/dummy/spliceai_snv_index")
         ind       = path("$projectDir/misc/dummy/spliceai_indel")
-        ind_index = path("$projectDir/misc/dummy/spliceai_index")
+        ind_index = path("$projectDir/misc/dummy/spliceai_indel_index")
     }
     Channel.value([snv, snv_index, ind, ind_index])
 }

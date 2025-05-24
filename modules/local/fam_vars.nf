@@ -21,20 +21,20 @@ process FAM_VARS {
     out_vcf = vcf.name.replace('.vcf.gz', ".family_${fam}.vcf.gz")
     out_tsv = vcf.name.replace('.vcf.gz', ".family_${fam}.tsv.gz")
     // extract INFO fields from VCF
-    inf = (
+    def inf = (
         (params.snv_info ?: []) + 
         (params.snv_vcfanno ? params.snv_vcfanno.collectMany { it.fields.keySet() } : [])
     ).unique().sort()
-    inf_hdr = inf.join('\\t')
-    inf_qry = inf.collect {"%$it"}.join('\\t')
+    def inf_hdr = inf.join('\\t')
+    def inf_qry = inf.collect {"%$it"}.join('\\t')
     // extract sample FORMAT fields from VCF
-    samples = (aff + unaff).unique().sort()
-    format = params.snv_format.unique().sort()
-    fmt_hdr = format
-        .collect { fmt -> samples.collect { sam -> "${fmt}_${sam}" } }
+    def samples = (aff + unaff).unique().sort()
+    def format = params.snv_format.toList().unique().sort()
+    def fmt_hdr = format
+        .collect { fmt -> samples.collect { sam -> "FMT_${fmt}_${sam}" } }
         .flatten()
         .join('\t')
-    fmt_query = format.collect{"[%$it\\t]"}.join('')
+    def fmt_query = format.collect{"[%$it\\t]"}.join('')
     """
     printf "${aff.join('\\n')}\\n" > aff
     

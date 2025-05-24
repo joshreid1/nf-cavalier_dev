@@ -11,7 +11,6 @@ include { get_utr_ann_files   } from '../../functions/vep_helpers'
 
 // include { get_dbnsfp_files   } from '../../functions/snv_helpers'
 
-
 /* ----------- workflows ----------------*/
 include { CHECK        } from './check'
 
@@ -89,6 +88,9 @@ workflow SNV {
         GATHER.out,
         CHECK.out.families
     )
+
+    emit:
+    FAM_VARS.out.tsv
 
 }
 

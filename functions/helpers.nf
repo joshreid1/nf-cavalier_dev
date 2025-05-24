@@ -153,7 +153,7 @@ def pedigree_channel() {
     Channel.fromList(read_ped()) |
         unique |
         map { it.values() as ArrayList } |
-        collectFile(newLine:true) {
+        collectFile(newLine: true) {
             [ "${it[0]}.ped", it.join('\t')]
         } |
         map { [it.name.replaceAll('.ped', ''), it] }
@@ -171,12 +171,11 @@ def bam_channel() {
     // fam, iid, bam, bai
 }
 
-def get_options_json(escape='"') {
-    options = (params.cavalier_options ?: [:]) +
-    [ 
-        database_mode: params.database_mode,
-        cache_dir : params.cache_dir,
-        ref_genome: params.ref_hg38 ? 'hg38' : 'hg19'
-    ]
-    JsonOutput.toJson(options).replace('"', escape)
+def cache_dir_channel() {
+    if (params.cavalier_options.cache_dir) {
+        Channel.value(make_path(params.cavalier_options.cache_dir))
+    } else {
+        throw new Exception("Please define params.cavalier_options.cache_dir")
+    }
 }
+

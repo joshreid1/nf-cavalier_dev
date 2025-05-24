@@ -14,12 +14,12 @@ workflow CHECK {
     name
     
     main:
-    ped = read_ped()
-    bams = read_bams()
+    def ped = read_ped()
+    def bams = read_bams()
 
     // check samples
-    ped_samples = ped.collect { it.iid }.unique()
-    bam_samples = bams.collect { it.iid }.unique()
+    def ped_samples = ped.collect { it.iid }.unique()
+    def bam_samples = bams.collect { it.iid }.unique()
 
     vcf_samples = SAMPLES(vcf_channel).splitText().map{ it.trim() }.toSortedList()
 

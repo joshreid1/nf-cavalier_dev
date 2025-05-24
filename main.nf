@@ -23,7 +23,7 @@ params.snv_vcfanno = [
         csi: true, 
         fields: [gnomad_AF: 'AF', gnomad_AC: 'AC', gnomad_FAF95: 'fafmax_faf95_max', gnomad_nhomalt: 'nhomalt']
     ],
-    [   tsv: '/vast/projects/munro_data/ref-data/whole_genome_SNVs.tsv.gz',
+    [   tsv: '/vast/projects/bahlo_cache/annotation/CADD/1.7/whole_genome_SNVs.tsv.gz',
         fields: [CADD: 6]
     ],
     [   tsv: '/vast/projects/bahlo_cache/annotation/CADD/1.7/gnomad.genomes.r4.0.indel.tsv.gz',
@@ -37,96 +37,106 @@ params.snv_vcfanno = [
 
 params.snv_vcfanno_filter = 'gnomad_AF<0.01 || gnomad_AF="."'
 
-params.vep_spliceai_snv   = '/vast/projects/munro_data/ref-data/spliceAI/1.3/spliceai_scores.raw.snv.hg38.vcf.gz'
-params.vep_spliceai_indel = '/vast/projects/munro_data/ref-data/spliceAI/1.3/spliceai_scores.raw.indel.hg38.vcf.gz'
+params.vep_spliceai_snv   = '/vast/projects/bahlo_cache/annotation/spliceAI/1.3/spliceai_scores.raw.snv.hg38.vcf.gz'
+params.vep_spliceai_indel = '/vast/projects/bahlo_cache/annotation/spliceAI/1.3/spliceai_scores.raw.indel.hg38.vcf.gz'
 params.vep_alphamissense  = '/vast/projects/bahlo_cache/annotation/alphamissense/AlphaMissense_hg38.tsv.gz'
 params.vep_revel          = '/vast/projects/bahlo_cache/annotation/REVEL/revel_1.3.hg38.vep.tsv.gz'
 params.vep_utr_annotator  = null
 // params.vep_utr_annotator  = '/vast/projects/bahlo_cache/annotation/UTRannotator/uORF_5UTR_GRCh38_PUBLIC.txt'
 
-
-// params.vep_dbnsfp         = '/vast/projects/bahlo_cache/dbNSFP/dbNSFP5.1a_grch38.gz'
-// params.vep_dbnsfp_fileds  = 'REVEL_score,AlphaMissense_score,AlphaMissense_pred,MetaSVM_score,MetaSVM_pred'
-
-// NB: filter_AF = pmax(replace_na(gnomad_FAF95, 0), replace_na(gnomad_AF, 0))
-
-// filter params
-
-// default missing values to 'Inf'
-params.freq_filters = [
-    snv: [
-        pop   : [AF: [dominant: 0.0001, recessive: 0.01 ], AC: [dominant: 'Inf' , recessive: 'Inf']],
-        cohort: [AF: [dominant: 'Inf' , recessive: 'Inf'], AC: [dominant: 'Inf' , recessive: 'Inf']]
-    ],
-    sv : [
-        pop   : [AF: [dominant: 0.0001, recessive: 0.01 ], AC: [dominant: 'Inf' , recessive: 'Inf']],
-        cohort: [AF: [dominant: 'Inf' , recessive: 'Inf'], AC: [dominant: 'Inf' , recessive: 'Inf']]
-    ]
+// TODO: default missing values to 'Inf'
+params.snv_freq_filters = [
+    pop   : [AF: [dominant: 0.0001, recessive: 0.01 ], AC: [dominant: null , recessive: null ]],
+    cohort: [AF: [dominant: null,   recessive: null],  AC: [dominant: null , recessive: null ]]
 ]
+
+params.snv_min_depth = 5
 
 params.snv_mutate = [
+    title:  'str_c(family_id, SYMBOL, HGVSg, sep = " | ")',
     pop_AF: 'pmax(replace_na(gnomad_AF, 0), replace_na(gnomad_FAF95, 0))',
     pop_AC: 'replace_na(gnomad_AC, 0)',
-    gnomAD: 'str_c("AF=", gnomad_AF, "; AC=", gnomad_AC, "; Hom=",  gnomad_nhomalt)',
-    SpliceAI_max: 'pmax(SpliceAI_pred_DS_AG, SpliceAI_pred_DS_AL, SpliceAI_pred_DS_DG, SpliceAI_pred_DS_DL)',
-    SpliceAI: 'str_c("AG=", SpliceAI_pred_DS_AG, "; DG=", SpliceAI_pred_DS_DG, "; AL=", SpliceAI_pred_DS_AL, "; DL=", SpliceAI_pred_DS_DL)'  
+    gnomAD: 'str_c("AF=", signif(replace_na(gnomad_AF, 0), 2), "; AC=", replace_na(gnomad_AC, 0), "; Hom=",  replace_na(gnomad_nhomalt, 0))',
+    cohort: 'str_c("AF=", signif(replace_na(AF, 0), 2), "; AC=", replace_na(AC, 0))',
+    phyloP100: 'replace(phyloP100, VARIANT_CLASS == "insertion", NA)',
+    SpliceAI_max: 'replace_na(pmax(SpliceAI_pred_DS_AG, SpliceAI_pred_DS_AL, SpliceAI_pred_DS_DG, SpliceAI_pred_DS_DL), 0)',
+    SpliceAI: 'str_c("AG=", SpliceAI_pred_DS_AG, "; DG=", SpliceAI_pred_DS_DG, "; AL=", SpliceAI_pred_DS_AL, "; DL=", SpliceAI_pred_DS_DL)',
+    AlphaMissense: 'str_c(am_class, "(", am_pathogenicity, ")")',
+    HGVSc: 'str_replace(HGVSc, ":", ":\\n")',
+    HGVSp: 'str_replace(HGVSp, ":", ":\\n")'
 ]
 
-params.snv_report = ['gnomAD', 'Consequence', 'CADD']
+params.snv_report = [
+    Gene         : 'Gene',
+    Inheritance  : 'inheritance', 
+    Consequence  : 'Consequence',
+    'HGVS coding': 'HGVSc',
+    'HGVS prot.' : 'HGVSp',
+    'ClinVar'    : 'CLIN_SIG', 
+    'gnomAD'     : 'gnomAD', 
+    'Cohort'     : 'cohort',
+    'CADD'       : 'CADD',
+    PhyloP100    : 'phyloP100'
+]
+
 params.snv_subsets = [
-    splicing: [
-        or: [ 
-            'Consequence %in% c("splice_acceptor_variant", "splice_donor_variant")',
-            'SpliceAI_max_score > 0.5'
-        ],
-        report: ['PhyloP100', 'SpliceAI_*']
+    lof: [
+        filter:
+        """
+        IMPACT == 'HIGH'
+        """,
+        report: []  
     ],
     missense: [
-        or: ['Consequence == "missense_variant"'],
-        report: ['REVEL', 'am_*', 'SIFT', 'PolyPhen']
+        filter: [
+            """
+            str_detect(Consequence, "missense")
+            """,
+            """
+            CADD  > 25                          |
+            REVEL > 0.5                         |
+            str_detect(CLIN_SIG, "pathogenic" ) |
+            str_detect(SIFT    , "deleterious") |
+            str_detect(PolyPhen, "damaging"   ) |
+            str_detect(am_class, "pathogenic" )
+            """
+        ],
+        report: [
+            SIFT:'SIFT', 
+            PolyPhen: 'PolyPhen', 
+            AlphaMissense: 'AlphaMissense',
+            REVEL: 'REVEL'
+        ]
     ],
-    lof: [
-        or: ['IMPACT == "HIGH"'],
-        report: ['PhyloP100', 'SpliceAI_*']
+    splicing: [
+        filter: [
+            """
+            ( 
+                str_detect(Consequence, "splice") &
+                IMPACT == 'MODERATE' 
+            ) |
+            SpliceAI_max > 0.33
+            """
+        ],
+        report: [SpliceAI: 'SpliceAI']
     ],
     generic: [
-        or: [
-            'IMPACT %in% c("MODERATE", "HIGH")',
-            'CADD >= 20',
+        filter: [
+            """
+            (
+                IMPACT == 'MODERATE' & 
+                !str_detect(Consequence, "missense")
+            )                                  |
+            str_detect(CLIN_SIG, "pathogenic") |
+            CADD      > 25                     |
+            phyloP100 > 6
+            """
         ],
-        report: ['PhyloP100', 'SpliceAI_*']
+        report: [SpliceAI: 'SpliceAI']
     ]
 ]
 
-//TODO: How flexible should this be?
-//  - whats the minimum level of code to support the most analyses?
-//  - subsets is pretty complicated, maybe these should be predefined
-//  - easier to assume run with specified vcfanno and specified vep, than be flexible
-//  - maintain flexibility for devs but not for users
-
-
-// TODO:
-// - framework for interpretting various predictor scores described here
-// - https://spliceailookup.broadinstitute.org/#variant=NM_001089.3(ABCA3)%3Ac.875A%3ET%20(p.Glu292Val)&hg=38&bc=basic&distance=500&mask=0&ra=0
-
-
-// params.snv_filter = [
-//     // entries combined with and, unless inside an 'or' block
-//     or: [
-//         'IMPACT >= MODERATE',
-//         'MAX_CLIN_SIG >= "pathogenic"',
-//         'CADD >= 20',
-//         'am_pathogenicity >= 0.564',
-//         'REVEL >= 0.7',
-//         'SpliceAI_max_score >= 0.5'
-//     ]
-// ]
-
 params.sv_n_shards  = 20
-
-
-
-
 
 params.include_sv_csv = true
 params.variants_override = null // disable filtering and report specific set of variants by id in TSV file
@@ -140,10 +150,11 @@ params.vep_cache_ver = '114'
 params.pop_sv = ''
 params.ref_gene = ''
 
-// map additional options for cavalier R pacakge
-params.cache_dir = 'cavalier_cache'
-params.database_mode = 'fallback' // one of 'latest', 'fallback' or 'offline'
-params.cavalier_options = [:]
+// additional options for cavalier R pacakge
+params.cavalier_options = [
+    database_mode: 'fallback',
+    cache_dir: 'cavalier_cache'
+]
 
 // exec params
 params.sv_types = 'DEL,DUP,INS,INV,BND'

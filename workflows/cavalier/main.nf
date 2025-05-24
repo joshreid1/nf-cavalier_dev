@@ -1,13 +1,19 @@
 
-// include { vcf_channel; families_channel } from './nf/functions'
-// include { GetSamples } from './nf/GetSamples'
-// include { CheckInputs } from './nf/CheckInputs'
-// include { CleanAndChunk } from './nf/CleanAndChunk'
-// include { Annotate } from './nf/Annotate'
-// include { Report } from './nf/Report'
+/* ----------- funtions ----------------*/
+include { pedigree_channel  } from '../../functions/helpers'
+include { bam_channel       } from '../../functions/helpers'
+include { cache_dir_channel } from '../../functions/helpers'
 
-include { SNV             } from '../../subworkflows/local/snv'
-// include { SV } from '../../subworkflows/local/snp'
+/* ----------- workflows ----------------*/
+include { SNV     } from '../../subworkflows/local/snv'
+include { LISTS   } from '../../subworkflows/local/lists'
+
+/* ----------- processes ----------------*/
+
+include { CAVALIER_OPTS } from '../../modules/local/cavalier_opts'
+include { REPORT_CONF   } from '../../modules/local/report_conf'
+include { REPORT        } from '../../modules/local/report'
+include { PPT_TO_PDF    } from '../../modules/local/ppt_to_pdf'
 
 workflow CAVALIER {
 
@@ -15,22 +21,31 @@ workflow CAVALIER {
     if (params.snv_vcf) {
         SNV()
     }
+    // TODO: SVs
     // if (params.sv_vcf) {
     //     SV()
     // }
+
+    CAVALIER_OPTS()
+
+    LISTS(CAVALIER_OPTS.out)
+
+    REPORT_CONF()
+
+    report_input = SNV.out // fam, tsv
+        .combine(pedigree_channel(), by:0) //fam, tsv, ped
+        .combine(bam_channel(), by:0) // fam, tsv, bed, [sam], [bam], [bai]
     
+    REPORT(
+        report_input,
+        REPORT_CONF.out,
+        CAVALIER_OPTS.out,
+        LISTS.out,
+        cache_dir_channel()
+    )
 
-    /* ---------------OLD CODE ---------------*/
-    // vcfs = vcf_channel()
-
-    // vcf_samples = GetSamples(vcfs)
-
-    // ann_vcf = vcf_samples |
-    //     CheckInputs |
-    //     combine(vcfs, by: 0) |
-    //     CleanAndChunk |
-    //     Annotate |
-    //     combine(families_channel(vcf_samples), by: 0) |
-    //     Report
+    PPT_TO_PDF(
+        REPORT.out.map { [it[0], it[1]] }
+    )
 }
 
