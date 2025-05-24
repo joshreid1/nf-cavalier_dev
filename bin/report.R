@@ -10,7 +10,7 @@ stopifnot(
 
 doc <- "
 Usage:
-  report.R <snv_vars> <ped> <sample_bam> <gene_lists> <conf> ... [options]
+  report.R <snv_vars> <ped> <sample_bams> <gene_lists> <conf> ... [options]
 
 Options:
   snv_vars                    Input Variant TSV file.
@@ -30,7 +30,7 @@ opts[names(opts) %>%
   { class(.) <- c('list', 'docopt'); .} %>%
   print()
   
-# setwd('/vast/scratch/users/munro.j/nextflow/work/48/3921f34076918410c87ace4ecfb9ea')
+# setwd('/vast/scratch/users/munro.j/nextflow/work/8f/114b239dfab0375bf1175e75af30fa')
 # opts <- list(
 #   snv_vars = 'test_snp.chr6_chr19.clean.vcfanno.flt.vep.family_Plu_PK86442.tsv.gz',
 #   ped  = 'Plu_PK86442.ped',
@@ -38,7 +38,8 @@ opts[names(opts) %>%
 #   conf = 'report_conf.json',
 #   gene_lists = 'G4E_ALL_v2025-03.tsv,list_entrez.mapped.tsv',
 #   family = 'Plu_PK8644',
-#   out = 'out'
+#   out = 'out',
+#   cav_opts = 'cavalier_opts.json'
 # )
 
 if (!is.null(opts$cav_opts)) {
@@ -48,6 +49,14 @@ if (!is.null(opts$cav_opts)) {
 sample_bams <-
   c(str_split(opts$sample_bams, pattern = ',', simplify = T)) %>% 
   (function(x) setNames(str_extract(x, '[^=]+$'), str_extract(x, '^[^=]+')))
+
+invisible(
+  stopifnot(
+    file.exists(opts$snv_vars),
+    file.exists(opts$ped),
+    all(file.exists(sample_bams))
+  )
+)
 
 ########### READ CONF ###############
 conf <- jsonlite::read_json(opts$conf)
@@ -315,14 +324,14 @@ slides <- cavalier::get_slide_template()
 
 for (subset in names(slide_data)) {
   message('Creating slides for "', subset, '" snvs')
-  new_slides <- tempfile(str_c('.', subset, '.'), tmpdir = getwd(),fileext = '.pptx')
+  new_slides <- tempfile(str_c('.', subset, '.'), tmpdir = getwd(), fileext = '.pptx')
   create_slides(
     variants = slide_data[[subset]],
     slide_template = slides,
     output = new_slides,
     bam_files = sample_bams,
     ped_file = opts$ped,
-    layout = layout[1:5,],
+    layout = layout, #[1:5,]
     var_info = c(conf$snv_report, conf$snv_subsets[[subset]]$report) %>% (\(x) x[!duplicated(x)]),
   )
   slides <- new_slides

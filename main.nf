@@ -41,8 +41,9 @@ params.vep_spliceai_snv   = '/vast/projects/bahlo_cache/annotation/spliceAI/1.3/
 params.vep_spliceai_indel = '/vast/projects/bahlo_cache/annotation/spliceAI/1.3/spliceai_scores.raw.indel.hg38.vcf.gz'
 params.vep_alphamissense  = '/vast/projects/bahlo_cache/annotation/alphamissense/AlphaMissense_hg38.tsv.gz'
 params.vep_revel          = '/vast/projects/bahlo_cache/annotation/REVEL/revel_1.3.hg38.vep.tsv.gz'
-params.vep_utr_annotator  = null
-// params.vep_utr_annotator  = '/vast/projects/bahlo_cache/annotation/UTRannotator/uORF_5UTR_GRCh38_PUBLIC.txt'
+params.vep_utr_annotator  = '/vast/projects/bahlo_cache/annotation/UTRannotator/uORF_5UTR_GRCh38_PUBLIC.txt'
+// params.vep_utr_annotator  = null
+
 
 // TODO: default missing values to 'Inf'
 params.snv_freq_filters = [
