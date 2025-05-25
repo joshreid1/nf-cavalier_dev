@@ -106,7 +106,7 @@ def list_channels() {
     ]
 }
 
-def get_ref_fa_fai() {
+def ref_fa_channel() {
     ref_fa = path(params.ref_fasta)
     ref_fai = path(params.ref_fasta + '.fai')
     Channel.value([ref_fa, ref_fai])

@@ -21,6 +21,7 @@ Options:
   --out=<f>                   Output file prefix [default: out].
   --family=<f>                Name of sample/family [default: Family].
   --cav-opts=<f>              Json file with additional options for cavalier package.
+  --no-slides                 Don't create pptx output.
 "
 opts <- docopt(doc)
 
@@ -320,25 +321,27 @@ slide_data <-
   ) %>% 
   split.data.frame(.$subset)
 
-slides <- cavalier::get_slide_template()
-
-for (subset in names(slide_data)) {
-  message('Creating slides for "', subset, '" snvs')
-  new_slides <- tempfile(str_c('.', subset, '.'), tmpdir = getwd(), fileext = '.pptx')
-  create_slides(
-    variants = slide_data[[subset]],
-    slide_template = slides,
-    output = new_slides,
-    bam_files = sample_bams,
-    ped_file = opts$ped,
-    layout = layout, #[1:5,]
-    var_info = c(conf$snv_report, conf$snv_subsets[[subset]]$report) %>% (\(x) x[!duplicated(x)]),
-  )
-  slides <- new_slides
+if (!opts$no_slides) {
+  slides <- cavalier::get_slide_template()
+  
+  for (subset in names(slide_data)) {
+    message('Creating slides for "', subset, '" snvs')
+    new_slides <- tempfile(str_c('.', subset, '.'), tmpdir = getwd(), fileext = '.pptx')
+    create_slides(
+      variants = slide_data[[subset]],
+      slide_template = slides,
+      output = new_slides,
+      bam_files = sample_bams,
+      ped_file = opts$ped,
+      layout = layout, #[1:5,]
+      var_info = c(conf$snv_report, conf$snv_subsets[[subset]]$report) %>% (\(x) x[!duplicated(x)]),
+    )
+    slides <- new_slides
+  }
 }
 
-if (length(slide_data) == 0) {
-  # no variants
+if (length(slide_data) == 0 | opts$no_slides) {
+  # no variants/ no slides
   create_slides(variants = tibble(), layout = tibble(), output = str_c(opts$out, '.snv.pptx'))
 } else {
   file.rename(slides, str_c(opts$out, '.snv.pptx'))
@@ -354,4 +357,17 @@ snv_removed %>%
 
 snv_removed %>% 
   write_csv(str_c(opts$out, '.snv_filter_reason.csv.gz'))
+
+############ FOR IGV  ##################
+write_tsv(
+  transmute(snv_vars,
+            CHROM = CHROM, 
+            START = POS - 1L,
+            END = START + if_else(nchar(ALT) > nchar(REF), 2L, nchar(ALT)),
+            title = str_c(SYMBOL, ' ', HGVSg)),
+  str_c(opts$out, '.igv.bed.gz'),
+  col_names = F
+)
+
+
 

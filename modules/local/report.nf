@@ -13,11 +13,8 @@ process REPORT {
     path(cache_dir)
     
     output:
-    tuple val(fam), 
-        path("${fam}.snv.pptx"),
-        path("${fam}.snv_candidates.csv"),
-        path("${fam}.snv_filter_stats.csv"),
-        path("${fam}.snv_filter_reason.csv.gz")
+    tuple val(fam), path("${fam}.snv.pptx"), path("${fam}.snv_candidates.csv"), path("${fam}.snv_filter_stats.csv"),  path("${fam}.snv_filter_reason.csv.gz"), emit: cands
+    tuple val(fam), path("${fam}.igv.bed.gz"), emit: igv
     
     script:
     sam_bam = [sam, bam instanceof List ? bam: [bam]]
@@ -29,6 +26,7 @@ process REPORT {
     report.R $tsv $ped $sam_bam ${lists.join(',')} $config \\
         --out $fam \\
         --family $fam \\
-        --cav-opts $cav_opts
+        --cav-opts $cav_opts \\
+        ${params.no_slides ? '--no-slides': ''}
     """
 }

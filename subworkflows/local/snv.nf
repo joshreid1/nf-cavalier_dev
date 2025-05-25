@@ -1,7 +1,7 @@
 
 /* ----------- funtions ----------------*/
 include { path                } from '../../functions/helpers'
-include { get_ref_fa_fai      } from '../../functions/helpers'
+include { ref_fa_channel      } from '../../functions/helpers'
 include { get_vcfanno_conf    } from '../../functions/snv_helpers'
 include { get_vcfanno_files   } from '../../functions/snv_helpers'
 include { get_spliceai_files  } from '../../functions/vep_helpers'
@@ -45,7 +45,7 @@ workflow SNV {
     
     CLEAN(
         vcf_shards,
-        get_ref_fa_fai()
+        ref_fa_channel()
     )
 
     if (params.snv_vcfanno) {
@@ -72,7 +72,7 @@ workflow SNV {
 
     VEP(
         vep_input,
-        get_ref_fa_fai(),
+        ref_fa_channel(),
         path(params.vep_cache),
         get_spliceai_files(),
         get_alphamiss_files(),

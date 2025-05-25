@@ -1,8 +1,11 @@
 
 /* ----------- funtions ----------------*/
+include { path              } from '../../functions/helpers'
 include { pedigree_channel  } from '../../functions/helpers'
 include { bam_channel       } from '../../functions/helpers'
 include { cache_dir_channel } from '../../functions/helpers'
+include { ref_fa_channel    } from '../../functions/helpers'
+
 
 /* ----------- workflows ----------------*/
 include { SNV     } from '../../subworkflows/local/snv'
@@ -14,9 +17,9 @@ include { CAVALIER_OPTS } from '../../modules/local/cavalier_opts'
 include { REPORT_CONF   } from '../../modules/local/report_conf'
 include { REPORT        } from '../../modules/local/report'
 include { PPT_TO_PDF    } from '../../modules/local/ppt_to_pdf'
+include { IGV_REPORT    } from '../../modules/local/igv_report'
 
 workflow CAVALIER {
-
 
     if (params.snv_vcf) {
         SNV()
@@ -45,7 +48,13 @@ workflow CAVALIER {
     )
 
     PPT_TO_PDF(
-        REPORT.out.map { [it[0], it[1]] }
+        REPORT.out.cands.map { [it[0], it[1]] }
+    )
+
+    IGV_REPORT(
+        REPORT.out.igv
+            .combine(pedigree_channel(), by:0)
+            .combine(bam_channel().map { [it[0], it[2], it[3]]}, by:0)
     )
 }
 
