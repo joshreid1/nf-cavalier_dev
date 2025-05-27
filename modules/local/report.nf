@@ -11,6 +11,7 @@ process REPORT {
     path(cav_opts)
     path(lists)
     path(cache_dir)
+    path(func_source)
     
     output:
     tuple val(fam), path("${fam}.snv.pptx"), path("${fam}.snv_candidates.csv"), path("${fam}.snv_filter_stats.csv"),  path("${fam}.snv_filter_reason.csv.gz"), emit: cands
@@ -25,8 +26,8 @@ process REPORT {
     """
     report.R $tsv $ped $sam_bam ${lists.join(',')} $config \\
         --out $fam \\
-        --family $fam \\
         --cav-opts $cav_opts \\
+        --func-source ${func_source.join(',')} \\
         ${params.no_slides ? '--no-slides': ''}
     """
 }

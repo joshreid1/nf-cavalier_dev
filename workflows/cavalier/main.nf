@@ -5,6 +5,7 @@ include { pedigree_channel  } from '../../functions/helpers'
 include { bam_channel       } from '../../functions/helpers'
 include { cache_dir_channel } from '../../functions/helpers'
 include { ref_fa_channel    } from '../../functions/helpers'
+include { get_func_sources  } from '../../functions/helpers'
 
 
 /* ----------- workflows ----------------*/
@@ -44,7 +45,8 @@ workflow CAVALIER {
         REPORT_CONF.out,
         CAVALIER_OPTS.out,
         LISTS.out,
-        cache_dir_channel()
+        cache_dir_channel(),
+        get_func_sources()
     )
 
     PPT_TO_PDF(

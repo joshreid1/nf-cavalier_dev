@@ -10,7 +10,7 @@ stopifnot(
 
 doc <- "
 Usage:
-  report.R <snv_vars> <ped> <sample_bams> <gene_lists> <conf> ... [options]
+  report.R <snv_vars> <ped> <sample_bams> <gene_lists> <config> ... [options]
 
 Options:
   snv_vars                    Input Variant TSV file.
@@ -18,10 +18,10 @@ Options:
   sample_bams                 Sample names and bam files in format name=/path/to/bam.
   gene_lists                  Comma serparated list of gene list filenames.
   config                      Config Json file with additional params.
-  --out=<f>                   Output file prefix [default: out].
-  --family=<f>                Name of sample/family [default: Family].
-  --cav-opts=<f>              Json file with additional options for cavalier package.
-  --no-slides                 Don't create pptx output.
+  --out=<prefix>              Output file prefix [default: out].
+  --cav-opts=<json>           Json file with additional options for cavalier package.
+  --func-source=<rscript>     Custom functions source files, comma separated. 
+  --no-slides                 Don't create pptx output.                 
 "
 opts <- docopt(doc)
 
@@ -47,43 +47,53 @@ if (!is.null(opts$cav_opts)) {
   set_options_from_json(opts$cav_opts)
 }
 
+################# CHECK ARGS ######################
 sample_bams <-
   c(str_split(opts$sample_bams, pattern = ',', simplify = T)) %>% 
   (function(x) setNames(str_extract(x, '[^=]+$'), str_extract(x, '^[^=]+')))
 
-invisible(
-  stopifnot(
-    file.exists(opts$snv_vars),
-    file.exists(opts$ped),
-    all(file.exists(sample_bams))
-  )
+src_files  <- c(str_split(opts$func_source, pattern = ',', simplify = T))
+gene_lists <- c(str_split(opts$gene_lists, ',', simplify = T))
+
+stopifnot(
+  file.exists(opts$snv_vars),
+  file.exists(opts$ped),
+  all(file.exists(sample_bams)),
+  all(file.exists(src_files)),
+  all(file.exists(gene_lists))
 )
 
-########### READ CONF ###############
-conf <- jsonlite::read_json(opts$conf)
+################ CHECK CONF ###################
+conf <- jsonlite::read_json(opts$conf, simplifyVector=TRUE)
+conf$snv$fields <- unlist(conf$snv$fields)
+message('Parsed config as:\n', conf)
 
-conf$snv_freq_filters <- 
-  map(conf$snv_freq_filters, function(x) {
-    map(x, function(y) {
-      map(y, function(z) {
-        `if`(is.numeric(z), z, Inf)
-      })
-    })
-  })
+stopifnot(
+  is.list(conf$snv),
+  rlang::is_scalar_character(conf$snv$functions),
+  rlang::is_named(conf$snv$fields),
+  is.character(conf$snv$fields)
+)
 
-conf$snv_report <- unlist(conf$snv_report)
+snv_functions <- c(str_split(conf$snv$functions, pattern = ',', simplify = T))
 
-conf$snv_subsets <-
-  map(conf$snv_subsets, function(x) {
-    x$report <- unlist(x$report)
-    if(is.null(x$report)) {
-      x$report <- character()
-    }
-    x
-  })
+######### HELPER FUNCTIONS ###################
+update_removed <- function(curr, prev, reason, removed_df = tibble(), keys = c('CHROM', 'POS', 'REF', 'ALT', 'Gene')) {
+  distinct(
+    bind_rows(
+      removed_df,
+      select(prev, all_of(keys)) %>% 
+        anti_join(curr, by = keys) %>% 
+        mutate(REASON = reason)
+    )
+  )
+}
+
+############## READ PEDIGREE   ################
+PEDIGREE   <- read_ped(opts$ped)
 
 ############## READ GENE LISTS ###############
-list_df <-
+GENE_LIST <-
   c(str_split(opts$gene_lists, ',', simplify = T)) %>% 
   map_df(function(fn) {
     list_df <- read_tsv(fn, col_types = cols(.default = "c"))
@@ -110,171 +120,72 @@ list_df <-
     str_starts(list_id, 'G4E:') ~ 'https://bahlolab.github.io/Genes4Epilepsy/'
   )) %>%
   mutate(list_id_url = list_name_url) %>%
-  nest(panel_data = -ensembl_gene_id)
+  nest(panel_data = -ensembl_gene_id) %>% 
+  mutate(hgnc_symbol = hgnc_ensembl2sym(ensembl_gene_id), .after = ensembl_gene_id)
 
 
-update_removed <- function(curr, prev, reason,
-                           removed_df = tibble(),
-                           keys = c('CHROM', 'POS', 'REF', 'ALT', 'Gene')
-                           ) {
-  bind_rows(
-    removed_df,
-    select(prev, all_of(keys)) %>% 
-      anti_join(curr, by = keys) %>% 
-      mutate(REASON = reason)
-  ) %>% distinct()
-}
+######## START SUBPROCESS AND CHECK FUNCS #############
+script_session <- callr::r_session$new()
 
-############## READ SNV VARIANTS ###############
-snv_vars <- 
-  read_tsv(
-    opts$snv_vars,
-    na = '.',
-    col_types = cols(.default = col_character())
+session_funcs <-
+  script_session$run(
+    function(SRC_FILES, SCRIPT_FUNCS) {
+      for (SRC in SRC_FILES){
+        source(SRC)
+      }
+      lapply(
+        setNames(SCRIPT_FUNCS, SCRIPT_FUNCS),
+        function(x) tryCatch(get(x), error = function(e) NULL)
+      )
+    },
+    args = list(src_files, snv_functions)
   ) %>% 
-  readr::type_convert(guess_integer = TRUE) %>% 
-  mutate(
-    genotype = 
-      pick(starts_with('FMT_GT_')) %>% 
-      rename_with(~str_remove(., 'FMT_GT_')),
-    GENOTYPE = 
-      genotype %>% 
-      mutate_all(function(x) {
-        case_when(
-          # TODO - handle hemizygous variants???
-          str_count(x, '[01]') == 2 & str_count(x, '[1]') == 2 ~ 'HOM',
-          str_count(x, '[01]') == 2 & str_count(x, '[1]') == 1 ~ 'HET',
-          str_count(x, '[01]') == 2 & str_count(x, '[1]') == 0 ~ 'REF'
-        ) %>% factor(c('REF', 'HET', 'HOM'))
-      }),
-    DEPTH = 
-      pick(starts_with('FMT_AD_')) %>% 
-      rename_with(~str_remove(., 'FMT_AD_')) %>% 
-      mutate_all(function(x) map_int( str_split(x, ","), ~ sum(as.integer(.x)) )),
-  ) %>%
-  # select(!starts_with(c('FMT_GT_', 'FMT_AD_'))) %>% 
-  mutate(
-    # remove family counts from cohort counts for filtering
-    AN = pmax(0, AN - 2*rowSums(!is.na(GENOTYPE))),
-    AC = pmax(0, AC - rowSums(GENOTYPE == 'HET', na.rm = TRUE) - 2*rowSums(GENOTYPE == 'HOM', na.rm = TRUE)),
-    AF = if_else(AN > 0, AC / AN, 0),
-  ) %>% 
-  distinct() %>% 
-  mutate(variant_id = str_c(HGVSg, ':', Gene)) %>% 
-  mutate(family_id = opts$family, .before = 1)
+  keep(is.function) %>% 
+  names()
 
-###### FILTER BASED ON DEPTH ######################
-snv_vars_flt <-
-  filter(
-    snv_vars,
-    rowSums(DEPTH >= conf$snv_min_depth) == ncol(DEPTH)
-  )
-snv_removed <- update_removed(snv_vars_flt, snv_vars, '1_LOW_DEPTH')
-snv_vars <- snv_vars_flt
-
-######## INTERSECT WITH GENE LIST ##################
-snv_vars_flt <-
-  filter(
-    snv_vars, 
-    Gene %in% list_df$ensembl_gene_id
-  )
-snv_removed <- update_removed(snv_vars_flt, snv_vars, '2_GENE_LIST', snv_removed)
-snv_vars <- snv_vars_flt
-
-############### CUSTOM DATA MUTATIONS ############### 
-if (length(names(conf$snv_mutate)) > 0) {
-  for (col in names(conf$snv_mutate)) {
-    expr <- rlang::parse_expr(conf$snv_mutate[[col]])
-    message('mutating snvs with: ', col, ' = ', rlang::expr_text(expr))
-    snv_vars <- mutate(snv_vars, !! col := !! expr)
-  }
+if (! all(snv_functions %in% session_funcs)) {
+  stop(
+    "missing functions: ", 
+    str_c(setdiff(snv_functions, session_funcs), collapse = ', '),
+    '\ncheck script: ',  str_c(src_files, collapse = ', '))
 }
 
-###### INHERITANCE AND FREQUENCY FILTERING ##########
-# requires pop_AF/pop_AC/AF/AC
-for(col in c('AC', 'AF', 'pop_AC', 'pop_AF')) {
-  if (!col %in% colnames(snv_vars)) {
-    warning('snv ', col, ' is not defined - no filtering on ', col, ' will be performed (tip: add with mutate)' )
-    snv_vars[[col]] <- 0
-  }
-}
-ped_df   <- read_ped(opts$ped)
-aff  <- intersect(get_affected(ped_df)  , colnames(snv_vars$GENOTYPE))
-una  <- intersect(get_unaffected(ped_df), colnames(snv_vars$GENOTYPE))
+############# APPLY SNV FUNCTIONS #################
+ARGS <-
+  list(
+    FILEPATH  = opts$snv_vars,
+    PEDIGREE  = PEDIGREE,
+    GENE_LIST = GENE_LIST,
+    CONFIG = conf$snv,
+    VARIANTS = NULL
+  )
 
-snv_vars_flt <-
-  snv_vars %>% 
-  mutate(inheritance = case_when(
-    (rowSums(snv_vars$GENOTYPE[, aff, drop = F] == 'HET') == length(aff) &
-      rowSums(snv_vars$GENOTYPE[, una, drop = F] == 'REF') == length(una)) ~ 'dominant',
-    (rowSums(snv_vars$GENOTYPE[, aff, drop = F] == 'HOM') == length(aff) &
-       rowSums(snv_vars$GENOTYPE[, una, drop = F] != 'HOM') == length(una)) ~ 'recessive',
-  )) %>% 
-  filter(!is.na(inheritance)) %>% 
-  (function(x) bind_rows(
-    x,
-    filter(x, inheritance == 'dominant') %>% mutate(inheritance = 'compound')
-  )) %>% 
-  filter(
-    or(# pop_AF
-      inheritance %in% c('recessive', 'compound') & pop_AF < conf$snv_freq_filters$pop$AF$recessive,
-      inheritance == 'dominant'                   & pop_AF < conf$snv_freq_filters$pop$AF$dominant
-    ),
-    or(# pop_AC
-      inheritance %in% c('recessive', 'compound') & pop_AC < conf$snv_freq_filters$pop$AC$recessive,
-      inheritance == 'dominant'                   & pop_AC < conf$snv_freq_filters$pop$AC$dominant
-    ),
-    or(# AF
-      inheritance %in% c('recessive', 'compound') & AF     < conf$snv_freq_filters$cohort$AF$recessive,
-      inheritance == 'dominant'                   & AF     < conf$snv_freq_filters$cohort$AF$dominant
-    ),
-    or(# AC
-      inheritance %in% c('recessive', 'compound') & AC     < conf$snv_freq_filters$cohort$AC$recessive,
-      inheritance == 'dominant'                   & AC     < conf$snv_freq_filters$cohort$AC$dominant
+snv_removed <- tibble()
+
+for (func in snv_functions) {
+  message("Running function: ", func)
+  VARIANTS <-
+    script_session$run(
+      function(FUNCTION, ARGS) {
+        f <- get(FUNCTION)
+        do.call(f, ARGS)
+      },
+      args = list(func, ARGS)
     )
-  ) %>% 
-  chop(inheritance) %>% 
-  mutate(
-    inheritance = map(inheritance, unique) %>% map_chr(str_c, collapse = '&'),
-    inheritance = if_else(str_detect(inheritance, 'dominant'), 'dominant', inheritance)) 
-
-snv_removed <- update_removed(snv_vars_flt, snv_vars, '3_FREQ_AND_INHERITANCE', snv_removed)
-snv_vars <- snv_vars_flt
-
-############### SUBSET FILTERING ############### 
-snv_vars$subset <- NA_character_
-for (col in names(conf$snv_subsets)) {
-  # col <- 'missense'
-  sub <- filter(snv_vars, is.na(subset))
-  for (ex in conf$snv_subsets[[col]]$filter) {
-    expr <- rlang::parse_expr(ex)
-    message('filtering for "', col, '" snvs with:\n  ', rlang::expr_text(expr))
-    sub <- filter(sub, !! expr)
-  }
-  snv_vars <- 
-    mutate(snv_vars,
-    subset = if_else(variant_id %in% sub$variant_id, col, subset)
+  message(
+    '  - Retured ', format(nrow(VARIANTS), big.mark = ','), ' SNV variants with ', ncol(VARIANTS), ' columns'
   )
+  if (!is.null(ARGS$VARIANTS)) {
+    snv_removed <- update_removed(VARIANTS, ARGS$VARIANTS, func, snv_removed)
+  }
+  ARGS$VARIANTS <- VARIANTS
 }
-# snv_vars<- snv_vars %>% mutate(subset = if_else(SpliceAI_max > 0.1, 'splicing', subset))
-snv_vars_flt <- filter(snv_vars, !is.na(subset))
-snv_removed <- update_removed(snv_vars_flt, snv_vars, '4_SUBSET_FILTERS', snv_removed)
-snv_vars <- snv_vars_flt
-
-############### COMPOUND HET FILTER ############### 
-snv_vars_flt <-
-  snv_vars %>% 
-  add_count(Gene, dom_comp = inheritance %in% c('dominant', 'compound'), name = 'n_compound') %>%
-  filter(inheritance != 'compound' | n_compound > 1) %>% 
-  select(-n_compound, -dom_comp)
-snv_removed <- update_removed(snv_vars_flt, snv_vars, '5_COMPOUND_HET', snv_removed)
-snv_vars <- snv_vars_flt
 
 ############### PASS ########################
-snv_removed <- update_removed(filter(snv_vars, FALSE), snv_vars, 'PASS', snv_removed)
+snv_removed <- update_removed(filter(VARIANTS, FALSE), VARIANTS, 'PASS', snv_removed)
+snv_variants <- VARIANTS
 
 ############### CREATE SLIDES ###############
-
 # slide_layout
 layout <-
   `if`(length(sample_bams) == 1,
@@ -290,18 +201,12 @@ layout <-
   )
 
 slide_data <-
-  snv_vars %>% 
+  snv_variants %>% 
   select(
-    subset,
     title,
     CHROM, POS, REF, ALT, SYMBOL,
     genotype,
-    all_of(
-      union(
-        conf$snv_report,
-        map(conf$snv_subsets, 'report') %>% unname() %>% unlist()
-      )
-    )
+    all_of(conf$snv$fields)
   ) %>% 
   mutate(
     # add keys required for create_slides
@@ -316,38 +221,28 @@ slide_data <-
     )
   ) %>% 
   left_join(
-    list_df,
+    GENE_LIST,
     by = c('Gene' = 'ensembl_gene_id')
-  ) %>% 
-  split.data.frame(.$subset)
+  )
 
-if (!opts$no_slides) {
-  slides <- cavalier::get_slide_template()
+if (nrow(slide_data) > 0 & !opts$no_slides){
   
-  for (subset in names(slide_data)) {
-    message('Creating slides for "', subset, '" snvs')
-    new_slides <- tempfile(str_c('.', subset, '.'), tmpdir = getwd(), fileext = '.pptx')
-    create_slides(
-      variants = slide_data[[subset]],
-      slide_template = slides,
-      output = new_slides,
-      bam_files = sample_bams,
-      ped_file = opts$ped,
-      layout = layout, #[1:5,]
-      var_info = c(conf$snv_report, conf$snv_subsets[[subset]]$report) %>% (\(x) x[!duplicated(x)]),
-    )
-    slides <- new_slides
-  }
-}
-
-if (length(slide_data) == 0 | opts$no_slides) {
-  # no variants/ no slides
-  create_slides(variants = tibble(), layout = tibble(), output = str_c(opts$out, '.snv.pptx'))
+  message('Creating slides for ', nrow(slide_data), ' variants')
+  create_slides(
+    variants = slide_data,
+    output = str_c(opts$out, '.snv.pptx'),
+    bam_files = sample_bams,
+    ped_file = opts$ped,
+    layout = layout,
+    var_info = conf$snv$fields,
+  )
 } else {
-  file.rename(slides, str_c(opts$out, '.snv.pptx'))
+  message('No variants remain, creating placeholder slides')
+  create_slides(variants = tibble(), layout = tibble(), output = str_c(opts$out, '.snv.pptx'))
 }
 
-snv_vars %>% 
+################ CREATE OUTPUTS ##################
+snv_variants %>% 
   select(where(~ !is.data.frame(.))) %>% 
   write_csv(str_c(opts$out, '.snv_candidates.csv'))
 
@@ -358,13 +253,12 @@ snv_removed %>%
 snv_removed %>% 
   write_csv(str_c(opts$out, '.snv_filter_reason.csv.gz'))
 
-############ FOR IGV  ##################
 write_tsv(
-  transmute(snv_vars,
+  transmute(snv_variants,
             CHROM = CHROM, 
             START = POS - 1L,
             END = START + if_else(nchar(ALT) > nchar(REF), 2L, nchar(ALT)),
-            title = str_c(SYMBOL, ' ', HGVSg)),
+            title = str_c(SYMBOL, ' - ', HGVSg)),
   str_c(opts$out, '.igv.bed.gz'),
   col_names = F
 )

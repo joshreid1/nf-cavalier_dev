@@ -179,3 +179,18 @@ def cache_dir_channel() {
     }
 }
 
+def get_func_sources() {
+    def src_list = ["$projectDir/misc/scripts/snv_functions.R"] +
+        (
+            params.report_func_source ? 
+            (params.report_func_source
+                .split(',')
+                .collect(path(it))
+            ) :
+            []
+        )
+    Channel.value(src_list)
+}
+    
+
+
