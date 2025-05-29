@@ -8,15 +8,45 @@
 #
 # NB: functions must use named arguments, not positional, and include "..." at end
 
+####################### FMT_TO_MATRIX #########################
+# helper to convert sample format fields to a dataframe with colnames
+FMT_TO_DF <- function(input_data) {
+  stopifnot(
+    require(tidyverse),
+    is.data.frame(input_data)
+  )
+
+  format_fields <- 
+      colnames(input_data) %>% 
+      keep(str_detect, '^FMT_[A-Za-z]+(?=_)') %>% 
+      str_extract('(?<=^FMT_)[A-Za-z]+(?=_)') %>% 
+      unique()
+  
+  output <- input_data
+  
+  for (FMT in format_fields) {
+    prefix <- str_c('FMT_', FMT, '_')
+    output <-
+      output %>% 
+      mutate(
+        !!FMT :=
+          pick(starts_with(prefix)) %>% 
+          rename_with(~ str_remove(., prefix)) %>% 
+          readr::type_convert(guess_integer = T, col_types = cols())
+      ) %>% 
+      select(-starts_with(prefix))
+  }
+  
+  return(output)
+}
 
 ###################### SNV_LOAD ###############################
-SNV_LOAD <- function(FILEPATH = NULL, PEDIGREE = NULL, ...) {
+SNV_LOAD <- function(FILEPATH = NULL, ...) {
   # check libraries and args
   stopifnot(
     require(tidyverse),
     rlang::is_scalar_character(FILEPATH),
-    file.exists(FILEPATH),
-    is.data.frame(PEDIGREE)
+    file.exists(FILEPATH)
   )
   
   # expected types for columns from default annotation sources
@@ -34,10 +64,6 @@ SNV_LOAD <- function(FILEPATH = NULL, PEDIGREE = NULL, ...) {
     gnomad_FAF95 = col_double(),
     gnomad_nhomalt = col_integer(),
     phyloP100 = col_double(),
-    FMT_AD_T23547 = col_character(),
-    FMT_AD_T23548 = col_character(),
-    FMT_GT_T23547 = col_character(),
-    FMT_GT_T23548 = col_character(),
     SYMBOL = col_character(),
     Gene = col_character(),
     VARIANT_CLASS = col_character(),
@@ -61,6 +87,7 @@ SNV_LOAD <- function(FILEPATH = NULL, PEDIGREE = NULL, ...) {
     SIFT = col_character(),
     PolyPhen = col_character(),
     CLIN_SIG = col_character(),
+    Existing_variation = col_character(),
     am_class = col_character(),
     am_pathogenicity = col_double(),
     REVEL = col_double(),
@@ -92,11 +119,17 @@ SNV_LOAD <- function(FILEPATH = NULL, PEDIGREE = NULL, ...) {
     readr::type_convert(
       guess_integer = TRUE
     ) %>% 
+    # convert FMT fields to nested data frames
+    FMT_TO_DF() %>% 
     # add/modify columns
     mutate(
+      AN = AN - (GT %>% mutate_all(~ str_count(., '[01]')) %>% rowSums(na.rm = TRUE)),
+      AC = AC - (GT %>% mutate_all(~ str_count(., '[1]')) %>% rowSums(na.rm = TRUE)),
+      AF = AC / AN,
       # useful for filtering
       pop_AF = pmax(replace_na(gnomad_AF, 0), replace_na(gnomad_FAF95, 0)),
       pop_AC =  replace_na(gnomad_AC, 0),
+      pop_hom = replace_na(gnomad_nhomalt, 0),
       SpliceAI_max = 
         replace_na(
           pmax(SpliceAI_pred_DS_AG, SpliceAI_pred_DS_AL, SpliceAI_pred_DS_DG, SpliceAI_pred_DS_DL),
@@ -105,41 +138,35 @@ SNV_LOAD <- function(FILEPATH = NULL, PEDIGREE = NULL, ...) {
       SIFT_score     = str_extract(SIFT    , '(?<=\\()[0-9\\.]+(?=\\)$)') %>% as.numeric(),
       PolyPhen_score = str_extract(PolyPhen, '(?<=\\()[0-9\\.]+(?=\\)$)') %>% as.numeric(),
       # not meaningful for insertions
-      phyloP100 = replace(phyloP100, VARIANT_CLASS == "insertion", NA),
-      # title for slides
-      title = str_c(PEDIGREE$famid[1], SYMBOL, HGVSg, sep = " - "),
-      # reporting summary columns
-      gnomAD = str_c("AF=", signif(replace_na(gnomad_AF, 0), 2), "; AC=", replace_na(gnomad_AC, 0), "; Hom=",  replace_na(gnomad_nhomalt, 0)),
-      cohort = str_c("AF=", signif(replace_na(AF, 0), 2), "; AC=", replace_na(AC, 0)),
-      SpliceAI = str_c("AG=", SpliceAI_pred_DS_AG, "; DG=", SpliceAI_pred_DS_DG, "; AL=", SpliceAI_pred_DS_AL, "; DL=", SpliceAI_pred_DS_DL),
-      AlphaMissense = str_c(am_class, "(", am_pathogenicity, ")"),
-      # add whitespace for text wrapping
-      HGVSc = str_replace(HGVSc, ":", ": "),
-      HGVSp = str_replace(HGVSp, ":", ": "),
+      phyloP100 = replace(phyloP100, VARIANT_CLASS == "insertion", NA)      
     )
   
   return(VARIANTS_OUT)
 }
 
-###################### SNV_FILTER_DEPTH ###############################
-SNV_FILTER_DEPTH <- function(VARIANTS = NULL, CONFIG = NULL, ...) {
+###################### SNV_FILTER_FMT ###############################
+SNV_FILTER_FMT <- function(VARIANTS = NULL, CONFIG = NULL, ...) {
   stopifnot(
     require(tidyverse),
     is.data.frame(VARIANTS),
-    is.list(CONFIG),
-    rlang::is_scalar_integerish(CONFIG$min_depth),
-    any(str_starts(colnames(VARIANTS), 'FMT_AD_'))
+    is.list(CONFIG)
   )
   
-  VARIANTS_OUT <-
-    VARIANTS %>% 
-    mutate(
-      min_depth = 
-        pick(starts_with('FMT_AD_')) %>% 
-        mutate_all(function(x) map_int( str_split(x, ","), ~ sum(as.integer(.x)) )) %>% 
-        (function(x) do.call(pmin, unname(x)))) %>% 
-    filter(min_depth >= CONFIG$min_depth) %>% 
-    select(-min_depth)
+  VARIANTS_OUT <- VARIANTS 
+  
+  if ('min_DP' %in% names(CONFIG)) {
+    stopifnot( 'DP' %in% colnames(VARIANTS) )
+    VARIANTS_OUT <-
+      VARIANTS_OUT %>% 
+      filter(do.call(pmin, unname(DP)) >= CONFIG$min_DP)
+  }
+  
+  if ('min_GQ' %in% names(CONFIG)) {
+    stopifnot( 'GQ' %in% colnames(VARIANTS) )
+    VARIANTS_OUT <-
+      VARIANTS_OUT %>% 
+      filter(do.call(pmin, unname(GQ)) >= CONFIG$min_GQ)
+  }
   
   return(VARIANTS_OUT)
 }
@@ -181,17 +208,17 @@ SNV_FILTER_TYPE <- function(VARIANTS = NULL, ...) {
         (
           str_detect(Consequence, "missense") &
             (
-                CADD  > 20                           |
-                REVEL > 0.5                          |
-                str_detect(CLIN_SIG , "pathogenic" ) |
-                str_detect(SIFT     , "deleterious") |
-                !str_detect(PolyPhen, "benign"     ) |
-                !str_detect(am_class, "benign"     )
+                str_detect(CLIN_SIG , "pathogenic") |
+                CADD             > 22.7             | # Clingen BP4 supporting  doi: 10.1016/j.ajhg.2022.10.013
+                REVEL            > 0.29             | # Clingen BP4 supporting  doi: 10.1016/j.ajhg.2022.10.013
+                SIFT_score       < 0.327            | # Clingen BP4 supporting  doi: 10.1016/j.ajhg.2022.10.013
+                PolyPhen_score   > 0.113            | # Clingen BP4 supporting  doi: 10.1016/j.ajhg.2022.10.013
+                am_pathogenicity > 0.169              # Clingen BP4 supporting  doi: https://doi.org/10.1016/j.gim.2025.101402
             )
         ) ~ 'MISSENSE',
         ############# SPLICING ########### 
         (
-          SpliceAI_max > 0.20 |
+          SpliceAI_max >= 0.20 | # Clingen PP3 supporting https://doi.org/10.1016/j.ajhg.2023.06.002
           (
             str_detect(Consequence, "splice") &
             IMPACT == 'MODERATE'
@@ -204,8 +231,7 @@ SNV_FILTER_TYPE <- function(VARIANTS = NULL, ...) {
             !str_detect(Consequence, "missense")
           )                                  |
           str_detect(CLIN_SIG, "pathogenic") |
-          CADD      > 25                     |
-          phyloP100 > 8
+          CADD      > 25.3   # Clingen PP3 supporting  doi: 10.1016/j.ajhg.2022.10.013
         ) ~ 'OTHER'
       )
     ) %>% 
@@ -240,12 +266,8 @@ SNV_FILTER_INHERITANCE <- function(VARIANTS = NULL, CONFIG = NULL, PEDIGREE = NU
   VARIANTS_OUT <-
     VARIANTS %>% 
     mutate(
-      ## currently required by create_slides - should probably lift this requirement
-      genotype = 
-        pick(starts_with('FMT_GT_')) %>% 
-        rename_with(~str_remove(., 'FMT_GT_')),
       GENOTYPE = 
-        genotype %>% 
+        GT %>% 
         mutate_all(function(x) {
           case_when(
             # TODO - hemizygous variants
@@ -298,6 +320,11 @@ SNV_FILTER_INHERITANCE <- function(VARIANTS = NULL, CONFIG = NULL, PEDIGREE = NU
         (Inheritance %in% c('recessive', 'compound') & pop_AC < val_or_inf(CONFIG$freq_thresholds$pop$AC$recessive)) |
         (Inheritance == 'dominant'                   & pop_AC < val_or_inf(CONFIG$freq_thresholds$pop$AC$dominant))
       ),
+      ########### pop_hom ##########
+      (
+        (Inheritance %in% c('recessive', 'compound') & pop_hom < val_or_inf(CONFIG$freq_thresholds$pop$hom$recessive)) |
+        (Inheritance == 'dominant'                   & pop_hom < val_or_inf(CONFIG$freq_thresholds$pop$hom$dominant))
+      ),
       ########### AF ############
       (
         (Inheritance %in% c('recessive', 'compound') & AF     < val_or_inf(CONFIG$freq_thresholds$cohort$AF$recessive)) |
@@ -316,7 +343,69 @@ SNV_FILTER_INHERITANCE <- function(VARIANTS = NULL, CONFIG = NULL, PEDIGREE = NU
     ) %>% 
     add_count(Gene, dom_comp = Inheritance %in% c('dominant', 'compound'), name = 'n_compound') %>%
     filter(Inheritance != 'compound' | n_compound > 1) %>% 
-    select(-n_compound, -dom_comp)
+    select(-n_compound, -dom_comp) %>% 
+    group_by(Gene) %>% 
+    mutate(Inheritance = case_when(
+      Inheritance == 'dominant' & n() > 1 ~ 'dominant_or_compound',
+      TRUE ~ Inheritance
+    )) %>% 
+    ungroup()
+  
+  return(VARIANTS_OUT)
+}
+
+SNV_REPORT <- function(VARIANTS = NULL, PEDIGREE = NULL, ...) {
+  # check libraries and args
+  stopifnot(
+    require(tidyverse),
+    is.data.frame(PEDIGREE),
+    is.data.frame(VARIANTS)
+  )
+  
+  VARIANTS_OUT <-
+    VARIANTS  %>% 
+    # add/modify columns
+    mutate(
+      # reporting summary columns
+      # title for slides
+      broad_id = str_c(CHROM, POS, REF, ALT, sep = '-'),
+      title = str_c(PEDIGREE$famid[1], SYMBOL, broad_id, sep = " - "),
+      gnomAD = str_c("AF=", signif(replace_na(gnomad_AF, 0), 2), "; AC=", replace_na(gnomad_AC, 0), "; Hom=",  replace_na(gnomad_nhomalt, 0)),
+      Cohort = str_c("AF=", signif(replace_na(AF, 0), 2), "; AC=", replace_na(AC, 0)),
+      SpliceAI = str_c("AG=", SpliceAI_pred_DS_AG, "; DG=", SpliceAI_pred_DS_DG, "; AL=", SpliceAI_pred_DS_AL, "; DL=", SpliceAI_pred_DS_DL),
+      AlphaMissense = str_c(am_class, "(", am_pathogenicity, ")"),
+      dbSNP = str_extract(Existing_variation, 'rs[0-9]+'),
+      # add GRCh38 for mutatylzer compatibility
+      HGVSg = str_replace(HGVSg, "^([^:]+):(.*)$", "GRCh38(\\1):\\2"),
+      # prefer coding & protein, or coding, or genomic. Drop IDs to better fit
+      HGVS = coalesce(
+        str_c(str_remove(HGVSc, '^.+:(?=[cp])'), '; ', str_remove(HGVSp, '^.+:(?=[cp])')),
+        str_remove(HGVSc, '^.+:(?=[cp])'),
+        HGVSg
+      ),
+      # # add URLS to slides
+      gnomAD_url = str_c(
+        'https://gnomad.broadinstitute.org/variant/',
+        URLencode(broad_id),
+        '?dataset=gnomad_r4'
+      ),
+      HGVS_url = str_c(
+        'https://mutalyzer.nl/normalizer/',
+        URLencode(HGVSg)
+      ),
+      SpliceAI_url = str_c(
+        'https://spliceailookup.broadinstitute.org/#hg=38&variant=',
+        URLencode(broad_id)
+      ),
+      Gene_url = str_c(
+        'https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=',
+        URLencode(Gene)
+      ),
+      CLIN_SIG_url = str_c(
+        "https://www.ncbi.nlm.nih.gov/clinvar/?term=",
+        dbSNP
+      )
+    )
   
   return(VARIANTS_OUT)
 }

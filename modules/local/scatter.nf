@@ -2,6 +2,10 @@
 process SCATTER {
     label 'C4M4T1'
     label 'biopython'
+    /*
+        - Split VCF into pieces by using TBI index
+        - requires BGZIPPED VCF
+    */
 
     input:
     tuple path(vcf), path(tbi)

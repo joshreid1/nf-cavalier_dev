@@ -6,6 +6,7 @@ include { bam_channel       } from '../../functions/helpers'
 include { cache_dir_channel } from '../../functions/helpers'
 include { ref_fa_channel    } from '../../functions/helpers'
 include { get_func_sources  } from '../../functions/helpers'
+include { get_report_conf   } from '../../functions/helpers'
 
 
 /* ----------- workflows ----------------*/
@@ -13,7 +14,6 @@ include { SNV     } from '../../subworkflows/local/snv'
 include { LISTS   } from '../../subworkflows/local/lists'
 
 /* ----------- processes ----------------*/
-
 include { CAVALIER_OPTS } from '../../modules/local/cavalier_opts'
 include { REPORT_CONF   } from '../../modules/local/report_conf'
 include { REPORT        } from '../../modules/local/report'
@@ -21,20 +21,21 @@ include { PPT_TO_PDF    } from '../../modules/local/ppt_to_pdf'
 include { IGV_REPORT    } from '../../modules/local/igv_report'
 
 workflow CAVALIER {
+    /*
+        - Run nf-cavalier main workflow
+    */
 
     if (params.snv_vcf) {
         SNV()
     }
-    // TODO: SVs
-    // if (params.sv_vcf) {
-    //     SV()
-    // }
 
     CAVALIER_OPTS()
 
     LISTS(CAVALIER_OPTS.out)
 
-    REPORT_CONF()
+    REPORT_CONF(
+        get_report_conf()
+    )
 
     report_input = SNV.out // fam, tsv
         .combine(pedigree_channel(), by:0) //fam, tsv, ped

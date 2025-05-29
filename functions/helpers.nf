@@ -180,7 +180,7 @@ def cache_dir_channel() {
 }
 
 def get_func_sources() {
-    def src_list = ["$projectDir/misc/scripts/snv_functions.R"] +
+    def src_list = ["$projectDir/bin/snv_functions.R"] +
         (
             params.report_func_source ? 
             (params.report_func_source
@@ -190,6 +190,17 @@ def get_func_sources() {
             []
         )
     Channel.value(src_list)
+}
+
+def get_report_conf() {
+    def snv_conf = params
+        .keySet()
+        .findAll{ it.startsWith('snv_report_') }
+        .collectEntries { key -> [(key.replace('snv_report_', '')): params[key]] }
+    
+    def report_conf = [snv: snv_conf]
+
+    report_conf
 }
     
 

@@ -3,6 +3,10 @@ process UPDATE_VER {
     label 'C1M1T1'
     label 'cavalier'
     tag { date }
+    /*
+        - Get latest version of gene lists specified
+        - runs at most once per day (cached based on date)
+    */  
 
     input:
     tuple path(id_file), val(date)

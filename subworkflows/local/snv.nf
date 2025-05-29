@@ -8,8 +8,7 @@ include { get_spliceai_files  } from '../../functions/vep_helpers'
 include { get_alphamiss_files } from '../../functions/vep_helpers'
 include { get_revel_files     } from '../../functions/vep_helpers'
 include { get_utr_ann_files   } from '../../functions/vep_helpers'
-
-// include { get_dbnsfp_files   } from '../../functions/snv_helpers'
+include { get_vep_fields      } from '../../functions/vep_helpers'
 
 /* ----------- workflows ----------------*/
 include { CHECK        } from './check'
@@ -25,6 +24,9 @@ include { GATHER       } from '../../modules/local/gather'
 include { FAM_VARS     } from '../../modules/local/fam_vars'
 
 workflow SNV {
+    /*
+        - Preprocess and annotate SNV/INDEL variants
+    */
 
     vcf_channel = Channel.value([path(params.snv_vcf), path(params.snv_vcf + '.tbi')])
     
@@ -77,7 +79,8 @@ workflow SNV {
         get_spliceai_files(),
         get_alphamiss_files(),
         get_revel_files(),
-        get_utr_ann_files()
+        get_utr_ann_files(),
+        get_vep_fields()
     )
 
     GATHER(

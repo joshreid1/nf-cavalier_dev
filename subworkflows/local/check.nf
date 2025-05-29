@@ -9,6 +9,10 @@ include { SAMPLES } from '../../modules/local/samples'
 
 
 workflow CHECK {
+    /*
+        - CHECK that VCF samples line up with pedigree and bam input samples
+        - Error if there is no work to be done
+    */
     take:
     vcf_channel
     name

@@ -3,6 +3,9 @@ process VCFANNO {
     label 'C2M2T2'
     label 'vcfanno'
     tag "$i"
+    /*
+        - Run user specified VCFanno annotations
+    */ 
 
     input:
         tuple val(i), path(in_vcf), path(idx)

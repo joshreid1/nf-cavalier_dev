@@ -68,7 +68,8 @@ def get_vep_fields() {
     def vep_fields = [
           'SYMBOL', 'Gene', 'VARIANT_CLASS', 'Consequence', 'IMPACT', 'Feature_type', 'Feature',
           'BIOTYPE', 'EXON', 'INTRON', 'HGVSc', 'HGVSp', 'HGVSg', 'Amino_acids',
-          'HGNC_ID', 'MANE', 'MANE_SELECT', 'MANE_PLUS_CLINICAL', 'CCDS', 'ENSP', 'SIFT', 'PolyPhen', 'CLIN_SIG',
+          'HGNC_ID', 'MANE', 'MANE_SELECT', 'MANE_PLUS_CLINICAL', 'CCDS', 'ENSP', 'SIFT', 'PolyPhen',
+          'CLIN_SIG', 'Existing_variation'
         ] +
         (alphamiss_enabled() ? ['am_class', 'am_pathogenicity'] : [] ) +
         (revel_enabled() ? ['REVEL'] : [] ) +

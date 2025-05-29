@@ -3,7 +3,10 @@ process IGV_REPORT {
     label 'C2M2T2'
     label 'igvreports'
     tag "$fam"
-    publishDir "${params.outdir}/cavalier", mode: 'copy'
+    publishDir "${params.outdir}/report/$fam", mode: 'copy'
+    /*
+        - Generate html igv-reports for candidate variants identified by cavalier
+    */
 
     input:
     tuple val(fam), path(sites), path(ped), path(bams), path(bais)

@@ -1,6 +1,9 @@
 
 process SAMPLES {
     label 'C1M1T1'
+    /*
+        - return list of sample ids in VCF
+    */
 
     input:
         tuple path(vcf), path(index)

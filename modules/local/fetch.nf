@@ -4,6 +4,9 @@ process FETCH {
     label 'cavalier'
     publishDir "${params.outdir}/gene_lists"
     tag "$id:$ver"
+    /*
+        - Pull down gene list using cavalier R pacakge
+    */
 
     input:
     tuple val(id), val(ver)

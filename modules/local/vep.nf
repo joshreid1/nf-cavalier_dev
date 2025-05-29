@@ -6,12 +6,13 @@ include { utr_ann_enabled   } from '../../functions/vep_helpers'
 include { get_vep_fields    } from '../../functions/vep_helpers'
 
 process VEP {
-    /*
-        Run VEP with various plugins
-    */
-    label 'C2M4T8'
+    label 'C4M8T8'
     label 'vep'
     tag "$i"
+    /*
+        - Run VEP with various plugins to annotation SNV/indel variants
+        - Optionally check no variants are being dropped
+    */
 
     input:
         tuple val(i),  path(vcf_input)
@@ -21,12 +22,26 @@ process VEP {
         tuple path(alphamiss), path(alphamiss_index)
         tuple path(revel), path(revel_index)
         path(utr_annotator)
+        val(vep_fields)
 
     output:
         tuple path(output)
 
     script:
     output = vcf_input.name.replaceAll('.vcf.gz', '.vep.vcf.gz')
+    
+    check_block = params.vep_check ?
+        """
+        zcat $vcf_input | grep -v '^#' | wc -l > NIN.txt &
+        zcat $output    | grep -v '^#' | wc -l > NOUT.txt
+        wait; NIN=\$(<NIN.txt); NOUT=\$(<NOUT.txt)
+        if [[ "\$NIN" != "\$NOUT" ]]; then
+            echo "Error: Number of input variants (\$NIN) not equal to number of output variants (\$NOUT)"
+            exit 1
+        fi
+        """ :
+        ''
+
     """
     zcat $vcf_input \\
         | vep \\
@@ -54,20 +69,15 @@ process VEP {
             --dont_skip \\
             --sift b \\
             --polyphen b \\
-            --fields "${get_vep_fields().join(',')}" \\
+            --fields "${vep_fields.join(',')}" \\
             ${spliceai_enabled()  ? "--plugin SpliceAI,snv=$spliceai_snv,indel=$spliceai_indel" : ''} \\
             ${alphamiss_enabled() ? "--plugin AlphaMissense,file=$alphamiss,transcript_match=1" : ''} \\
             ${revel_enabled()     ? "--plugin REVEL,file=$revel" : ''} \\
             ${utr_ann_enabled()   ? "--plugin UTRAnnotator,file=$utr_annotator" : ''} \\
             --output_file STDOUT \\
         | bgzip -c > $output
+
+    $check_block
     """
-    // --- FORMER BASH FOR CHECKING NO VARS DROPPED ---
-    // NIN=\$(bcftools view --threads $task.cpus -H $vcf_input | wc -l)
-    // NOUT=\$(bcftools view --threads $task.cpus -H $vep_bcf | wc -l)
-    // if [[ "\$NIN" != "\$NOUT" ]]; then
-    //     echo "Error: Number of input variants (\$NIN) not equal to number of output variants (\$NOUT)"
-    //     exit 1
-    // fi
 }
 

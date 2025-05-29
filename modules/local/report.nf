@@ -2,8 +2,14 @@
 process REPORT {
     label 'C2M4T2'
     label 'cavalier'
-    publishDir "${params.outdir}/cavalier", mode: 'copy'
+    publishDir "${params.outdir}/report/$fam", mode: 'copy'
     tag "$fam"
+    /*
+        - Read TSV formatted variants for a given family
+        - Identify and report candidate variants with cavalier script (generate slides)
+        - Custom filtering and manipulation of variants by modifying functions in ./bin/snv_functions.R
+        - Currently on SNV/Indel implemented, but will extend to SV
+    */  
 
     input:
     tuple val(fam), path(tsv), path(ped), val(sam), path(bam), path(bai)

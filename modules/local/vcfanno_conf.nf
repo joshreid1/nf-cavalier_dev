@@ -1,8 +1,10 @@
 
 process VCFANNO_CONF {
     container null
-
     label 'C1M1T1'
+    /*
+        - Write VCFanno configuration
+    */  
 
     input:
         val blocks

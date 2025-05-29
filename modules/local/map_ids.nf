@@ -4,6 +4,9 @@ process MAP_IDS {
     label 'cavalier'
     tag "${input.name}"
     publishDir "${params.outdir}/gene_lists"
+    /*
+        - Map between various gene ids with cavalier
+    */
 
     input: 
     path(input)

@@ -10,6 +10,10 @@ include { UPDATE_VER } from '../../modules/local/update_ver'
 include { FETCH      } from '../../modules/local/fetch'
 
 workflow LISTS {
+    /*
+        - Pull down latest versions of gene lists
+        - Normalised gene_ids (i.e. convert to ensemble)
+    */
     take:
     cavalier_opts
 

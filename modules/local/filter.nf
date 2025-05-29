@@ -2,7 +2,11 @@
 process FILTER {
     label 'C2M2T2'
     label 'bcftools'
-    tag { i }
+    tag "$i"
+    /*
+        - Apply a filter to a VCF file
+        - Used primarily to filter based on vcfanno annotation (e.g. population frequency)
+    */
 
     input:
     tuple val(i), path(vcf)

@@ -1,9 +1,9 @@
 
 process FAM_VARS {
     /*
-        Restrict VCF to select samples
-        Filter for any variants carried by any affected
-        Create TSV output in addition to VCF for simpler parsing in R
+        - Restrict VCF to select samples
+        - Filter for only variants carried by an affected individual
+        - Create TSV output in addition to VCF for simpler parsing in R using bcftools +split-vep
     */
     label 'C2M2T2'
     label 'bcftools'
@@ -39,8 +39,8 @@ process FAM_VARS {
     printf "${aff.join('\\n')}\\n" > aff
     
     bcftools view --threads ${task.cpus} --no-version --no-update $vcf -Ou -s ${samples.join(',')} |
-        bcftools view --no-version --threads ${task.cpus} -i "GT[@aff]='alt'" -Oz -o $out_vcf
-    bcftools index -t $out_vcf
+        bcftools view --no-version --threads ${task.cpus} -i "GT[@aff]='alt'" \\
+            --write-index=tbi -Oz -o $out_vcf
 
     VEP_HDR=\$( bcftools +split-vep $vcf -l | cut -f2- | paste -sd '\\t' - )
     (

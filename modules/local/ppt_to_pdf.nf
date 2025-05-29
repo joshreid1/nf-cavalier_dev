@@ -4,8 +4,12 @@ process PPT_TO_PDF {
     errorStrategy 'ignore'
     memory '4G'
     tag { "$fam" }
-    publishDir "${params.outdir}/cavalier", mode: 'copy', pattern: "*.pdf"
-    
+    publishDir "${params.outdir}/report/$fam", mode: 'copy', pattern: "*.pdf"
+    /*
+        - Convert powerpoints to PDFs
+        - Error set to ignore because sometimes randomly fails
+    */
+
     input:
     tuple  val(fam), path(pptx)
 
