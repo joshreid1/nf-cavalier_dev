@@ -2,6 +2,7 @@
 process GATHER {
     label 'C4M4T2'
     label 'bcftools'
+    publishDir "${params.outdir}", mode: 'copy'
     /*
         - Gather scattered annotated VCF filters
         - We can use a naive merge (much faster) since records are already
