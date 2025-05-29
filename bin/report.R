@@ -99,7 +99,7 @@ GENE_LIST <-
   }) %>%
   bind_rows(tibble(list_id = character(), list_name = character())) %>% 
   mutate(list_name_url = case_when(
-    str_starts(list_id, 'PAA:') ~ str_c('https://panelapp.agha.umccr.org/panels/',
+    str_starts(list_id, 'PAA:') ~ str_c('https://panelapp-aus.org/panels/',
                                         str_extract(list_id, '(?<=PAA:)\\d+')),
     str_starts(list_id, 'PAE:') ~ str_c('https://panelapp.genomicsengland.co.uk/panels/',
                                         str_extract(list_id, '(?<=PAE:)\\d+')),
@@ -186,7 +186,7 @@ layout <-
     length(sample_bams) == 1,
     slide_layout(
       c('var_info', 'igv', 'gtex'),
-      c('omim', 'custom_panel_data'),
+      c('custom_OMIM', 'custom_panel_data'),
       heights = c(23, 8),
       title_height = 0.09,
       pad = 0.015
@@ -194,7 +194,7 @@ layout <-
     bind_rows(
       slide_layout(
         c('var_info', 'pedigree', 'gtex'),
-        c('omim', 'custom_panel_data'),
+        c('custom_OMIM', 'custom_panel_data'),
         heights = c(23, 8),
         title_height = 0.09,
         pad = 0.015
@@ -231,7 +231,7 @@ slide_data <-
     alt = ALT,
     ensembl_gene_id = Gene,
     symbol = coalesce(
-      hgnc_entrez2sym(hgnc_ensembl2entrez(Gene)),
+      hgnc_ensembl2sym(Gene),
       SYMBOL
     )
   ) %>% 
@@ -239,6 +239,37 @@ slide_data <-
     GENE_LIST,
     by = 'ensembl_gene_id'
   )
+
+# add in OMIM table
+slide_data <-
+  slide_data %>%
+  select(Gene, SYMBOL) %>% 
+  mutate(entrez_id = 
+           coalesce(
+             hgnc_ensembl2entrez(Gene),
+             hgnc_sym2entrez(SYMBOL)
+           )
+  ) %>% 
+  select(Gene, entrez_id) %>% 
+  na.omit() %>% 
+  distinct() %>% 
+  left_join(
+    cavalier:::get_gene_disease_map(source = 'OMIM'),
+    by = 'entrez_id'
+  ) %>% 
+  mutate(
+    disease_name = cavalier:::get_disease_names(disease_id),
+    OMIM = str_c(disease_name, ' [', inheritance, ']'),
+    OMIM_url = str_c('https://omim.org/entry/', str_extract(disease_id, '\\d+$'))
+  ) %>% 
+  select(Gene, OMIM, OMIM_url) %>% 
+  na.omit() %>% 
+  distinct() %>% 
+  arrange_all() %>% 
+  nest(OMIM = -Gene) %>% 
+  (function(x) left_join(slide_data, x, by = 'Gene')) %>% 
+  mutate(OMIM = replace(OMIM, map_lgl(OMIM, is.null), list(tibble(OMIM = character()))))
+
 
 if ((nrow(slide_data) > 0) & !opts$no_slides) {
   

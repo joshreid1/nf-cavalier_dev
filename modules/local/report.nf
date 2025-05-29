@@ -1,6 +1,6 @@
 
 process REPORT {
-    label 'C2M4T2'
+    label 'C2M4T4'
     label 'cavalier'
     publishDir "${params.outdir}/report/$fam", mode: 'copy'
     tag "$fam"
