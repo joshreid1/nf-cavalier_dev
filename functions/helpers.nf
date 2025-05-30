@@ -148,50 +148,6 @@ def families_aff_un() {
     
 }
 
-def pedigree_channel() {
-
-    Channel.fromList(read_ped()) |
-        unique |
-        map { it.values() as ArrayList } |
-        collectFile(newLine: true) {
-            [ "${it[0]}.ped", it.join('\t')]
-        } |
-        map { [it.name.replaceAll('.ped', ''), it] }
-    // fam, ped
-}
-
-def bam_channel() {
-
-    Channel.fromList(read_bams()) |
-        unique |
-        map { [it.iid, path(it.bam), path(it.bam + '.bai')] } |
-        combine(read_ped().collect { [it.iid, it.fid] }, by: 0) |
-        map { it[[3,0,1,2]] } |
-        groupTuple(by: 0)
-    // fam, iid, bam, bai
-}
-
-def cache_dir_channel() {
-    if (params.cavalier_options.cache_dir) {
-        Channel.value(make_path(params.cavalier_options.cache_dir))
-    } else {
-        throw new Exception("Please define params.cavalier_options.cache_dir")
-    }
-}
-
-def get_func_sources() {
-    def src_list = ["$projectDir/bin/snv_functions.R"] +
-        (
-            params.report_func_source ? 
-            (params.report_func_source
-                .split(',')
-                .collect(path(it))
-            ) :
-            []
-        )
-    Channel.value(src_list)
-}
-
 def get_report_conf() {
     def snv_conf = params
         .keySet()

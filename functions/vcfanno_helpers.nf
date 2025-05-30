@@ -1,6 +1,4 @@
 
-include { path } from './helpers'
-
 def get_vcfanno_conf() {
     Channel
         .fromList(params.snv_vcfanno)
@@ -30,6 +28,11 @@ def get_vcfanno_conf() {
 def get_vcfanno_files() {
     Channel
         .fromList(params.snv_vcfanno)
-        .flatMap { [path(it.vcf ?: it.tsv), path("${it.vcf ?: it.tsv}.${it.csi ? 'csi' : 'tbi'}")] }
+        .flatMap { 
+            [
+                file(it.vcf ?: it.tsv, checkIfExists: true).toAbsolutePath(),
+                file("${it.vcf ?: it.tsv}.${it.csi ? 'csi' : 'tbi'}", checkIfExists: true).toAbsolutePath()
+            ] 
+        }
         .toSortedList()
 }

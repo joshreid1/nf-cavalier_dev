@@ -1,17 +1,14 @@
-
 /* ----------- funtions ----------------*/
-include { path                } from '../../functions/helpers'
-include { ref_fa_channel      } from '../../functions/helpers'
-include { get_vcfanno_conf    } from '../../functions/snv_helpers'
-include { get_vcfanno_files   } from '../../functions/snv_helpers'
+include { ref_fasta_channel   } from '../../functions/channels'
+include { vcf_channel         } from '../../functions/channels'
+include { get_vcfanno_conf    } from '../../functions/vcfanno_helpers'
+include { get_vcfanno_files   } from '../../functions/vcfanno_helpers'
 include { get_spliceai_files  } from '../../functions/vep_helpers'
 include { get_alphamiss_files } from '../../functions/vep_helpers'
 include { get_revel_files     } from '../../functions/vep_helpers'
 include { get_utr_ann_files   } from '../../functions/vep_helpers'
 include { get_vep_fields      } from '../../functions/vep_helpers'
-
-/* ----------- workflows ----------------*/
-include { CHECK        } from './check'
+include { get_vep_cache       } from '../../functions/vep_helpers'
 
 /* ----------- processes ----------------*/
 include { SCATTER      } from '../../modules/local/scatter'
@@ -21,25 +18,23 @@ include { VCFANNO      } from '../../modules/local/vcfanno'
 include { FILTER       } from '../../modules/local/filter'
 include { VEP          } from '../../modules/local/vep'
 include { GATHER       } from '../../modules/local/gather'
-include { FAM_VARS     } from '../../modules/local/fam_vars'
 
 workflow SNV {
+    take: 
+    vcf
+
+    main:
     /*
         - Preprocess and annotate SNV/INDEL variants
     */
-
-    vcf_channel = Channel.value([path(params.snv_vcf), path(params.snv_vcf + '.tbi')])
-    
     if (params.snv_vcfanno) {
         VCFANNO_CONF(
             get_vcfanno_conf()
         )
     }
 
-    CHECK(vcf_channel, 'snv_vcf')
-
     SCATTER(
-        CHECK.out.vcf,
+        vcf,
         params.snv_n_shards
     )
 
@@ -47,7 +42,7 @@ workflow SNV {
     
     CLEAN(
         vcf_shards,
-        ref_fa_channel()
+        ref_fasta_channel()
     )
 
     if (params.snv_vcfanno) {
@@ -74,8 +69,8 @@ workflow SNV {
 
     VEP(
         vep_input,
-        ref_fa_channel(),
-        path(params.vep_cache),
+        ref_fasta_channel(),
+        get_vep_cache(),
         get_spliceai_files(),
         get_alphamiss_files(),
         get_revel_files(),
@@ -87,13 +82,8 @@ workflow SNV {
         VEP.out.toSortedList { a, b -> a.name <=> b.name }
     )
 
-    FAM_VARS (
-        GATHER.out,
-        CHECK.out.families
-    )
-
     emit:
-    FAM_VARS.out.tsv
+    GATHER.out
 
 }
 

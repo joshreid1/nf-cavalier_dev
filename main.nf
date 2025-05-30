@@ -6,6 +6,7 @@ params.ped = ''
 params.bams = ''
 params.lists = ''
 params.snv_vcf = ''
+params.snv_vcf_annotated = null // skip annotation by providing pre-annotated VCF (output from another run)
 params.sv_vcf = '' // not implemented
 
 // ref fasta

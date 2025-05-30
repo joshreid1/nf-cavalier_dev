@@ -1,19 +1,19 @@
 
 /* ----------- funtions ----------------*/
-include { path              } from '../../functions/helpers'
-include { pedigree_channel  } from '../../functions/helpers'
-include { bam_channel       } from '../../functions/helpers'
-include { cache_dir_channel } from '../../functions/helpers'
-include { ref_fa_channel    } from '../../functions/helpers'
-include { get_func_sources  } from '../../functions/helpers'
-include { get_report_conf   } from '../../functions/helpers'
+include { get_report_conf     } from '../../functions/helpers'
+include { cache_dir_channel   } from '../../functions/channels'
+include { vcf_channel         } from '../../functions/channels'
+include { pedigree_channel    } from '../../functions/channels'
+include { bam_channel         } from '../../functions/channels'
+include { func_source_channel } from '../../functions/channels'
 
-
-/* ----------- workflows ----------------*/
-include { SNV     } from '../../subworkflows/local/snv'
-include { LISTS   } from '../../subworkflows/local/lists'
+/* ----------- subworkflows ----------------*/
+include { SNV           } from '../../subworkflows/local/snv'
+include { LISTS         } from '../../subworkflows/local/lists'
+include { CHECK         } from '../../subworkflows/local/check'
 
 /* ----------- processes ----------------*/
+include { FAM_VARS      } from '../../modules/local/fam_vars'
 include { CAVALIER_OPTS } from '../../modules/local/cavalier_opts'
 include { REPORT_CONF   } from '../../modules/local/report_conf'
 include { REPORT        } from '../../modules/local/report'
@@ -24,10 +24,31 @@ workflow CAVALIER {
     /*
         - Run nf-cavalier main workflow
     */
+    if (params.snv_vcf_annotated) {
+        println "INFO: Skipping SNV annotation, using annotated VCF - $params.snv_vcf_annotated"
+        
+        CHECK(
+            vcf_channel(params.snv_vcf_annotated),
+            'snv_vcf_annotated'
+        )
+        snv = CHECK.out.vcf
 
-    if (params.snv_vcf) {
-        SNV()
+    } else if (params.snv_vcf) {
+        
+        CHECK(
+            vcf_channel(params.snv_vcf),
+            'snv_vcf'
+        )
+        SNV(
+            CHECK.out.vcf
+        )
+        snv = SNV.out
     }
+    
+    FAM_VARS(
+        snv,
+        CHECK.out.families
+    )
 
     CAVALIER_OPTS()
 
@@ -37,9 +58,9 @@ workflow CAVALIER {
         get_report_conf()
     )
 
-    report_input = SNV.out // fam, tsv
-        .combine(pedigree_channel(), by:0) //fam, tsv, ped
-        .combine(bam_channel(), by:0) // fam, tsv, bed, [sam], [bam], [bai]
+    report_input = FAM_VARS.out.tsv // fam, tsv
+        .combine(pedigree_channel(), by: 0) //fam, tsv, ped
+        .combine(bam_channel()     , by: 0) // fam, tsv, bed, [sam], [bam], [bai]
     
     REPORT(
         report_input,
@@ -47,7 +68,7 @@ workflow CAVALIER {
         CAVALIER_OPTS.out,
         LISTS.out,
         cache_dir_channel(),
-        get_func_sources()
+        func_source_channel()
     )
 
     PPT_TO_PDF(
