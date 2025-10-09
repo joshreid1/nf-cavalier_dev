@@ -40,6 +40,11 @@ params.snv_vcfanno = [
         fields: [CADD: 6]
     ],
     [   tsv: '/vast/projects/bahlo_cache/annotation/CADD/1.7/gnomad.genomes.r4.0.indel.tsv.gz',
+        csi: true,
+        fields: [CADD: 6]
+    ],
+    [   tsv: '/vast/projects/bahlo_cache/annotation/CADD/1.7/gnomad.joint.r4.1.indel.tsv.bgz',
+        csi: true,
         fields: [CADD: 6]
     ],
     [   tsv: '/vast/projects/bahlo_cache/annotation/phyloP/hg38.phyloP100way.bed.gz',
@@ -67,7 +72,6 @@ params.report_func_source  = null
 /* functions run in order listed
     - first option has file path as first arg
     - remainder have a dataframe as first arg
-    - second arg for all in config (see params.snv_config)
 */
 // functions must be defined in "./bin/snv_functions.R" or params.report_func_source
 params.snv_report_functions = 'SNV_LOAD,SNV_FILTER_FMT,SNV_FILTER_GENES,SNV_FILTER_TYPE,SNV_FILTER_INHERITANCE,SNV_REPORT'

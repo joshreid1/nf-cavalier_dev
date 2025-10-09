@@ -1,6 +1,7 @@
 
 process SAMPLES {
     label 'C1M1T1'
+    label 'bcftools'
     /*
         - return list of sample ids in VCF
     */

@@ -160,4 +160,24 @@ def get_report_conf() {
 }
     
 
+def collect_csv(csv_channel, filename) {
+    
+    def split_csv = csv_channel.splitCsv(header: true)
 
+    def result = split_csv
+        .first()
+        .map { (it.keySet() as List).join(',') }
+        .concat(
+            split_csv
+                .map { (it.values() as List).join(',') }
+                .toSortedList()
+                .flatten()
+        )
+        .collectFile(
+            name: filename, 
+            storeDir: params.outdir,
+            newLine: true,
+            sort: false,
+            cache: false
+        )
+}

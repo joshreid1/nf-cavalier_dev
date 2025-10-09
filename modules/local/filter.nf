@@ -10,7 +10,7 @@ process FILTER {
 
     input:
     tuple val(i), path(vcf)
-    val(include)
+    val(include_exp)
 
     output:
     tuple val(i), path(output)
@@ -18,6 +18,6 @@ process FILTER {
     script:
     output = vcf.name.replace('.vcf.gz', '.flt.vcf.gz')
     """
-    bcftools view $vcf --no-version --threads ${task.cpus} -i '$include' -Oz -o $output
+    bcftools view $vcf --no-version --threads ${task.cpus} -i '$include_exp' -Oz -o $output
     """
 }

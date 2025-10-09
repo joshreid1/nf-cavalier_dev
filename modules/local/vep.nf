@@ -15,7 +15,7 @@ process VEP {
     */
 
     input:
-        tuple val(i),  path(vcf_input)
+        tuple val(i), path(vcf_input)
         tuple path(fasta), path(fai)
         path(vep_cache)
         tuple path(spliceai_snv), path(spliceai_snv_index), path(spliceai_indel), path(spliceai_indel_index)
@@ -25,7 +25,7 @@ process VEP {
         val(vep_fields)
 
     output:
-        tuple path(output)
+        path(output)
 
     script:
     output = vcf_input.name.replaceAll('.vcf.gz', '.vep.vcf.gz')

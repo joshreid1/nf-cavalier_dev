@@ -1,13 +1,13 @@
 
 process FAM_VARS {
+    label 'C2M2T2'
+    label 'bcftools'
+    tag "$fam"
     /*
         - Restrict VCF to select samples
         - Filter for only variants carried by an affected individual
         - Create TSV output in addition to VCF for simpler parsing in R using bcftools +split-vep
     */
-    label 'C2M2T2'
-    label 'bcftools'
-    tag "$fam"
 
     input:
     tuple path(vcf), path(index)

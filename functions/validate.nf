@@ -1,5 +1,5 @@
 
-void validate_params() {
+def validate_params() {
     /*
         TODO: more validation of params
     */

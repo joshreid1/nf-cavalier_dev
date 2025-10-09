@@ -1,11 +1,13 @@
 
 /* ----------- funtions ----------------*/
 include { get_report_conf     } from '../../functions/helpers'
+include { collect_csv         } from '../../functions/helpers'
 include { cache_dir_channel   } from '../../functions/channels'
 include { vcf_channel         } from '../../functions/channels'
 include { pedigree_channel    } from '../../functions/channels'
 include { bam_channel         } from '../../functions/channels'
 include { func_source_channel } from '../../functions/channels'
+
 
 /* ----------- subworkflows ----------------*/
 include { SNV           } from '../../subworkflows/local/snv'
@@ -79,6 +81,11 @@ workflow CAVALIER {
         REPORT.out.igv
             .combine(pedigree_channel(), by:0)
             .combine(bam_channel().map { [it[0], it[2], it[3]]}, by:0)
+    )
+
+    collect_csv(
+        REPORT.out.cands.map { it[2] },
+        "snp_candidates.csv"
     )
 }
 
