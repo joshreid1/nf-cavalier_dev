@@ -9,14 +9,17 @@ params.snv_vcf = ''
 params.snv_vcf_annotated = null // skip annotation by providing pre-annotated VCF (output from another run)
 params.sv_vcf = '' // not implemented
 
+
+
 // ref fasta
 params.ref_fasta = '/vast/projects/bahlo_cache/ref_genome/hg38_GATK/Homo_sapiens_assembly38.fasta'
 
-// options for cavalier R pacakge
-params.cavalier_options = [
-    database_mode: 'fallback', // will try to get latest db/vers, but fallback to cache if unavailable (set to 'offline' no check)
-    cache_dir: '.cavalier_cache', // will write any downloaded files to this dir
-    read_only_cache_dir: '/vast/projects/bahlo_cache/cavalier_cache' // will use cache files from
+// used by cavalier R package - can point to a unified cache else will create in working directory
+params.cavalier_cache_dir = 'cavalier_cache'
+
+// additional options for cavalier R pacakge
+params.cavalier_options = [ // will try to get latest db/vers, but fallback to cache if unavailable (set to 'offline' no check)
+    read_only_cache_dir: '/vast/projects/bahlo_cache/cavalier_cache' // will use cache files from but won't write to
 ]
 
 /* =================== SNV/Indel ARGS =================== */
@@ -31,6 +34,7 @@ params.snv_format = ['GT', 'GQ', 'DP'] // TODO: ensure 'GT' is always present
 // fill AC, AF, and AN from VCF - recommended to set true if VCF does not have these set
 params.snv_fill_tags = false
 // vcfanno settings
+params.vcfanno_binary = 'https://github.com/brentp/vcfanno/releases/download/v0.3.7/vcfanno_linux64'
 params.snv_vcfanno = [
     [   vcf: '/vast/projects/bahlo_cache/annotation/gnomAD/joint_sites_4.1.vcf.gz', 
         csi: true, 
@@ -50,13 +54,19 @@ params.snv_vcfanno = [
     [   tsv: '/vast/projects/bahlo_cache/annotation/phyloP/hg38.phyloP100way.bed.gz',
         fields: [phyloP100: 4],
         op: 'max'
+    ],
+    [   vcf: '/vast/projects/bahlo_cache/annotation/ClinVar/clinvar_20251123.vcf.gz',
+        csi: true,
+        // is CLNSIGSCV useful?
+        fields: [CLNSIG: 'CLNSIG', CLNSIG_GENE: 'GENEINFO', CLNSIGSCV: 'CLNSIGSCV']
     ]
 ]
+
 // filter to apply after VCF anno, drastically reduces VEP runtime if we drop common variants
 params.snv_vcfanno_filter = 'gnomad_AF<0.01 || gnomad_AF="."' // (keep if AF < 0.01 or AF is missing)
 // VEP settings
 params.vep_cache     = '/vast/projects/bahlo_cache/vep_cache'
-params.vep_cache_ver = '114'
+params.vep_cache_ver = '115'
 // check number of variants output by VEP equal to number input
 params.vep_check     = true
 // VEP plugins (setting to null will disable plugin)
@@ -96,7 +106,7 @@ params.snv_report_fields =  [
     Inheritance  : 'Inheritance', 
     Consequence  : 'Consequence',
     HGVS         : 'HGVS',
-    ClinVar      : 'CLIN_SIG',
+    ClinVar      : 'CLNSIG',
     'gnomAD v4.1': 'gnomAD', 
     Cohort       : 'Cohort',
     PhyloP100    : 'phyloP100',
@@ -120,10 +130,9 @@ params.no_slides = false // skip making slides in cavalier
 
 include { validate_params } from './functions/validate'
 
-validate_params()
-
 include { CAVALIER } from './workflows/cavalier'
 
 workflow {
+    validate_params()
     CAVALIER()
 }

@@ -1,5 +1,5 @@
 
-process UPDATE_VER {
+process GET_LIST_VER {
     label 'C1M1T1'
     label 'cavalier'
     tag { date }
@@ -11,6 +11,7 @@ process UPDATE_VER {
     input:
     tuple path(id_file), val(date)
     path(cav_opts)
+    path(cache_dir)
 
     output:
     path(output)

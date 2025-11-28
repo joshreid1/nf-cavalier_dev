@@ -1,5 +1,5 @@
 
-process MAP_IDS {
+process MAP_LIST_IDS {
     label 'C1M1T1'
     label 'cavalier'
     tag "${input.name}"
@@ -11,6 +11,7 @@ process MAP_IDS {
     input: 
     path(input)
     path(cav_opts)
+    path(cache_dir)
 
     output: path(output)
 

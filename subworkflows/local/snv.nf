@@ -11,11 +11,10 @@ include { get_vep_fields      } from '../../functions/vep_helpers'
 include { get_vep_cache       } from '../../functions/vep_helpers'
 
 /* ----------- processes ----------------*/
+include { VCFANNO_CONF } from '../../modules/local/vcfanno_conf'
 include { SCATTER      } from '../../modules/local/scatter'
 include { CLEAN        } from '../../modules/local/clean'
-include { VCFANNO_CONF } from '../../modules/local/vcfanno_conf'
 include { VCFANNO      } from '../../modules/local/vcfanno'
-include { FILTER       } from '../../modules/local/filter'
 include { VEP          } from '../../modules/local/vep'
 include { GATHER       } from '../../modules/local/gather'
 
@@ -26,7 +25,7 @@ workflow SNV {
     main:
     /*
         - Preprocess and annotate SNV/INDEL variants
-    */
+    */    
     if (params.snv_vcfanno) {
         VCFANNO_CONF(
             get_vcfanno_conf()
@@ -50,18 +49,11 @@ workflow SNV {
         VCFANNO(
             CLEAN.out,
             VCFANNO_CONF.out,
-            get_vcfanno_files()
+            get_vcfanno_files(),
+            file(params.vcfanno_binary)
         )
 
-        if (params.snv_vcfanno_filter) {
-            FILTER(
-                VCFANNO.out,
-                params.snv_vcfanno_filter
-            )
-            vep_input = FILTER.out
-        } else {
-            vep_input = VCFANNO.out
-        }
+        vep_input = VCFANNO.out
 
     } else {
         vep_input = CLEAN.out.map{ [it[0], it[1]] }

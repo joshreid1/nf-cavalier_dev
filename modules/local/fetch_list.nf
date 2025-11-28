@@ -1,5 +1,5 @@
 
-process FETCH {
+process FETCH_LIST {
     label 'C1M1T1'
     label 'cavalier'
     publishDir "${params.outdir}/gene_lists"
@@ -11,6 +11,7 @@ process FETCH {
     input:
     tuple val(id), val(ver)
     path(cav_opts)
+    path(cache_dir)
 
     output:
     tuple val(id), path(output)

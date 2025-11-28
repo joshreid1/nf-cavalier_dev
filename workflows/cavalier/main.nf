@@ -10,13 +10,12 @@ include { func_source_channel } from '../../functions/channels'
 
 
 /* ----------- subworkflows ----------------*/
+include { SETUP         } from '../../subworkflows/local/setup'
 include { SNV           } from '../../subworkflows/local/snv'
-include { LISTS         } from '../../subworkflows/local/lists'
 include { CHECK         } from '../../subworkflows/local/check'
 
 /* ----------- processes ----------------*/
 include { FAM_VARS      } from '../../modules/local/fam_vars'
-include { CAVALIER_OPTS } from '../../modules/local/cavalier_opts'
 include { REPORT_CONF   } from '../../modules/local/report_conf'
 include { REPORT        } from '../../modules/local/report'
 include { PPT_TO_PDF    } from '../../modules/local/ppt_to_pdf'
@@ -26,6 +25,10 @@ workflow CAVALIER {
     /*
         - Run nf-cavalier main workflow
     */
+    SETUP()
+    lists = SETUP.out.lists
+    cavalier_opts = SETUP.out.cavalier_opts
+
     if (params.snv_vcf_annotated) {
         println "INFO: Skipping SNV annotation, using annotated VCF - $params.snv_vcf_annotated"
         
@@ -50,11 +53,7 @@ workflow CAVALIER {
     FAM_VARS(
         snv,
         CHECK.out.families
-    )
-
-    CAVALIER_OPTS()
-
-    LISTS(CAVALIER_OPTS.out)
+    )    
 
     REPORT_CONF(
         get_report_conf()
@@ -67,8 +66,8 @@ workflow CAVALIER {
     REPORT(
         report_input,
         REPORT_CONF.out,
-        CAVALIER_OPTS.out,
-        LISTS.out,
+        cavalier_opts,
+        lists,
         cache_dir_channel(),
         func_source_channel()
     )
