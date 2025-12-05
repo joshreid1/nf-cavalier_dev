@@ -54,6 +54,7 @@ def get_utr_ann_files() {
 }
 
 def get_vep_fields() {
+    // TODO: 'MANE', 'MANE_SELECT', 'MANE_PLUS_CLINICAL', 'CCDS' seem to be empty - Why? also maybe drop anyway
     def vep_fields = [
           'SYMBOL', 'Gene', 'VARIANT_CLASS', 'Consequence', 'IMPACT', 'Feature_type', 'Feature',
           'BIOTYPE', 'EXON', 'INTRON', 'HGVSc', 'HGVSp', 'HGVSg', 'Amino_acids',

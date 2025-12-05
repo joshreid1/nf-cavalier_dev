@@ -1,7 +1,7 @@
 
 def get_vcfanno_conf() {
     Channel
-        .fromList(params.snv_vcfanno)
+        .fromList(params.short_vcfanno)
         .map { ann ->
             // choose file key and toml keyword
             def file   = file(ann.vcf ?: ann.tsv).name
@@ -23,11 +23,12 @@ def get_vcfanno_conf() {
             return block
         }
         .collect()
+        .map { it.join('\n') }
 }
 
 def get_vcfanno_files() {
     Channel
-        .fromList(params.snv_vcfanno)
+        .fromList(params.short_vcfanno)
         .flatMap { 
             [
                 file(it.vcf ?: it.tsv, checkIfExists: true).toAbsolutePath(),

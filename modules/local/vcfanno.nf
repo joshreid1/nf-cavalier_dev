@@ -10,7 +10,7 @@ process VCFANNO {
 
     input:
         tuple val(i), path(in_vcf), path(idx)
-        path(conf)
+        val(conf)
         path(ann_files)
         path(vcfanno)
 
@@ -19,12 +19,14 @@ process VCFANNO {
 
     script:
     output  = in_vcf.name.replace('.vcf.gz', ".vcfanno.vcf.gz")
-    filter = params.snv_vcfanno_filter ? "-i '$params.snv_vcfanno_filter'" : ''
+    filter = params.short_vcfanno_filter ? "-i '$params.short_vcfanno_filter'" : ''
 
-    """
-    [ -x "$vcfanno" ] || chmod +x "$vcfanno"
-    
-    ./$vcfanno -p ${task.cpus} $conf $in_vcf \\
-        | bcftools view --no-version --threads ${task.cpus} $filter -Oz -o $output
-    """
+"""
+cat > vcfanno.conf  <<< '${conf}'
+
+[ -x "$vcfanno" ] || chmod +x "$vcfanno"
+
+./$vcfanno -p ${task.cpus} vcfanno.conf $in_vcf \\
+    | bcftools view --no-version --threads ${task.cpus} $filter -Oz -o $output
+"""
 }

@@ -5,11 +5,11 @@ params.outdir = 'output'
 params.ped = ''
 params.bams = ''
 params.lists = ''
-params.snv_vcf = ''
-params.snv_vcf_annotated = null // skip annotation by providing pre-annotated VCF (output from another run)
+params.short_vcf = ''
+params.short_vcf_annotated = null // skip annotation by providing pre-annotated VCF (output from another run)
 params.sv_vcf = '' // not implemented
-
-
+params.sv_vcf_annotated = null // not implemented
+params.annotate_only = false // will not filter and report variants
 
 // ref fasta
 params.ref_fasta = '/vast/projects/bahlo_cache/ref_genome/hg38_GATK/Homo_sapiens_assembly38.fasta'
@@ -22,20 +22,20 @@ params.cavalier_options = [ // will try to get latest db/vers, but fallback to c
     read_only_cache_dir: '/vast/projects/bahlo_cache/cavalier_cache' // will use cache files from but won't write to
 ]
 
-/* =================== SNV/Indel ARGS =================== */
+/* =================== SHORT/Indel ARGS =================== */
 // split input VCF into shards for parallel processing
-params.snv_n_shards = 200
+params.short_n_shards = 200
 // apply filter to input variants
-params.snv_vcf_filter = "PASS,."
+params.short_vcf_filter = "PASS,."
 // INFO fields to keep from VCF
-params.snv_info = ['AC', 'AF', 'AN']
+params.short_info = ['AC', 'AF', 'AN']
 // FORMAT fields to keep from VCF
-params.snv_format = ['GT', 'GQ', 'DP'] // TODO: ensure 'GT' is always present
+params.short_format = ['GT', 'GQ', 'DP'] // TODO: ensure 'GT' is always present
 // fill AC, AF, and AN from VCF - recommended to set true if VCF does not have these set
-params.snv_fill_tags = false
+params.short_fill_tags = false
 // vcfanno settings
 params.vcfanno_binary = 'https://github.com/brentp/vcfanno/releases/download/v0.3.7/vcfanno_linux64'
-params.snv_vcfanno = [
+params.short_vcfanno = [
     [   vcf: '/vast/projects/bahlo_cache/annotation/gnomAD/joint_sites_4.1.vcf.gz', 
         csi: true, 
         fields: [gnomad_AF: 'AF', gnomad_AC: 'AC', gnomad_FAF95: 'fafmax_faf95_max', gnomad_nhomalt: 'nhomalt']
@@ -57,13 +57,12 @@ params.snv_vcfanno = [
     ],
     [   vcf: '/vast/projects/bahlo_cache/annotation/ClinVar/clinvar_20251123.vcf.gz',
         csi: true,
-        // is CLNSIGSCV useful?
-        fields: [CLNSIG: 'CLNSIG', CLNSIG_GENE: 'GENEINFO', CLNSIGSCV: 'CLNSIGSCV']
+        fields: [CLNSIG: 'CLNSIG', CLNGENE: 'GENEINFO',  CLNVID: 'ID']
     ]
 ]
 
 // filter to apply after VCF anno, drastically reduces VEP runtime if we drop common variants
-params.snv_vcfanno_filter = 'gnomad_AF<0.01 || gnomad_AF="."' // (keep if AF < 0.01 or AF is missing)
+params.short_vcfanno_filter = 'gnomad_AF<0.01 || gnomad_AF="."' // (keep if AF < 0.01 or AF is missing)
 // VEP settings
 params.vep_cache     = '/vast/projects/bahlo_cache/vep_cache'
 params.vep_cache_ver = '115'
@@ -76,32 +75,49 @@ params.vep_alphamissense  = '/vast/projects/bahlo_cache/annotation/alphamissense
 params.vep_revel          = '/vast/projects/bahlo_cache/annotation/REVEL/revel_1.3.hg38.vep.tsv.gz'
 params.vep_utr_annotator  = '/vast/projects/bahlo_cache/annotation/UTRannotator/uORF_5UTR_GRCh38_PUBLIC.txt'
 
-// all params.snv_report_* fields are collected and passed to snv_report_functions
-// Can append multiple, by default we always source "$projectDir/misc/scripts/snv_functions.R"
-params.report_func_source  = null
-/* functions run in order listed
-    - first option has file path as first arg
-    - remainder have a dataframe as first arg
-*/
-// functions must be defined in "./bin/snv_functions.R" or params.report_func_source
-params.snv_report_functions = 'SNV_LOAD,SNV_FILTER_FMT,SNV_FILTER_GENES,SNV_FILTER_TYPE,SNV_FILTER_INHERITANCE,SNV_REPORT'
-params.snv_report_min_DP = 5  // at least depth of 5 in all samples
-params.snv_report_min_GQ = 10 // at least 90% confidence of sample geneotypes
-// used by SNV_FILTER_INHERITANCE function, strictly less than
-params.snv_report_freq_thresholds = [
-    // adjust these based on expected frequencies of diease-of-interest
-    pop: [
-        AF : [dominant: 0.0001, recessive: 0.01 ], 
-        AC : [dominant: 5     , recessive: 50   ],
-        hom: [dominant: 2     , recessive: 10   ]
-    ],
-    cohort: [
-        AF : [dominant: 0.01  , recessive: 0.05  ],
-        AC : [dominant: 2     , recessive: 5     ]
-    ]
-]
+// filters, can be disabled by setting = null
+params.FILTER_SHORT_MIN_DP = 5
+params.FILTER_SHORT_MIN_GQ = 10
+// short variant population (gnomAD) filters
+params.FILTER_SHORT_POP_DOM_MAX_AF = 0.0001
+params.FILTER_SHORT_POP_REC_MAX_AF = 0.01
+params.FILTER_SHORT_POP_DOM_MAX_AC = 20
+params.FILTER_SHORT_POP_REC_MAX_AC = 100
+params.FILTER_SHORT_POP_DOM_MAX_HOM = 5
+params.FILTER_SHORT_POP_REC_MAX_HOM = 10
+// short variant cohort filters
+params.FILTER_SHORT_COH_DOM_MAX_AF = null
+params.FILTER_SHORT_COH_REC_MAX_AF = null
+params.FILTER_SHORT_COH_DOM_MAX_AC = null
+params.FILTER_SHORT_COH_REC_MAX_AC = null
+// ClinVar significance filters (regex)
+params.FILTER_SHORT_CLINVAR_KEEP_PAT  = '(p|P)athogenic(?!ity)'
+params.FILTER_SHORT_CLINVAR_DISC_PAT  = '(b|B)enign'
+// misc filters
+params.FILTER_SHORT_CLINVAR_ANYWHERE = true
+params.FILTER_SHORT_LOF              = true
+params.FILTER_SHORT_MISSENCE         = true
+params.FILTER_SHORT_SPLICING         = true
+params.FILTER_SHORT_MIN_CADD_PP      = 25.3 // Clingen PP3 supporting  doi: 10.1016/j.ajhg.2022.10.013
+params.FILTER_SHORT_MIN_SPLICEAI_PP  = 0.20 //Clingen PP3 supporting https://doi.org/10.1016/j.ajhg.2023.06.002
+params.FILTER_SHORT_VEP_MIN_IMPACT   = 'MODERATE'
+params.FILTER_SHORT_VEP_CONSEQUENCES = null
+
+// structural variant population (gnomAD) filters
+params.FILTER_STRUC_POP_DOM_MAX_AF = 0.0001
+params.FILTER_STRUC_POP_REC_MAX_AF = 0.01
+params.FILTER_STRUC_POP_DOM_MAX_AC = 20
+params.FILTER_STRUC_POP_REC_MAX_AC = 100
+params.FILTER_STRUC_POP_DOM_MAX_HOM = null
+params.FILTER_STRUC_POP_REC_MAX_HOM = null
+// strucutural  variant cohort filters
+params.FILTER_STRUC_COH_DOM_MAX_AF = 0.01
+params.FILTER_STRUC_COH_REC_MAX_AF = 0.01
+params.FILTER_STRUC_COH_DOM_MAX_AC = null
+params.FILTER_STRUC_COH_REC_MAX_AC = null
+
 // fields to report for all variants
-params.snv_report_fields =  [
+params.short_report_fields =  [
     Gene         : 'Gene',
     Inheritance  : 'Inheritance', 
     Consequence  : 'Consequence',
@@ -130,9 +146,26 @@ params.no_slides = false // skip making slides in cavalier
 
 include { validate_params } from './functions/validate'
 
+include { SETUP    } from './workflows/setup'
+include { ANNOTATE } from './workflows/annotate'
 include { CAVALIER } from './workflows/cavalier'
 
+
 workflow {
+
     validate_params()
-    CAVALIER()
+
+    SETUP()
+
+    ANNOTATE()
+
+    if (!params.annotate_only) {
+        CAVALIER(
+            SETUP.out.lists,
+            SETUP.out.cavalier_opts,
+            ANNOTATE.out.short_vcf,
+            ANNOTATE.out.struc_vcf
+        )
+    }
+
 }

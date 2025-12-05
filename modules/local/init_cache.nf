@@ -11,15 +11,16 @@ process INIT_CACHE {
 
     input: 
     val(date_ymd)
-    path(cav_opts)
+    val(cav_opts)
     path(cache_dir)
 
     output: 
-    path(output)
+    path('cavalier_options.cache.json')
 
     script:
-    output = cav_opts.name.replaceAll('\\.json$', '') + '.cache.json'
-    """
-    cavalier_init_cache.R $cav_opts $output
-    """
+"""
+cat > cavalier_options.json <<< '${cav_opts}'
+
+cavalier_init_cache.R cavalier_options.json cavalier_options.cache.json
+"""
 }

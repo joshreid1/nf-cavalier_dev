@@ -145,17 +145,19 @@ def families_aff_un() {
     
 }
 
-def get_report_conf() {
-    def snv_conf = params
-        .keySet()
-        .findAll{ it.startsWith('snv_report_') }
-        .collectEntries { key -> [(key.replace('snv_report_', '')): params[key]] }
-    
-    def report_conf = [snv: snv_conf]
-
-    report_conf
+def get_filter_opts() {
+    def filter_opts = params.findAll { k, v -> k.startsWith('FILTER_') && v != null }
+    groovy.json.JsonOutput.prettyPrint(
+          groovy.json.JsonOutput.toJson(filter_opts)
+    )
 }
-    
+
+def get_cavalier_opts() {
+    def cav_opts = (params.cavalier_options ?: [:]) + [cache_dir: params.cavalier_cache_dir]
+    groovy.json.JsonOutput.prettyPrint(
+          groovy.json.JsonOutput.toJson(cav_opts)
+    )
+}
 
 def collect_csv(csv_channel, filename) {
     
@@ -177,4 +179,12 @@ def collect_csv(csv_channel, filename) {
             sort: false,
             cache: false
         )
+}
+
+def short_enabled() {
+    params.short_vcf ? true : params.short_vcf_annotated ? true : false
+}
+
+def sv_enabled() {
+    params.sv_vcf ? true : params.sv_vcf_annotated ? true : false
 }

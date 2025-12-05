@@ -8,10 +8,12 @@ include { families_aff_un } from '../../functions/helpers'
 include { SAMPLES } from '../../modules/local/samples'
 
 
-workflow CHECK {
+workflow CHECK_VCF {
     /*
         - CHECK that VCF samples line up with pedigree and bam input samples
         - Error if there is no work to be done
+        - TODO - accept one or both of VCFs, check consistent sample set
+        - TODO - move to Rscript for more flexibility?
     */
     take:
     vcf_channel

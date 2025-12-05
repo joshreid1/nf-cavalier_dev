@@ -1,5 +1,5 @@
 
-process FAM_VARS {
+process SPLIT_VEP {
     label 'C2M2T2'
     label 'bcftools'
     tag "$fam"
@@ -22,14 +22,14 @@ process FAM_VARS {
     out_tsv = vcf.name.replace('.vcf.gz', ".family_${fam}.tsv.gz")
     // extract INFO fields from VCF
     def inf = (
-        (params.snv_info ?: []) + 
-        (params.snv_vcfanno ? params.snv_vcfanno.collectMany { it.fields.keySet() } : [])
+        (params.short_info ?: []) + 
+        (params.short_vcfanno ? params.short_vcfanno.collectMany { it.fields.keySet() } : [])
     ).unique().sort()
     def inf_hdr = inf.join('\\t')
     def inf_qry = inf.collect {"%$it"}.join('\\t')
     // extract sample FORMAT fields from VCF
     def samples = (aff + unaff).unique().sort()
-    def format = params.snv_format.toList().unique().sort()
+    def format = params.short_format.toList().unique().sort()
     def fmt_hdr = format
         .collect { fmt -> samples.collect { sam -> "FMT_${fmt}_${sam}" } }
         .flatten()

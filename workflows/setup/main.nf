@@ -1,8 +1,9 @@
 
 /* ----------- funtions ----------------*/
-include { list_channels    } from '../../functions/helpers'
-include { path             } from '../../functions/helpers'
-include { date_ymd         } from '../../functions/helpers'
+include { list_channels     } from '../../functions/helpers'
+include { path              } from '../../functions/helpers'
+include { date_ymd          } from '../../functions/helpers'
+include { get_cavalier_opts } from '../../functions/helpers'
 include { cache_dir_channel } from '../../functions/channels.nf'
 
 /* ----------- processes ----------------*/
@@ -20,11 +21,9 @@ workflow SETUP {
         - Normalised gene_ids (i.e. convert to ensemble)
     */
     main:
-    CAVALIER_OPTS()
-
     INIT_CACHE(
         date_ymd(),
-        CAVALIER_OPTS.out,
+        get_cavalier_opts(),
         cache_dir_channel()
     )
 

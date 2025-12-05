@@ -11,30 +11,24 @@ include { get_vep_fields      } from '../../functions/vep_helpers'
 include { get_vep_cache       } from '../../functions/vep_helpers'
 
 /* ----------- processes ----------------*/
-include { VCFANNO_CONF } from '../../modules/local/vcfanno_conf'
 include { SCATTER      } from '../../modules/local/scatter'
 include { CLEAN        } from '../../modules/local/clean'
 include { VCFANNO      } from '../../modules/local/vcfanno'
 include { VEP          } from '../../modules/local/vep'
 include { GATHER       } from '../../modules/local/gather'
 
-workflow SNV {
+workflow SHORT {
     take: 
     vcf
 
     main:
     /*
-        - Preprocess and annotate SNV/INDEL variants
-    */    
-    if (params.snv_vcfanno) {
-        VCFANNO_CONF(
-            get_vcfanno_conf()
-        )
-    }
+        - Preprocess and annotate SHORT/INDEL variants
+    */
 
     SCATTER(
         vcf,
-        params.snv_n_shards
+        params.short_n_shards
     )
 
     vcf_shards = SCATTER.out.flatMap().map{ [((it.name =~ /(?<=\.shard\.)([0-9]+)/)[0][1]), it] }
@@ -44,11 +38,11 @@ workflow SNV {
         ref_fasta_channel()
     )
 
-    if (params.snv_vcfanno) {
+    if (params.short_vcfanno) {
 
         VCFANNO(
             CLEAN.out,
-            VCFANNO_CONF.out,
+            get_vcfanno_conf(),
             get_vcfanno_files(),
             file(params.vcfanno_binary)
         )
