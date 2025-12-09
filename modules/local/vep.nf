@@ -18,7 +18,7 @@ process VEP {
         tuple val(i), path(vcf_input)
         tuple path(fasta), path(fai)
         path(vep_cache)
-        tuple path(spliceai_short), path(spliceai_short_index), path(spliceai_indel), path(spliceai_indel_index)
+        tuple path(spliceai_snv), path(spliceai_snvindex), path(spliceai_indel), path(spliceai_indel_index)
         tuple path(alphamiss), path(alphamiss_index)
         tuple path(revel), path(revel_index)
         path(utr_annotator)
@@ -70,7 +70,7 @@ process VEP {
             --sift b \\
             --polyphen b \\
             --fields "${vep_fields.join(',')}" \\
-            ${spliceai_enabled()  ? "--plugin SpliceAI,short=$spliceai_short,indel=$spliceai_indel" : ''} \\
+            ${spliceai_enabled()  ? "--plugin SpliceAI,snv=$spliceai_snv,indel=$spliceai_indel" : ''} \\
             ${alphamiss_enabled() ? "--plugin AlphaMissense,file=$alphamiss,transcript_match=1" : ''} \\
             ${revel_enabled()     ? "--plugin REVEL,file=$revel" : ''} \\
             ${utr_ann_enabled()   ? "--plugin UTRAnnotator,file=$utr_annotator" : ''} \\

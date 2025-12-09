@@ -145,6 +145,13 @@ def families_aff_un() {
     
 }
 
+def get_cavalier_opts() {
+    def cav_opts = (params.cavalier_options ?: [:]) + [cache_dir: params.cavalier_cache_dir]
+    groovy.json.JsonOutput.prettyPrint(
+          groovy.json.JsonOutput.toJson(cav_opts)
+    )
+}
+
 def get_filter_opts() {
     def filter_opts = params.findAll { k, v -> k.startsWith('FILTER_') && v != null }
     groovy.json.JsonOutput.prettyPrint(
@@ -152,10 +159,13 @@ def get_filter_opts() {
     )
 }
 
-def get_cavalier_opts() {
-    def cav_opts = (params.cavalier_options ?: [:]) + [cache_dir: params.cavalier_cache_dir]
+def get_slide_info() {
+    def info = [
+        SHORT: params.SLIDE_INFO_SHORT,
+        STRUC: params.SLIDE_INFO_STRUC
+    ]
     groovy.json.JsonOutput.prettyPrint(
-          groovy.json.JsonOutput.toJson(cav_opts)
+          groovy.json.JsonOutput.toJson(info)
     )
 }
 

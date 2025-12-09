@@ -116,22 +116,35 @@ params.FILTER_STRUC_COH_REC_MAX_AF = 0.01
 params.FILTER_STRUC_COH_DOM_MAX_AC = null
 params.FILTER_STRUC_COH_REC_MAX_AC = null
 
-// fields to report for all variants
-params.short_report_fields =  [
-    Gene         : 'Gene',
-    Inheritance  : 'Inheritance', 
-    Consequence  : 'Consequence',
-    HGVS         : 'HGVS',
-    ClinVar      : 'CLNSIG',
-    'gnomAD v4.1': 'gnomAD', 
-    Cohort       : 'Cohort',
-    PhyloP100    : 'phyloP100',
-    CADD         : 'CADD',
-    REVEL        : 'REVEL',
-    AlphaMissense: 'AlphaMissense',
-    SIFT         : 'SIFT',
-    PolyPhen     : 'PolyPhen',
-    SpliceAI     : 'SpliceAI'
+// DEFAULT is required
+params.SLIDE_INFO_SHORT = [
+    DEFAULT: [
+        Gene         : 'Gene',
+        Inheritance  : 'inheritance', 
+        Consequence  : 'Consequence',
+        HGVS         : 'HGVS',
+        ClinVar      : 'CLNSIG',
+        'gnomAD v4.1': 'gnomAD', 
+        Cohort       : 'Cohort',
+        PhyloP100    : 'phyloP100',
+        SpliceAI     : 'SpliceAI',
+    ],
+    MISSENSE: [
+        CADD         : 'CADD',
+        REVEL        : 'REVEL',
+        AlphaMissense: 'AlphaMissense',
+        SIFT         : 'SIFT',
+        PolyPhen     : 'PolyPhen',
+    ]
+]
+
+params.SLIDE_INFO_STRUC = [
+    DEFAULT: [
+        Gene         : 'Gene',
+        Inheritance  : 'inheritance', 
+        Consequence  : 'Consequence',
+       'SV Type'     : 'SVTYPE',
+    ]
 ]
 
 /* =================== SV ARGS =================== */

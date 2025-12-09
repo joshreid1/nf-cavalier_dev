@@ -11,24 +11,22 @@ async function sleep(ms) {
 // ---------------------------------------------------------------------------
 // NEW: robust wait-for-download helper
 // ---------------------------------------------------------------------------
-async function waitForNewPNG(dir, timeout = 15000) {
+async function waitForPNG(dir, timeout = 30000) {
+    const targetFile = 'igvjs.png';
+    const filePath = path.join(dir, targetFile);
     const start = Date.now();
-    const initial = new Set(
-        fs.readdirSync(dir).filter(f => f.endsWith(".png"))
-    );
 
+    // Check immediately and then poll
     while (Date.now() - start < timeout) {
-        const current = fs.readdirSync(dir).filter(f => f.endsWith(".png"));
-        for (const f of current) {
-            if (!initial.has(f)) {
-                return path.join(dir, f);
-            }
+        if (fs.existsSync(filePath)) {
+            return targetFile; // Returns 'igvjs.png' as requested
         }
         await sleep(100);
     }
 
-    return null;  // timed out
+    return null; // Timed out
 }
+
 // ---------------------------------------------------------------------------
 
 (async () => {
@@ -64,6 +62,7 @@ async function waitForNewPNG(dir, timeout = 15000) {
     });
 
     const page = await browser.newPage();
+    page.on('console', msg => console.log('BROWSER LOG:', msg.text()));
 
     // Enable downloads
     const client = await page.target().createCDPSession();
@@ -110,7 +109,8 @@ async function waitForNewPNG(dir, timeout = 15000) {
 
         await page.evaluate(() => {
             const root = document.querySelector("#igvDiv").shadowRoot;
-            const btn = root.querySelector('.igv-navbar-icon-button[title="Save Image"]');
+            const btn = root.querySelector('div[title="Save Image"]');
+            // const btn = root.querySelector('.igv-navbar-icon-button[title="Save Image"]');
             ["pointerdown", "mousedown", "pointerup", "mouseup", "click"].forEach(ev =>
                 btn.dispatchEvent(new Event(ev, { bubbles: true, composed: true }))
             );
@@ -131,15 +131,12 @@ async function waitForNewPNG(dir, timeout = 15000) {
             );
         });
 
-        // -------------------------------------------------------------------
-        // NEW: Wait until actual PNG appears (instead of fixed sleep)
-        // -------------------------------------------------------------------
-        const downloaded = await waitForNewPNG(outDir, 15000);
+        const downloaded = await waitForPNG(outDir, 30000);
         if (!downloaded) {
             throw new Error(`PNG did not appear in ${outDir} after saving ${variantID}`);
         }
 
-        const finalName = path.join(outDir, `${prefix}.${variantID}.png`);
+        const finalName = path.join(outDir, `${prefix}${variantID}.png`);
         fs.renameSync(downloaded, finalName);
     }
 
@@ -167,11 +164,11 @@ async function waitForNewPNG(dir, timeout = 15000) {
 
         await clickVariantRow(v.rowIndex);
         await sleep(100);   // give IGV time to render new region
-
+        
         console.log("   Saving PNG…");
         await savePNG(v.id);
 
-        console.log(`   ✔ Saved ${prefix}.${v.id}.png`);
+        console.log(`   ✔ Saved ${prefix}${v.id}.png`);
     }
 
     console.log("All variants processed.");

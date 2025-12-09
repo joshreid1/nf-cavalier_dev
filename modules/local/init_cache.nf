@@ -1,10 +1,9 @@
 
 process INIT_CACHE {
     label 'C1M1T1'
-    // label 'cavalier'
+    label 'cavalier'
     tag "$date_ymd"
-    module 'R/flexiblas/4.5.2'
-    publishDir "${params.outdir}/gene_lists"
+    
     /*
         - Initialise cavalier cache, checking for latest version of HGNC, HPO, MI_OMIM
     */

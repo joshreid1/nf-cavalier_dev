@@ -20,10 +20,13 @@ process IGV_REPORT {
     script:
     output = "${fam}.igv_report.html"
     """
+    ln -s $vcf ${fam}.vcf.gz
+    ln -s $tbi ${fam}.vcf.gz.tbi
+
     create_report $sites \\
         --genome hg38 \\
         --flanking 250 \\
-        --tracks $vcf $bams \\
+        --tracks ${fam}.vcf.gz $bams \\
         --output $output
 
     IDS=(${ids.join(' ')})

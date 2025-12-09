@@ -6,6 +6,7 @@ include { cache_dir_channel   } from '../../functions/channels'
 include { pedigree_channel    } from '../../functions/channels'
 include { bam_channel         } from '../../functions/channels'
 include { func_source_channel } from '../../functions/channels'
+include { get_slide_info      } from '../../functions/helpers.nf'
 
 
 /* ----------- subworkflows ----------------*/
@@ -17,7 +18,8 @@ include { SPLIT_VEP   } from '../../modules/local/split_vep'
 include { FILTER      } from '../../modules/local/filter.nf'
 include { PPT_TO_PDF  } from '../../modules/local/ppt_to_pdf'
 include { IGV_REPORT  } from '../../modules/local/igv_report'
-include { IGV_TO_PNG } from '../../modules/local/igv_to_png.nf'
+include { IGV_TO_PNG  } from '../../modules/local/igv_to_png.nf'
+include { MAKE_SLIDES } from '../../modules/local/make_slides.nf'
 
 workflow CAVALIER {
     take:
@@ -46,9 +48,9 @@ workflow CAVALIER {
     
     FILTER(
         filter_input,
+        lists,
         get_filter_opts(),
         cavalier_opts,
-        lists,
         cache_dir_channel()
     )
 
@@ -60,20 +62,29 @@ workflow CAVALIER {
             .combine(pedigree_channel(), by:0)
             .combine(SPLIT_VEP.out.vcf, by:0)
             .combine(bam_channel(), by:0)
-            
     )
  
     IGV_TO_PNG(
         IGV_REPORT.out.individual
     )
 
-    // PPT_TO_PDF(
-    //     REPORT.out.cands.map { [it[0], it[1]] }
-    // )
+    MAKE_SLIDES(    
+        FILTER.out.short_rds
+            .combine(pedigree_channel(), by:0)
+            .combine(IGV_TO_PNG.out, by:0), // fam, vars, ped, igv_imgs
+            lists,
+            get_slide_info(),
+            cavalier_opts,
+            cache_dir_channel()
+    )
 
-    // collect_csv(
-    //     REPORT.out.cands.map { it[2] },
-    //     "snp_candidates.csv"
-    // )
+    PPT_TO_PDF(
+        MAKE_SLIDES.out
+    )
+
+    collect_csv(
+        FILTER.out.short_csv.map {it[1] },
+        'short_candidates.csv'
+    )
 }
 

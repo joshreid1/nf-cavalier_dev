@@ -4,7 +4,6 @@ process IGV_TO_PNG {
     label 'puppeteer'
     maxForks 100
     tag "$fam"
-    publishDir "${params.outdir}/report/$fam/snapshot", mode: 'copy'
     beforeScript "mkdir -p home"
     containerOptions "--overlay \"\$PWD/home\":/home/pptruser"
     /*
@@ -24,7 +23,7 @@ process IGV_TO_PNG {
 
     cmds = reports.collect{
       def id = (it.name =~ /igv_report\.(.*?)\.html/)[0][1]
-      "export_igv_png.js $it ${id} $width $height $scale"
+      "export_igv_png.js $it SID_${id}.VID_ $width $height $scale"
     }.join('\n')
 
 """

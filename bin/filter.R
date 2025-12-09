@@ -118,15 +118,17 @@ MAIN <- function(opts) {
 
   if (!is.null(FC$SHORT)) {
     
+    saveRDS(FC$SHORT, str_c(opts$output, '.short.filtered_variants.rds'))
+    
     FC$SHORT %>% 
       select(where(~ !is.data.frame(.))) %>% 
-      write_tsv(
-        file = str_c(opts$output, '.short.filtered_variants.tsv.gz')
+      write_csv(
+        file = str_c(opts$output, '.short.filtered_variants.csv')
       )
     
-    write_tsv(
+    write_csv(
       .GlobalEnv$.tracking.SHORT$filtered,
-      file = str_c(opts$output, '.short.reason_filtered.tsv.gz')
+      file = str_c(opts$output, '.short.reason_filtered.csv.gz')
     )
     
     FC$SHORT %>% 
@@ -134,7 +136,7 @@ MAIN <- function(opts) {
         CHROM = CHROM, 
         START = POS - 1L,
         END = START + if_else(nchar(ALT) > nchar(REF), 2L, nchar(ALT)),
-        title = str_c(CHROM, POS, REF, ALT, sep = '-'),
+        title = variant_id,
       ) %>% 
       distinct() %>% 
       write_tsv(
@@ -145,29 +147,34 @@ MAIN <- function(opts) {
     cat(nrow(FC$SHORT), file = str_c(opts$output, '.short.count'))
     
   } else {
-    file.create(str_c(opts$output, '.empty.short.filtered_variants.tsv.gz'))
-    file.create(str_c(opts$output, '.empty.short.reason_filtered.tsv.gz'))
+    file.create(str_c(opts$output, '.empty.short.filtered_variants.rds'))
+    file.create(str_c(opts$output, '.empty.short.filtered_variants.csv'))
+    file.create(str_c(opts$output, '.empty.short.reason_filtered.csv.gz'))
     file.create(str_c(opts$output, '.empty.short.igv.bed.gz'))
     cat("0", file = str_c(opts$output, '.short.count'))
   }
   
   if (!is.null(FC$STRUC)) {
+    
+    saveRDS(FC$STRUC, str_c(opts$output, '.struc.filtered_variants.rds'))
+    
     FC$STRUC %>% 
       select(where(~ !is.data.frame(.))) %>% 
-      write_tsv(
-        file = str_c(opts$output, '.struc.filtered_variants.tsv.gz')
+      write_csv(
+        file = str_c(opts$output, '.struc.filtered_variants.csv')
       )
     
-    write_tsv(
+    write_csv(
       .GlobalEnv$.tracking.STRUC$filtered,
-      file = str_c(opts$output, '.struc.reason_filtered.tsv.gz')
+      file = str_c(opts$output, '.struc.reason_filtered.csv.gz')
     )
 
     cat(nrow(FC$STRUC), file = str_c(opts$output, '.struc.count'))
 
   } else {
-    file.create(str_c(opts$output, '.empty.struc.filtered_variants.tsv.gz'))
-    file.create(str_c(opts$output, '.empty.struc.reason_filtered.tsv.gz'))
+    file.create(str_c(opts$output, '.empty.struc.filtered_variants.rds'))
+    file.create(str_c(opts$output, '.empty.struc.filtered_variants.csv'))
+    file.create(str_c(opts$output, '.empty.struc.reason_filtered.csv.gz'))
     cat("0", file = str_c(opts$output, '.struc.count'))
   }
   
@@ -286,7 +293,8 @@ LOAD_SHORT <- function(FILEPATH = NULL, ...) {
       SIFT_score     = str_extract(SIFT    , '(?<=\\()[0-9\\.]+(?=\\)$)') %>% as.numeric(),
       PolyPhen_score = str_extract(PolyPhen, '(?<=\\()[0-9\\.]+(?=\\)$)') %>% as.numeric(),
       # not meaningful for insertions
-      phyloP100 = replace(phyloP100, VARIANT_CLASS == "insertion", NA)      
+      phyloP100 = replace(phyloP100, VARIANT_CLASS == "insertion", NA),
+      variant_id = str_c(CHROM, POS, REF, ALT, sep = '-')
     )
   
   return(

@@ -2,7 +2,7 @@
 process FILTER {
     label 'C2M4T4'
     label 'cavalier'
-    publishDir "${params.outdir}/report/$fam", mode: 'copy'
+    publishDir "${params.outdir}/report/$fam", mode: 'copy', pattern: "*.csv*"
     tag "$fam"
     /*
         - Read TSV formatted variants for a given family
@@ -13,18 +13,22 @@ process FILTER {
 
     input:
     tuple val(fam), path(short_var), path(ped)
+    path(lists)
     val(filter_opts)
     path(cav_opts)
-    path(lists)
     path(cache_dir)
 
     output:
-    tuple val(fam), path("${fam}*.short.filtered_variants.tsv.gz"), emit: short_var
-    tuple val(fam), path("${fam}*.short.igv.bed.gz")              , emit: short_igv
-    tuple val(fam), path("${fam}*.short.count")                   , emit: short_count
-    tuple val(fam), path("${fam}*.struc.filtered_variants.tsv.gz"), emit: struc_var
-    tuple val(fam), path("${fam}*.struc.count")                   , emit: struc_count
-    tuple val(fam), path("${fam}*.reason_filtered.tsv.gz")        , emit: reasons
+    tuple val(fam), path("${fam}*.short.filtered_variants.rds") , emit: short_rds
+    tuple val(fam), path("${fam}*.short.filtered_variants.csv") , emit: short_csv
+    tuple val(fam), path("${fam}*.short.igv.bed.gz")            , emit: short_igv
+    tuple val(fam), path("${fam}*.short.count")                 , emit: short_count
+    tuple val(fam), path("${fam}*.short.reason_filtered.csv.gz"), emit: short_reason
+
+    tuple val(fam), path("${fam}*.struc.filtered_variants.rds") , emit: struc_rds
+    tuple val(fam), path("${fam}*.struc.filtered_variants.csv") , emit: struc_csv
+    tuple val(fam), path("${fam}*.struc.count")                 , emit: struc_count
+    tuple val(fam), path("${fam}*.struc.reason_filtered.csv.gz"), emit: struc_reason
     
     script:
 """
