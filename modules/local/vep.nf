@@ -18,7 +18,7 @@ process VEP {
         tuple val(i), path(vcf_input)
         tuple path(fasta), path(fai)
         path(vep_cache)
-        tuple path(spliceai_snv), path(spliceai_snv_index), path(spliceai_indel), path(spliceai_indel_index)
+        tuple path(spliceai_snv), path(spliceai_snvindex), path(spliceai_indel), path(spliceai_indel_index)
         tuple path(alphamiss), path(alphamiss_index)
         tuple path(revel), path(revel_index)
         path(utr_annotator)

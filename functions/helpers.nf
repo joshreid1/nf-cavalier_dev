@@ -1,5 +1,3 @@
-import java.text.SimpleDateFormat
-import groovy.json.JsonOutput
 
 Path path(filename) {
     file(filename, checkIfExists: true).toAbsolutePath()
@@ -32,7 +30,7 @@ ArrayList<Map> read_csv(Path path, List<String> names ) {
 /* read_csv but with flexible column names and ordering */
 ArrayList<Map> read_csv2(Path path, List<String> req_names, List<String> opt_names ) {
     path.toFile().readLines().with { lines ->
-        names = lines[0].split(',') as ArrayList<String>
+        def names = lines[0].split(',') as ArrayList<String>
         assert req_names.all { names.contains(it) }
         // TODO - check opt_names
         lines.each {assert it.split(',').size() == names.size() }
@@ -43,27 +41,32 @@ ArrayList<Map> read_csv2(Path path, List<String> req_names, List<String> opt_nam
 }
 
 String date_ymd() {
-    date = new Date()
-    sdf = new SimpleDateFormat("yyyy-MM-dd")
+    def date = new Date()
+    def sdf = new java.text.SimpleDateFormat("yyyy-MM-dd")
     sdf.format(date)
 }
 
-void checkMode(mode) {
+def checkMode(mode) {
     if (! mode instanceof String) {
         throw new Exception("ERROR: Mode must be a string")
     }
-    valid_modes = ['short', 'sv']
+    def valid_modes = ['short', 'sv']
     if (! valid_modes.contains(mode)) {
         throw new Exception("ERROR: Mode must be on of: '${valid_modes.join("', '")}'")
     }
 }
 
 def read_ped() {
-    ped = read_tsv(path(params.ped), ['fid', 'iid', 'pid', 'mid', 'sex', 'phe'])
+    def ped
+    if (params.ped) {
+        ped = read_tsv(path(params.ped), ['fid', 'iid', 'pid', 'mid', 'sex', 'phe'])
+    } else {
+        ped = read_bams().collect { it -> [fid: it.iid, iid: it.iid, pid: '0', mid: '0', sex: '0', phe: '2'] }
+    }
     
-    ped_families = ped.collect { it.fid }.unique()
+    def ped_families = ped.collect { it.fid }.unique()
     
-    fam_w_aff = ped
+    def fam_w_aff = ped
         .groupBy { it.fid }
         .collect { k, v -> [
             k, v.findAll {it.phe == '2'}.collect {it.iid} ] 
@@ -75,11 +78,11 @@ def read_ped() {
         throw new Exception("No affected individuals in pedigree")
     }
     
-    fam_wo_aff = ped_families - fam_w_aff
+    def fam_wo_aff = ped_families - fam_w_aff
     
     if (fam_wo_aff.size() > 0) {
-        n = fam_wo_aff.size()
-        fams =  n > 5 ? fam_wo_aff[0..4] + ['...'] : fam_wo_aff
+        def n = fam_wo_aff.size()
+        def fams =  n > 5 ? fam_wo_aff[0..4] + ['...'] : fam_wo_aff
         println "WARNING: $n famil${n > 1 ? 'ies':'y'} with no affected members will be excluded: ${fams.join(', ')}"
     }
 
@@ -90,15 +93,35 @@ def read_bams() {
     read_tsv(path(params.bams), ['iid', 'bam'])
 }
 
+def get_external_lists() {
+    def lists_list = params.lists.split(',') as ArrayList
+    def reg1 = /^(HP|PA[A-Z]+|HGNC|G4E|chr):.*/
+    def reg2 = /^[^:]+:[0-9]+-[0-9]+$/
+    lists_list.findAll { it ==~ reg1 ||  it ==~ reg2 }
+}
+
+def get_local_lists() {
+    def lists_list = params.lists.split(',') as ArrayList
+    def reg1 = /^(HP|PA[A-Z]+|HGNC|G4E|chr):.*/
+    def reg2 = /^[^:]+:[0-9]+-[0-9]+$/
+    def loc = lists_list.findAll { !(it ==~ reg1) }.findAll { !(it ==~ reg2) }
+    if (loc) {
+        Channel.value(loc.collect { path(it) })
+    } else {
+        Channel.value(path("$projectDir/misc/dummy/local_list"))
+    }
+}
+
+
 def list_channels() {
 
     if (params.lists == null) {
         error("params.lists must not be null")
     }
-    lists_list = params.lists.split(',') as ArrayList
-    regex = /(HP|PA[A-Z]+|HGNC|G4E):.*/
-    web = lists_list.findAll { it ==~ regex }
-    local =  lists_list.findAll { !(it ==~ regex) }
+    def lists_list = params.lists.split(',') as ArrayList
+    def regex = /(HP|PA[A-Z]+|HGNC|G4E):.*/
+    def web = lists_list.findAll { it ==~ regex }
+    def local =  lists_list.findAll { !(it ==~ regex) }
 
     [ 
        (web ? Channel.fromList(web) : null),
@@ -107,18 +130,18 @@ def list_channels() {
 }
 
 def ref_fa_channel() {
-    ref_fa = path(params.ref_fasta)
-    ref_fai = path(params.ref_fasta + '.fai')
+    def ref_fa = path(params.ref_fasta)
+    def ref_fai = path(params.ref_fasta + '.fai')
     Channel.value([ref_fa, ref_fai])
 }
 
 def ref_data_channel() {
-    ref_fa = path(params.ref_fasta)
-    ref_fai = path(params.ref_fasta + '.fai')
-    gaps = params.ref_hg38 ?
+    def ref_fa = path(params.ref_fasta)
+    def ref_fai = path(params.ref_fasta + '.fai')
+    def gaps = params.ref_hg38 ?
         path("${workflow.projectDir}/data/hg38.gaps.bed.gz") :
         path("${workflow.projectDir}/data/hg19.gaps.bed.gz")
-    vep_cache = path(params.vep_cache)
+    def vep_cache = path(params.vep_cache)
     Channel.value([ref_fa, ref_fai, gaps, vep_cache])
 }
 
@@ -136,7 +159,7 @@ def ref_gene_channel() {
 
 def families_aff_un() {
 
-    fam_af_un = read_ped()
+    def fam_af_un = read_ped()
         .groupBy { it.fid }
         .collect { k, v -> [
             k,
@@ -148,23 +171,35 @@ def families_aff_un() {
     
 }
 
-def get_report_conf() {
-    def snv_conf = params
-        .keySet()
-        .findAll{ it.startsWith('snv_report_') }
-        .collectEntries { key -> [(key.replace('snv_report_', '')): params[key]] }
-    
-    def report_conf = [snv: snv_conf]
-
-    report_conf
+def get_cavalier_opts() {
+    def cav_opts = (params.cavalier_options ?: [:]) + [cache_dir: params.cavalier_cache_dir]
+    groovy.json.JsonOutput.prettyPrint(
+          groovy.json.JsonOutput.toJson(cav_opts)
+    )
 }
-    
+
+def get_filter_opts() {
+    def filter_opts = params.findAll { k, v -> k.startsWith('FILTER_') && v != null }
+    groovy.json.JsonOutput.prettyPrint(
+          groovy.json.JsonOutput.toJson(filter_opts)
+    )
+}
+
+def get_slide_info() {
+    def info = [
+        SHORT: params.SLIDE_INFO_SHORT,
+        STRUC: params.SLIDE_INFO_STRUC
+    ]
+    groovy.json.JsonOutput.prettyPrint(
+          groovy.json.JsonOutput.toJson(info)
+    )
+}
 
 def collect_csv(csv_channel, filename) {
     
     def split_csv = csv_channel.splitCsv(header: true)
 
-    def result = split_csv
+    split_csv
         .first()
         .map { (it.keySet() as List).join(',') }
         .concat(
@@ -180,4 +215,12 @@ def collect_csv(csv_channel, filename) {
             sort: false,
             cache: false
         )
+}
+
+def short_enabled() {
+    params.short_vcf ? true : params.short_vcf_annotated ? true : false
+}
+
+def sv_enabled() {
+    params.sv_vcf ? true : params.sv_vcf_annotated ? true : false
 }

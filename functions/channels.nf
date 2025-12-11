@@ -80,10 +80,10 @@ def bam_channel() {
 }
 
 def cache_dir_channel() {
-    if (params.cavalier_options.cache_dir) {
-        Channel.value(make_path(params.cavalier_options.cache_dir))
+    if (params.cavalier_cache_dir) {
+        Channel.value(make_path(params.cavalier_cache_dir))
     } else {
-        throw new Exception("Please define params.cavalier_options.cache_dir")
+        throw new Exception("Please define params.cavalier_cache_dir")
     }
 }
 

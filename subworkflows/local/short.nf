@@ -13,29 +13,23 @@ include { get_vep_cache       } from '../../functions/vep_helpers'
 /* ----------- processes ----------------*/
 include { SCATTER      } from '../../modules/local/scatter'
 include { CLEAN        } from '../../modules/local/clean'
-include { VCFANNO_CONF } from '../../modules/local/vcfanno_conf'
 include { VCFANNO      } from '../../modules/local/vcfanno'
-include { FILTER       } from '../../modules/local/filter'
 include { VEP          } from '../../modules/local/vep'
 include { GATHER       } from '../../modules/local/gather'
 
-workflow SNV {
+workflow SHORT {
     take: 
     vcf
+    vcfanno_binary
 
     main:
     /*
-        - Preprocess and annotate SNV/INDEL variants
+        - Preprocess and annotate SHORT/INDEL variants
     */
-    if (params.snv_vcfanno) {
-        VCFANNO_CONF(
-            get_vcfanno_conf()
-        )
-    }
 
     SCATTER(
         vcf,
-        params.snv_n_shards
+        params.short_n_shards
     )
 
     vcf_shards = SCATTER.out.flatMap().map{ [((it.name =~ /(?<=\.shard\.)([0-9]+)/)[0][1]), it] }
@@ -45,23 +39,16 @@ workflow SNV {
         ref_fasta_channel()
     )
 
-    if (params.snv_vcfanno) {
+    if (params.short_vcfanno) {
 
         VCFANNO(
             CLEAN.out,
-            VCFANNO_CONF.out,
-            get_vcfanno_files()
+            get_vcfanno_conf(),
+            get_vcfanno_files(),
+            vcfanno_binary
         )
 
-        if (params.snv_vcfanno_filter) {
-            FILTER(
-                VCFANNO.out,
-                params.snv_vcfanno_filter
-            )
-            vep_input = FILTER.out
-        } else {
-            vep_input = VCFANNO.out
-        }
+        vep_input = VCFANNO.out
 
     } else {
         vep_input = CLEAN.out.map{ [it[0], it[1]] }

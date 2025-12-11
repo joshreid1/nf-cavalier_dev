@@ -8,10 +8,12 @@ include { families_aff_un } from '../../functions/helpers'
 include { SAMPLES } from '../../modules/local/samples'
 
 
-workflow CHECK {
+workflow CHECK_VCF {
     /*
         - CHECK that VCF samples line up with pedigree and bam input samples
         - Error if there is no work to be done
+        - TODO - accept one or both of VCFs, check consistent sample set
+        - TODO - move to Rscript for more flexibility?
     */
     take:
     vcf_channel
@@ -38,7 +40,7 @@ workflow CHECK {
           } \
         | filter { it[1].size() > 0 } \
         | map { warn, sm ->
-            n = sm.size()
+            def n = sm.size()
             sm = n > 5 ? sm[0..4] + ['...'] : sm
             println "WARNING: $n sample${n > 1 ? 's':''} $warn: ${sm.join(', ')}"
         }
@@ -47,7 +49,7 @@ workflow CHECK {
     vcf_output = vcf_channel
         .combine(vcf_samples.map {[it]})
         .map { vcf, tbi, samples ->
-            complete = samples.intersect(bam_samples).intersect(ped_samples)
+            def complete = samples.intersect(bam_samples).intersect(ped_samples)
             if (complete.size() == 0) {
                 throw new Exception("ERROR: No samples to process in $set VCF")
             }

@@ -23,13 +23,13 @@ process CLEAN {
     output = vcf.name.replace('.vcf.gz', '.clean.vcf.gz')
     // decrease VCF size by dropping unused fields
     remove = 'QUAL,FILTER' +
-        (params.snv_info    ? ',^' + params.snv_info  .collect{ "INF/$it" }.join(',') : '') +
-        (params.snv_format  ? ',^' + params.snv_format.collect{ "FMT/$it" }.join(',') : '')
+        (params.short_info    ? ',^' + params.short_info  .collect{ "INF/$it" }.join(',') : '') +
+        (params.short_format  ? ',^' + params.short_format.collect{ "FMT/$it" }.join(',') : '')
     """
-    bcftools view $vcf --no-version -Ou ${params.snv_vcf_filter ? "-f  '$params.snv_vcf_filter'": ''} \\
+    bcftools view $vcf --no-version -Ou ${params.short_vcf_filter ? "-f  '$params.short_vcf_filter'": ''} \\
         | bcftools annotate --no-version -Ou --remove '$remove' \\
         | bcftools norm --no-version -Ou -m-any -f $ref \\
-        ${params.snv_fill_tags ? '| bcftools +fill-tags --no-version -Ou -- -t AC,AF,AN' : ''} \\
+        ${params.short_fill_tags ? '| bcftools +fill-tags --no-version -Ou -- -t AC,AF,AN' : ''} \\
         | bcftools view -e 'AF=0 || ALT="*"' --no-version -Oz -o $output --write-index=tbi
     """
 }
