@@ -43,8 +43,10 @@ workflow CAVALIER {
         CHECK_VCF.out.families
     )
 
+    pedigree = pedigree_channel()
+
     filter_input = SPLIT_VEP.out.tsv // fam, tsv
-        .combine(pedigree_channel(), by: 0) //fam, tsv, ped
+        .combine(pedigree, by: 0) //fam, tsv, ped
         // .combine(bam_channel()     , by: 0) // fam, tsv, bed, [sam], [bam], [bai]
     
     FILTER(
@@ -60,7 +62,7 @@ workflow CAVALIER {
     IGV_REPORT(
         FILTER.out.short_igv
             .combine(short_count.filter{it[1] > 0}.map{it[0]}, by:0)
-            .combine(pedigree_channel(), by:0)
+            .combine(pedigree, by:0)
             .combine(SPLIT_VEP.out.vcf, by:0)
             .combine(bam_channel(), by:0)
     )
@@ -71,7 +73,7 @@ workflow CAVALIER {
 
     MAKE_SLIDES(    
         FILTER.out.short_rds
-            .combine(pedigree_channel(), by:0)
+            .combine(pedigree, by:0)
             .combine(IGV_TO_PNG.out, by:0), // fam, vars, ped, igv_imgs
             lists,
             get_slide_info(),

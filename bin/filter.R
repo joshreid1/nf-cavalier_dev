@@ -42,7 +42,7 @@ stopifnot(
 #   FILTER_SHORT_CLINVAR_ANYWHERE = TRUE,
 #   # Clingen PP3 supporting  doi: 10.1016/j.ajhg.2022.10.013
 #   FILTER_SHORT_LOF              = TRUE,
-#   FILTER_SHORT_MISSENCE         = TRUE,
+#   FILTER_SHORT_MISSENSE         = TRUE,
 #   FILTER_SHORT_SPLICING         = TRUE,
 #   FILTER_SHORT_MIN_CADD_PP      = 25.3,
 #   # Clingen PP3 supporting https://doi.org/10.1016/j.ajhg.2023.06.002
@@ -462,7 +462,7 @@ FILTER_SHORT_TYPE <- function(VARIANTS) {
   )
   
   FILTER_SHORT_LOF      <- getOption('FILTER_SHORT_LOF'     , TRUE)
-  FILTER_SHORT_MISSENCE <- getOption('FILTER_SHORT_MISSENCE', TRUE)
+  FILTER_SHORT_MISSENSE <- getOption('FILTER_SHORT_MISSENSE', TRUE)
   FILTER_SHORT_SPLICING <- getOption('FILTER_SHORT_SPLICING', TRUE)
   
   FILTER_SHORT_CLINVAR_KEEP_PAT <- getOption('FILTER_SHORT_CLINVAR_KEEP_PAT', '$.')
@@ -496,7 +496,7 @@ FILTER_SHORT_TYPE <- function(VARIANTS) {
         ) ~ 'LOF',
         ########### MISSENSE ########### 
         (
-          FILTER_SHORT_MISSENCE &
+          FILTER_SHORT_MISSENSE &
             str_detect(Consequence, "missense")
         ) ~ 'MISSENSE',
         ############# SPLICING ########### 

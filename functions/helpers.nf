@@ -57,7 +57,12 @@ def checkMode(mode) {
 }
 
 def read_ped() {
-    def ped = read_tsv(path(params.ped), ['fid', 'iid', 'pid', 'mid', 'sex', 'phe'])
+    def ped
+    if (params.ped) {
+        ped = read_tsv(path(params.ped), ['fid', 'iid', 'pid', 'mid', 'sex', 'phe'])
+    } else {
+        ped = read_bams().collect { it -> [fid: it.iid, iid: it.iid, pid: '0', mid: '0', sex: '0', phe: '2'] }
+    }
     
     def ped_families = ped.collect { it.fid }.unique()
     

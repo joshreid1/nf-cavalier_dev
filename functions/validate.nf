@@ -21,16 +21,16 @@ def validate_params() {
         throw new Exception("ERROR: Must specify at least one of 'params.short_vcf' or 'params.sv_vcf'")
     }
 
-    if (!params.ped) {
-        throw new Exception("ERROR: Must specify 'params.ped'")
-    }
-
     if (!params.bams) {
         throw new Exception("ERROR: Must specify 'params.bams'")
     }
 
     if (!params.lists) {
         throw new Exception("ERROR: Must specify 'params.lists'")
+    }
+
+    if (!params.ped) {
+        log.info("WARNING: params.ped not defined, generating uniformative pedigree\n")
     }
 
     /*
