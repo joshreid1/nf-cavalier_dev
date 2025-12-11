@@ -20,6 +20,7 @@ include { GATHER       } from '../../modules/local/gather'
 workflow SHORT {
     take: 
     vcf
+    vcfanno_binary
 
     main:
     /*
@@ -44,7 +45,7 @@ workflow SHORT {
             CLEAN.out,
             get_vcfanno_conf(),
             get_vcfanno_files(),
-            file(params.vcfanno_binary)
+            vcfanno_binary
         )
 
         vep_input = VCFANNO.out

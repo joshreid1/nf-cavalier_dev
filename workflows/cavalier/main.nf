@@ -23,6 +23,7 @@ include { MAKE_SLIDES } from '../../modules/local/make_slides.nf'
 
 workflow CAVALIER {
     take:
+    gene_set
     lists
     cavalier_opts
     short_vcf
@@ -48,7 +49,7 @@ workflow CAVALIER {
     
     FILTER(
         filter_input,
-        lists,
+        gene_set,
         get_filter_opts(),
         cavalier_opts,
         cache_dir_channel()

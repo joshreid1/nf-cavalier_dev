@@ -1,6 +1,6 @@
 
 process SCATTER {
-    label 'C4M4T1'
+    label 'C4M4T2'
     label 'biopython'
     /*
         - Split VCF into pieces by using TBI index

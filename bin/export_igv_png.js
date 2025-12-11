@@ -9,7 +9,7 @@ async function sleep(ms) {
 }
 
 // ---------------------------------------------------------------------------
-// NEW: robust wait-for-download helper
+// robust wait-for-PNG helper
 // ---------------------------------------------------------------------------
 async function waitForPNG(dir, timeout = 30000) {
     const targetFile = 'igvjs.png';
@@ -103,7 +103,7 @@ async function waitForPNG(dir, timeout = 30000) {
     console.log(`Found ${variants.length} variants.`);
 
     // -----------------------------------------------------------------------
-    //   FUNCTION: Trigger Save → Save as PNG (patched)
+    //   FUNCTION: Trigger Save → Save as PNG 
     // -----------------------------------------------------------------------
     async function savePNG(variantID) {
 

@@ -13,7 +13,7 @@ process FILTER {
 
     input:
     tuple val(fam), path(short_var), path(ped)
-    path(lists)
+    path(gene_set)
     val(filter_opts)
     path(cav_opts)
     path(cache_dir)
@@ -34,7 +34,7 @@ process FILTER {
 """
 cat > filter_options.json <<< '${filter_opts}'
 
-filter.R $ped ${lists.join(',')} filter_options.json \\
+filter.R $ped $gene_set filter_options.json \\
     --short-var $short_var \\
     --output $fam \\
     --cav-opts $cav_opts

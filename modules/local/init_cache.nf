@@ -1,6 +1,6 @@
 
 process INIT_CACHE {
-    label 'C1M1T1'
+    label 'C2M2T2'
     label 'cavalier'
     tag "$date_ymd"
     
@@ -12,14 +12,25 @@ process INIT_CACHE {
     val(date_ymd)
     val(cav_opts)
     path(cache_dir)
+    path(local_lists)
+    val(external_lists)
 
     output: 
-    path('cavalier_options.cache.json')
+    path('cavalier_options.*.json'), emit: options
+    path('output/*')               , emit: genes
 
     script:
+    def lists = ""
+    if (local_lists[0].name != 'local_list') {
+        lists = "${local_lists.join(',')}"
+    }
+    if (external_lists) {
+        lists = "$lists${lists ? ',': ''}${external_lists.join(',')}"
+    }
+
 """
 cat > cavalier_options.json <<< '${cav_opts}'
 
-cavalier_init_cache.R cavalier_options.json cavalier_options.cache.json
+init_cache.R cavalier_options.json $lists
 """
 }

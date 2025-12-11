@@ -10,6 +10,9 @@ workflow ANNOTATE {
     /*
         - Clean and Annotate VCFs prior to cavalier
     */
+    take:
+    vcfanno_binary
+    
     main:
     short_vcf = Channel.empty()
     struc_vcf = Channel.empty() // TODO: SVs
@@ -20,7 +23,8 @@ workflow ANNOTATE {
 
     } else if (params.short_vcf) {
         SHORT(
-            vcf_channel(params.short_vcf)
+            vcf_channel(params.short_vcf),
+            vcfanno_binary
         )
         short_vcf = SHORT.out
     }

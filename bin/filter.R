@@ -81,24 +81,9 @@ MAIN <- function(opts) {
   
   pedigree <- cavalier::read_ped(opts$ped)
   
-  ############## CHECK GENE LIST ###############
-  
-  gene_list <- 
-    c(str_split(opts$gene_lists, ',', simplify = T)) %>% 
-    map_df(read_tsv, col_types = cols(.default = col_character()))
-  
-  stopifnot(
-    'ensembl_gene_id' %in% colnames(gene_list),
-    nrow(filter(gene_list, !is.na(ensembl_gene_id))) > 0
-  )
-  
-  if (nrow(filter(gene_list, is.na(ensembl_gene_id)))) {
-    warning('Excluded ', nrow(filter(gene_list, is.na(ensembl_gene_id))), ' entries from Gene list with missing ensembl_gene_id')
-  }
-  
-  gene_set <- unique(na.omit(gene_list$ensembl_gene_id))
+  ##############  GENE LIST ###############
+  gene_set <- unique(na.omit(read_lines(opts$gene_set)))
   message('Searching for variants in ', length(gene_set), ' genes')
-
   
   ########## SHORT VARS #################
   short_cand <- LOAD_AND_FILTER_SHORT(
@@ -280,7 +265,7 @@ LOAD_SHORT <- function(FILEPATH = NULL, ...) {
       CLNSIG = if_else(CLNSIG_GENE_MATCH(CLNGENE, SYMBOL, Gene), CLNSIG, NA_character_),
       AN = AN - (GT %>% mutate_all(~ str_count(., '[01]')) %>% rowSums(na.rm = TRUE)),
       AC = AC - (GT %>% mutate_all(~ str_count(., '[1]')) %>% rowSums(na.rm = TRUE)),
-      AF = AC / AN,
+      AF = replace_na(AC / AN, 0),
       # useful for filtering
       pop_AF = pmax(replace_na(gnomad_AF, 0), replace_na(gnomad_FAF95, 0)),
       pop_AC =  replace_na(gnomad_AC, 0),
@@ -370,14 +355,18 @@ TRACK_REASON <- function(data, reason = NA_character_, init=FALSE, set = 'SHORT'
     env <- .GlobalEnv[[env_name]]
     env$filtered <- tibble()
     env$prev <- data
+    env$step <- 0L
     message('Initial short Gene-Variants: n=', nrow(data))
   } else{
     env <- .GlobalEnv[[env_name]]
+    env$step <- env$step + 1L
+    
     new_flt <- 
       select(env$prev, all_of(keys)) %>% 
       anti_join(data, by = keys) %>% 
-      mutate(REASON = reason) %>% 
+      mutate(REASON = reason, STEP = env$step) %>% 
       distinct()
+    
     env$filtered <-
       bind_rows(
         env$filtered,
@@ -696,11 +685,11 @@ PRINT_STR <- function(x) {
 
 doc <- "
 Usage:
-  filter.R <ped> <gene_lists> <options> ... [options]
+  filter.R <ped> <gene_set> <options> ... [options]
 
 Options:
   ped                         Pedigree file.
-  gene_lists                  Comma serparated list of gene list filenames.
+  gene_set                    File container ensembl gene ids of intererst.
   options                     Filter options Json file.
   --short-var=<TSV>           Short Variants TSV input.
   --struc-var=<TSV>           Structural Variants TSV input.

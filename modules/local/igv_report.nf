@@ -1,6 +1,6 @@
 
 process IGV_REPORT {
-    label 'C2M2T2'
+    label 'C4M4T2'
     label 'igvreports'
     tag "$fam"
     publishDir "${params.outdir}/report/$fam", mode: 'copy', pattern: '*.igv_report.html'
@@ -19,25 +19,20 @@ process IGV_REPORT {
 
     script:
     output = "${fam}.igv_report.html"
+
+    // paralellise cmds with xargs
+    def cmds = [
+        "create_report $sites --genome hg38 --flanking 250 --tracks ${fam}.vcf.gz ${bams.join(' ')} --output $output"
+    ] +
+    [ids, bams].transpose().collect{ id, bam ->
+        "create_report $sites --genome hg38 --standalone --flanking 100 --tracks $bam --output ${fam}.igv_report.${id}.html"
+    }
     """
     ln -s $vcf ${fam}.vcf.gz
     ln -s $tbi ${fam}.vcf.gz.tbi
 
-    create_report $sites \\
-        --genome hg38 \\
-        --flanking 250 \\
-        --tracks ${fam}.vcf.gz $bams \\
-        --output $output
-
-    IDS=(${ids.join(' ')})
-    BAM=($bams)
-    for i in "\${!IDS[@]}"; do
-    create_report $sites \\
-        --standalone \\
-        --genome hg38 \\
-        --flanking 100 \\
-        --tracks \${BAM[\$i]} \\
-        --output "${fam}.igv_report.\${IDS[\$i]}.html"
-    done
+    cat > cmds <<< '${cmds.join('\n')}'
+    
+    cat cmds | xargs -I {} -P $task.cpus /bin/bash -c "{}"
     """
 }

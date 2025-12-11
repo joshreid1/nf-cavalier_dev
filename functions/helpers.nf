@@ -1,3 +1,4 @@
+
 Path path(filename) {
     file(filename, checkIfExists: true).toAbsolutePath()
 }
@@ -86,6 +87,26 @@ def read_ped() {
 def read_bams() {
     read_tsv(path(params.bams), ['iid', 'bam'])
 }
+
+def get_external_lists() {
+    def lists_list = params.lists.split(',') as ArrayList
+    def reg1 = /^(HP|PA[A-Z]+|HGNC|G4E|chr):.*/
+    def reg2 = /^[^:]+:[0-9]+-[0-9]+$/
+    lists_list.findAll { it ==~ reg1 ||  it ==~ reg2 }
+}
+
+def get_local_lists() {
+    def lists_list = params.lists.split(',') as ArrayList
+    def reg1 = /^(HP|PA[A-Z]+|HGNC|G4E|chr):.*/
+    def reg2 = /^[^:]+:[0-9]+-[0-9]+$/
+    def loc = lists_list.findAll { !(it ==~ reg1) }.findAll { !(it ==~ reg2) }
+    if (loc) {
+        Channel.value(loc.collect { path(it) })
+    } else {
+        Channel.value(path("$projectDir/misc/dummy/local_list"))
+    }
+}
+
 
 def list_channels() {
 
