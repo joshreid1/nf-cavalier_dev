@@ -14,15 +14,13 @@ process IGV_REPORT {
     tuple val(fam), path(sites), path(ped), path(vcf), path(tbi), val(ids), path(bams), path(bais)
 
     output:
-    tuple val(fam), path(output)                    , emit: combined
+    tuple val(fam), path("${fam}.igv_report.html")  , emit: combined
     tuple val(fam), path("${fam}.igv_report.*.html"), emit: individual
 
     script:
-    output = "${fam}.igv_report.html"
-
     // paralellise cmds with xargs
     def cmds = [
-        "create_report $sites --genome hg38 --flanking 250 --tracks ${fam}.vcf.gz ${bams.join(' ')} --output $output"
+        "create_report $sites --genome hg38 --flanking 250 --tracks ${fam}.vcf.gz ${bams.join(' ')} --output ${fam}.igv_report.html"
     ] +
     [ids, bams].transpose().collect{ id, bam ->
         "create_report $sites --genome hg38 --standalone --flanking 100 --tracks $bam --output ${fam}.igv_report.${id}.html"

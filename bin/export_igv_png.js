@@ -15,16 +15,22 @@ async function waitForPNG(dir, timeout = 30000) {
     const targetFile = 'igvjs.png';
     const filePath = path.join(dir, targetFile);
     const start = Date.now();
+    const minSize = 1000; // Minimum 1KB to be considered valid
 
-    // Check immediately and then poll
     while (Date.now() - start < timeout) {
         if (fs.existsSync(filePath)) {
-            return targetFile; // Returns 'igvjs.png' as requested
+            // Wait a bit more to ensure write is complete
+            await sleep(500);
+            const stats = fs.statSync(filePath);
+            if (stats.size > minSize) {
+                return targetFile;
+            }
+            console.log(`   ⚠ PNG exists but too small (${stats.size} bytes), waiting...`);
         }
         await sleep(100);
     }
 
-    return null; // Timed out
+    return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -57,7 +63,8 @@ async function waitForPNG(dir, timeout = 30000) {
         args: [
             "--no-sandbox",
             "--disable-setuid-sandbox",
-            "--allow-file-access-from-files"
+            "--allow-file-access-from-files",
+            "--disable-dev-shm-usage"  // Helps with shared memory issues
         ]
     });
 
@@ -103,41 +110,63 @@ async function waitForPNG(dir, timeout = 30000) {
     console.log(`Found ${variants.length} variants.`);
 
     // -----------------------------------------------------------------------
-    //   FUNCTION: Trigger Save → Save as PNG 
+    //   FUNCTION: Trigger Save → Save as PNG with RETRY
     // -----------------------------------------------------------------------
-    async function savePNG(variantID) {
+    async function savePNG(variantID, retries = 2) {
+        for (let attempt = 0; attempt <= retries; attempt++) {
+            try {
+                if (attempt > 0) {
+                    console.log(`   Retry attempt ${attempt} for ${variantID}`);
+                    await sleep(1000); // Wait before retry
+                }
 
-        await page.evaluate(() => {
-            const root = document.querySelector("#igvDiv").shadowRoot;
-            const btn = root.querySelector('div[title="Save Image"]');
-            // const btn = root.querySelector('.igv-navbar-icon-button[title="Save Image"]');
-            ["pointerdown", "mousedown", "pointerup", "mouseup", "click"].forEach(ev =>
-                btn.dispatchEvent(new Event(ev, { bubbles: true, composed: true }))
-            );
-        });
+                await page.evaluate(() => {
+                    const root = document.querySelector("#igvDiv").shadowRoot;
+                    const btn = root.querySelector('div[title="Save Image"]');
+                    ["pointerdown", "mousedown", "pointerup", "mouseup", "click"].forEach(ev =>
+                        btn.dispatchEvent(new Event(ev, { bubbles: true, composed: true }))
+                    );
+                });
 
-        await page.waitForFunction(() => {
-            const root = document.querySelector("#igvDiv").shadowRoot;
-            return !!root.querySelector(".igv-ui-dropdown");
-        });
+                await page.waitForFunction(() => {
+                    const root = document.querySelector("#igvDiv").shadowRoot;
+                    return !!root.querySelector(".igv-ui-dropdown");
+                }, { timeout: 5000 });
 
-        await page.evaluate(() => {
-            const root = document.querySelector("#igvDiv").shadowRoot;
-            const pngItem = [...root.querySelectorAll(".igv-ui-dropdown div div")]
-                .find(el => el.textContent.trim() === "Save as PNG");
+                await page.evaluate(() => {
+                    const root = document.querySelector("#igvDiv").shadowRoot;
+                    const pngItem = [...root.querySelectorAll(".igv-ui-dropdown div div")]
+                        .find(el => el.textContent.trim() === "Save as PNG");
 
-            ["pointerdown", "mousedown", "pointerup", "mouseup", "click"].forEach(ev =>
-                pngItem.dispatchEvent(new Event(ev, { bubbles: true, composed: true }))
-            );
-        });
+                    ["pointerdown", "mousedown", "pointerup", "mouseup", "click"].forEach(ev =>
+                        pngItem.dispatchEvent(new Event(ev, { bubbles: true, composed: true }))
+                    );
+                });
 
-        const downloaded = await waitForPNG(outDir, 30000);
-        if (!downloaded) {
-            throw new Error(`PNG did not appear in ${outDir} after saving ${variantID}`);
+                const downloaded = await waitForPNG(outDir, 30000);
+                if (!downloaded) {
+                    throw new Error(`PNG did not appear or was too small`);
+                }
+
+                const finalName = path.join(outDir, `${prefix}${variantID}.png`);
+                
+                // Verify file before rename
+                const stats = fs.statSync(downloaded);
+                if (stats.size < 1000) {
+                    fs.unlinkSync(downloaded); // Clean up bad file
+                    throw new Error(`PNG file too small (${stats.size} bytes)`);
+                }
+                
+                fs.renameSync(downloaded, finalName);
+                return; // Success!
+
+            } catch (err) {
+                if (attempt === retries) {
+                    console.error(`   ✖ Failed to save ${variantID} after ${retries + 1} attempts: ${err.message}`);
+                    throw err;
+                }
+            }
         }
-
-        const finalName = path.join(outDir, `${prefix}${variantID}.png`);
-        fs.renameSync(downloaded, finalName);
     }
 
     // -----------------------------------------------------------------------
@@ -163,7 +192,7 @@ async function waitForPNG(dir, timeout = 30000) {
         console.log(`→ Selecting variant: ${v.id}`);
 
         await clickVariantRow(v.rowIndex);
-        await sleep(100);   // give IGV time to render new region
+        await sleep(500);   // Increased wait time for IGV rendering
         
         console.log("   Saving PNG…");
         await savePNG(v.id);

@@ -434,7 +434,7 @@ FILTER_GENE <- function(VARIANTS, GENE_SET, set = 'SHORT') {
             !Gene %in% GENE_SET,
             str_detect(CLNSIG, FILTER_SHORT_CLINVAR_KEEP_PAT)
           )
-        
+        print(VARIANTS_CLNSIG)
         if (nrow(VARIANTS_CLNSIG)) {
           message('Retaining ', nrow(VARIANTS_CLNSIG), ' variants outside gene list due to ClinVar significance')
         }
@@ -605,7 +605,7 @@ FILTER_INHERITANCE <- function(VARIANTS, PEDIGREE, set = 'SHORT') {
             pop_hom < pop_rec_max_hom &
             AF      < coh_rec_max_af &
             AC      < coh_rec_max_ac 
-        ) ~ 'dominant',
+        ) ~ 'recessive',
         ( 
           inheritance == 'dominant' &
             pop_AF  < pop_rec_max_af &
