@@ -419,34 +419,19 @@ FILTER_GENE <- function(VARIANTS, GENE_SET, set = 'SHORT') {
     is.data.frame(VARIANTS),
     is.character(GENE_SET)
   )
-  
+
+  FILTER_SHORT_CLINVAR_KEEP_PAT <- '$.' # never TRUE
+  FILTER_SHORT_CLINVAR_ANYWHERE <- getOption('FILTER_SHORT_CLINVAR_ANYWHERE', FALSE)
+  if (FILTER_SHORT_CLINVAR_ANYWHERE) {
+    FILTER_SHORT_CLINVAR_KEEP_PAT <- getOption('FILTER_SHORT_CLINVAR_KEEP_PAT', '$.')
+  }
+
   VARIANTS_OUT <-
     VARIANTS %>%
-    filter(Gene %in% GENE_SET)
-  
-  if (set == 'SHORT') {
-    if (getOption('FILTER_SHORT_CLINVAR_ANYWHERE', FALSE)) {
-      FILTER_SHORT_CLINVAR_KEEP_PAT <- getOption('FILTER_SHORT_CLINVAR_KEEP_PAT')
-      if (is.character(FILTER_SHORT_CLINVAR_KEEP_PAT)) {
-        VARIANTS_CLNSIG <- 
-          VARIANTS %>% 
-          filter(
-            !Gene %in% GENE_SET,
-            str_detect(CLNSIG, FILTER_SHORT_CLINVAR_KEEP_PAT)
-          )
-        
-        if (nrow(VARIANTS_CLNSIG)) {
-          message('Retaining ', nrow(VARIANTS_CLNSIG), ' variants outside gene list due to ClinVar significance')
-        }
-        
-        VARIANTS_OUT <-
-          bind_rows(
-            VARIANTS_OUT,
-            VARIANTS_CLNSIG
-          )
-      }
-    }
-  }
+    filter(
+      Gene %in% GENE_SET |
+        str_detect(CLNSIG, FILTER_SHORT_CLINVAR_KEEP_PAT)
+    )
   
   return(
     VARIANTS_OUT %>% TRACK_REASON(str_c('FILTER_GENE(', set, ')'))
@@ -547,7 +532,9 @@ FILTER_INHERITANCE <- function(VARIANTS, PEDIGREE, set = 'SHORT') {
   coh_rec_max_af  <- getOption(str_c('FILTER_', set, '_COH_REC_MAX_AF') , Inf)
   coh_dom_max_ac  <- getOption(str_c('FILTER_', set, '_COH_DOM_MAX_AC') , Inf)
   coh_rec_max_ac  <- getOption(str_c('FILTER_', set, '_COH_REC_MAX_AC') , Inf)
-  
+
+  FILTER_SHORT_CLINVAR_KEEP_PAT <- getOption('FILTER_SHORT_CLINVAR_KEEP_PAT', '$.')
+
   VARIANTS_OUT <-
     VARIANTS %>% 
     mutate(
@@ -614,7 +601,15 @@ FILTER_INHERITANCE <- function(VARIANTS, PEDIGREE, set = 'SHORT') {
             AF      < coh_rec_max_af &
             AC      < coh_rec_max_ac 
         ) ~ 'compound',
-          
+        # Retain ClinVar pathogenic regardless of allele frequencies
+        (
+          inheritance == 'dominant' &
+            str_detect(CLNSIG, FILTER_SHORT_CLINVAR_KEEP_PAT)
+        ) ~ 'dominant',
+        (
+          inheritance == 'recessive' &
+            str_detect(CLNSIG, FILTER_SHORT_CLINVAR_KEEP_PAT)
+        ) ~ 'recessive', 
       )
     ) %>% 
     filter(!is.na(inheritance))

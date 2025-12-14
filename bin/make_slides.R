@@ -217,7 +217,7 @@ MAIN <- function(opts) {
     distinct() %>% 
     transmute(
       Gene,
-      OMIM = str_c(disease_name, ' [', inheritance, ']'),
+      OMIM = str_c(disease_name, ' [', replace_na(inheritance, '-'), ']'),
       OMIM_url = str_c('https://omim.org/entry/', str_extract(disease_id, '\\d+$'))
     ) %>% 
     nest(OMIM = -Gene)
