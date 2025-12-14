@@ -434,7 +434,7 @@ FILTER_GENE <- function(VARIANTS, GENE_SET, set = 'SHORT') {
             !Gene %in% GENE_SET,
             str_detect(CLNSIG, FILTER_SHORT_CLINVAR_KEEP_PAT)
           )
-        print(VARIANTS_CLNSIG)
+
         if (nrow(VARIANTS_CLNSIG)) {
           message('Retaining ', nrow(VARIANTS_CLNSIG), ' variants outside gene list due to ClinVar significance')
         }
