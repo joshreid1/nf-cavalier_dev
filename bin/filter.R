@@ -577,6 +577,15 @@ FILTER_INHERITANCE <- function(VARIANTS, PEDIGREE, set = 'SHORT') {
     select(-GENOTYPE) %>% 
     mutate(
       inheritance = case_when(
+         # Retain ClinVar pathogenic regardless of allele frequencies
+        (
+          inheritance == 'dominant' &
+            str_detect(CLNSIG, FILTER_SHORT_CLINVAR_KEEP_PAT)
+        ) ~ 'dominant',
+        (
+          inheritance == 'recessive' &
+            str_detect(CLNSIG, FILTER_SHORT_CLINVAR_KEEP_PAT)
+        ) ~ 'recessive', 
         ( 
           inheritance == 'dominant' &
             pop_AF  < pop_dom_max_af &
@@ -601,15 +610,6 @@ FILTER_INHERITANCE <- function(VARIANTS, PEDIGREE, set = 'SHORT') {
             AF      < coh_rec_max_af &
             AC      < coh_rec_max_ac 
         ) ~ 'compound',
-        # Retain ClinVar pathogenic regardless of allele frequencies
-        (
-          inheritance == 'dominant' &
-            str_detect(CLNSIG, FILTER_SHORT_CLINVAR_KEEP_PAT)
-        ) ~ 'dominant',
-        (
-          inheritance == 'recessive' &
-            str_detect(CLNSIG, FILTER_SHORT_CLINVAR_KEEP_PAT)
-        ) ~ 'recessive', 
       )
     ) %>% 
     filter(!is.na(inheritance))
