@@ -1,11 +1,12 @@
 
 process IGV_TO_PNG {
-    label 'C2M2T2'
+    label 'C2M8T2'
     label 'puppeteer'
     maxForks 100
     tag "$fam"
-    beforeScript "mkdir -p home"
-    containerOptions "--overlay \"\$PWD/home\":/home/pptruser"
+    //beforeScript "mkdir -p home"
+    //containerOptions "--overlay \"\$PWD/home\":/home/pptruser"
+    containerOptions '--writable-tmpfs'
     /*
         - Generate PNGs for igv-report
     */
@@ -29,7 +30,6 @@ process IGV_TO_PNG {
 """
 export NODE_PATH=/home/pptruser/node_modules
 export HOME=/home/pptruser/
-
 $cmds
 """
 }

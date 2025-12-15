@@ -592,7 +592,7 @@ FILTER_INHERITANCE <- function(VARIANTS, PEDIGREE, set = 'SHORT') {
             pop_hom < pop_rec_max_hom &
             AF      < coh_rec_max_af &
             AC      < coh_rec_max_ac 
-        ) ~ 'dominant',
+        ) ~ 'recessive',
         ( 
           inheritance == 'dominant' &
             pop_AF  < pop_rec_max_af &
