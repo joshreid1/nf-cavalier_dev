@@ -77,8 +77,16 @@ def get_vep_fields() {
     vep_fields
 }
 
+def get_vep_fields_sv() {
+    get_vep_fields() - ['SIFT', 'PolyPhen']
+}
+
 def get_vep_cache() {
     file_channel(params.vep_cache)
+}
+
+def get_svafdb() {
+    file_channel(params.svafdb)
 }
 
 

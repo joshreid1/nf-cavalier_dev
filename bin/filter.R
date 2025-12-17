@@ -578,14 +578,7 @@ FILTER_INHERITANCE <- function(VARIANTS, PEDIGREE, set = 'SHORT') {
     mutate(
       inheritance = case_when(
          # Retain ClinVar pathogenic regardless of allele frequencies
-        (
-          inheritance == 'dominant' &
-            str_detect(CLNSIG, FILTER_SHORT_CLINVAR_KEEP_PAT)
-        ) ~ 'dominant',
-        (
-          inheritance == 'recessive' &
-            str_detect(CLNSIG, FILTER_SHORT_CLINVAR_KEEP_PAT)
-        ) ~ 'recessive', 
+         
         ( 
           inheritance == 'dominant' &
             pop_AF  < pop_dom_max_af &
@@ -610,6 +603,14 @@ FILTER_INHERITANCE <- function(VARIANTS, PEDIGREE, set = 'SHORT') {
             AF      < coh_rec_max_af &
             AC      < coh_rec_max_ac 
         ) ~ 'compound',
+        (
+          inheritance == 'dominant' &
+            str_detect(CLNSIG, FILTER_SHORT_CLINVAR_KEEP_PAT)
+        ) ~ 'dominant',
+        (
+          inheritance == 'recessive' &
+            str_detect(CLNSIG, FILTER_SHORT_CLINVAR_KEEP_PAT)
+        ) ~ 'recessive',
       )
     ) %>% 
     filter(!is.na(inheritance))
@@ -644,11 +645,17 @@ FILTER_COMPOUND <- function(SHORT_VAR = NULL, STRUC_VAR = NULL) {
     filter(n_hit > 1) %>% 
     pull()
 
+  
+
   if (!is.null(SHORT_VAR)) {
+    FILTER_SHORT_CLINVAR_KEEP_PAT <- getOption('FILTER_SHORT_CLINVAR_KEEP_PAT', '$.')
+
     SHORT_OUT <-
       SHORT_VAR %>% 
       filter(
-        inheritance != 'compound' | Gene %in% GENES
+        inheritance != 'compound' | 
+          Gene %in% GENES | 
+          str_detect(CLNSIG, FILTER_SHORT_CLINVAR_KEEP_PAT)
       )
     TRACK_REASON(SHORT_OUT, str_c('FILTER_COMPOUND(SHORT)'), set = 'SHORT')
   } else {

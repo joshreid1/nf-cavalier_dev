@@ -29,6 +29,18 @@ workflow ANNOTATE {
         short_vcf = SHORT.out
     }
 
+    if (params.struc_vcf_annotated) {
+        println "INFO: Skipping struc annotation, using annotated VCF - $params.struc_vcf_annotated"
+        struc_vcf = vcf_channel(params.struc_vcf_annotated)
+
+    } else if (params.struc_vcf) {
+        STRUC(
+            vcf_channel(params.struc_vcf),
+        )
+        struc_vcf = STRUC.out
+    }
+
+
     emit:
     short_vcf = short_vcf
     struc_vcf = struc_vcf

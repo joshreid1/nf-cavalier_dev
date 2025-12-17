@@ -2,7 +2,7 @@
 process IGV_TO_PNG {
     label 'C2M8T2'
     label 'puppeteer'
-    maxForks 100
+    maxForks 50
     tag "$fam"
     //beforeScript "mkdir -p home"
     //containerOptions "--overlay \"\$PWD/home\":/home/pptruser"
