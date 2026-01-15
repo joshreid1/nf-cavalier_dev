@@ -7,6 +7,8 @@ include { pedigree_channel    } from '../../functions/channels'
 include { bam_channel         } from '../../functions/channels'
 include { func_source_channel } from '../../functions/channels'
 include { get_slide_info      } from '../../functions/helpers.nf'
+include { get_inf             } from '../../functions/helpers.nf'
+include { get_fmt             } from '../../functions/helpers.nf'
 
 
 /* ----------- subworkflows ----------------*/
@@ -20,6 +22,9 @@ include { PPT_TO_PDF  } from '../../modules/local/ppt_to_pdf'
 include { IGV_REPORT  } from '../../modules/local/igv_report'
 include { IGV_TO_PNG  } from '../../modules/local/igv_to_png.nf'
 include { MAKE_SLIDES } from '../../modules/local/make_slides.nf'
+include { get_struc_inf } from '../../functions/helpers.nf'
+include { get_struc_fmt } from '../../functions/helpers.nf'
+
 
 workflow CAVALIER {
     take:
@@ -39,15 +44,19 @@ workflow CAVALIER {
     )
 
     SPLIT_VEP(
-        short_vcf,
-        CHECK_VCF.out.families
+        short_vcf.map { ['SHORT'] + it }
+            .mix(struc_vcf.map { ['STRUC'] + it })
+            .map { it + [get_inf(it[0]), get_fmt(it[0])] }
+            .combine(CHECK_VCF.out.families)
     )
 
     pedigree = pedigree_channel()
 
+    // TODO: SVs
     filter_input = SPLIT_VEP.out.tsv // fam, tsv
+        .filter {it[0] == 'SHORT' }
+        .map { it[[1,2]] }
         .combine(pedigree, by: 0) //fam, tsv, ped
-        // .combine(bam_channel()     , by: 0) // fam, tsv, bed, [sam], [bam], [bai]
     
     FILTER(
         filter_input,
@@ -63,7 +72,7 @@ workflow CAVALIER {
         FILTER.out.short_igv
             .combine(short_count.filter{it[1] > 0}.map{it[0]}, by:0)
             .combine(pedigree, by:0)
-            .combine(SPLIT_VEP.out.vcf, by:0)
+            .combine(SPLIT_VEP.out.vcf.filter {it[0] == 'SHORT' }.map { it[[1,2,3]] }, by:0)
             .combine(bam_channel(), by:0)
     )
  

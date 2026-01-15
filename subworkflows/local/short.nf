@@ -67,7 +67,7 @@ workflow SHORT {
 
     GATHER(
         VEP.out.toSortedList { a, b -> a.name <=> b.name }
-    )
+    )   
 
     emit:
     GATHER.out

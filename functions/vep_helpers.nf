@@ -53,32 +53,34 @@ def get_utr_ann_files() {
     return file_channel("$projectDir/misc/dummy/utr_annotator")
 }
 
-def get_vep_fields() {
+def get_vep_fields(SHORT = true) {
     // TODO: 'MANE', 'MANE_SELECT', 'MANE_PLUS_CLINICAL', 'CCDS' seem to be empty - Why? also maybe drop anyway
     def vep_fields = [
           'SYMBOL', 'Gene', 'VARIANT_CLASS', 'Consequence', 'IMPACT', 'Feature_type', 'Feature',
           'BIOTYPE', 'EXON', 'INTRON', 'HGVSc', 'HGVSp', 'HGVSg', 'Amino_acids',
-          'HGNC_ID', 'MANE', 'MANE_SELECT', 'MANE_PLUS_CLINICAL', 'CCDS', 'ENSP', 'SIFT', 'PolyPhen',
+          'HGNC_ID', 'MANE', 'MANE_SELECT', 'MANE_PLUS_CLINICAL', 'CCDS', 'ENSP',
           'Existing_variation'
-        ] +
-        (alphamiss_enabled() ? ['am_class', 'am_pathogenicity'] : [] ) +
-        (revel_enabled() ? ['REVEL'] : [] ) +
-        (spliceai_enabled() ? [
-            'SpliceAI_pred_DP_AG', 'SpliceAI_pred_DP_AL', 'SpliceAI_pred_DP_DG', 'SpliceAI_pred_DP_DL', 
-            'SpliceAI_pred_DS_AG', 'SpliceAI_pred_DS_AL', 'SpliceAI_pred_DS_DG', 'SpliceAI_pred_DS_DL', 
-            'SpliceAI_pred_SYMBOL'] :
-            []
-        ) +
-        (utr_ann_enabled() ? [
-            '5UTR_annotation', '5UTR_consequence', 'Existing_InFrame_oORFs', 'Existing_OutOfFrame_oORFs',
-            'Existing_uORFs' ] : 
-            []
-        )
-    vep_fields
-}
+        ]
 
-def get_vep_fields_sv() {
-    get_vep_fields() - ['SIFT', 'PolyPhen']
+    if (SHORT) {
+        vep_fields = vep_fields +
+            ['SIFT', 'PolyPhen'] +
+            (alphamiss_enabled() ? ['am_class', 'am_pathogenicity'] : [] ) +
+            (revel_enabled() ? ['REVEL'] : [] ) +
+            (spliceai_enabled() ? [
+                'SpliceAI_pred_DP_AG', 'SpliceAI_pred_DP_AL', 'SpliceAI_pred_DP_DG', 'SpliceAI_pred_DP_DL', 
+                'SpliceAI_pred_DS_AG', 'SpliceAI_pred_DS_AL', 'SpliceAI_pred_DS_DG', 'SpliceAI_pred_DS_DL', 
+                'SpliceAI_pred_SYMBOL'] :
+                []
+            ) +
+            (utr_ann_enabled() ? [
+                '5UTR_annotation', '5UTR_consequence', 'Existing_InFrame_oORFs', 'Existing_OutOfFrame_oORFs',
+                'Existing_uORFs' ] : 
+                []
+            )
+    }
+    
+    return vep_fields
 }
 
 def get_vep_cache() {

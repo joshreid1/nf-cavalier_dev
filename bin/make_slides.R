@@ -104,6 +104,7 @@ MAIN <- function(opts) {
       mutate(gt = replace_na(gt, '???'),
              label = str_c(id, gt, sep = '\n')) %>% 
       nest(PEDIGREE = -variant_id) %>% 
+      mutate(PEDIGREE = map(PEDIGREE, distinct)) %>%
       mutate(PEDIGREE = map(PEDIGREE, plot_ped))
   } else {
     PEDIGREE <-

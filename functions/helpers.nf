@@ -224,3 +224,45 @@ def short_enabled() {
 def sv_enabled() {
     params.sv_vcf ? true : params.sv_vcf_annotated ? true : false
 }
+
+
+
+def get_short_fmt() {
+    (params.short_format ?: []).toList().unique()
+}
+
+def get_short_inf() {
+    (
+        (params.short_info ?: []) + 
+        (params.short_vcfanno ? params.short_vcfanno.collectMany { it.fields.keySet() } : [])
+    ).unique()
+}
+
+def get_fmt(type) {
+    if (type == 'SHORT') {
+        return(get_short_fmt())
+    }
+    if (type == 'STRUC') {
+        return(get_struc_fmt())
+    }
+}
+
+def get_struc_fmt() {
+    (params.struc_format ?: []).toList().unique()
+}
+
+def get_struc_inf() {
+    (
+        (params.struc_info ?: []) + 
+        (['Max_AF', 'Max_Het', 'Max_HomAlt', 'Max_PopMax_AF', 'ThousG_Count', 'gnomAD_Count', 'CCDG_Count', 'TOPMed_Count']) // from SVAFotate
+    ).unique()
+}
+
+def get_inf(type) {
+    if (type == 'SHORT') {
+        return(get_short_inf())
+    }
+    if (type == 'STRUC') {
+        return(get_struc_inf())
+    }
+}

@@ -105,8 +105,18 @@ MAIN <- function(opts) {
     
     saveRDS(FC$SHORT, str_c(opts$output, '.short.filtered_variants.rds'))
     
-    FC$SHORT %>% 
-      select(where(~ !is.data.frame(.))) %>% 
+    FC$SHORT %>%
+      select(where(~ !is.data.frame(.))) %>%
+      pivot_longer(
+        cols = starts_with("FMT_"),
+        names_to = c(".value", "sample_id"),
+        names_pattern = "(FMT_[^_]+)_(.*)"
+      ) %>%
+      mutate(across(starts_with("FMT_"), ~ paste0(sample_id, ":", .x))) %>%
+      select(-sample_id) %>%
+      chop(starts_with("FMT_")) %>%
+      mutate(across(starts_with("FMT_"), ~ map_chr(., ~ str_c(.x, collapse = ";")))) %>%
+      mutate(family_id = pedigree$famid[1], .before = 1) %>%
       write_csv(
         file = str_c(opts$output, '.short.filtered_variants.csv')
       )

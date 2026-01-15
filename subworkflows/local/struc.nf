@@ -1,7 +1,7 @@
 /* ----------- funtions ----------------*/
 include { ref_fasta_channel   } from '../../functions/channels'
 include { get_vep_cache       } from '../../functions/vep_helpers'
-include { get_vep_fields_sv   } from '../../functions/vep_helpers'
+include { get_vep_fields      } from '../../functions/vep_helpers'
 include { get_svafdb          } from '../../functions/vep_helpers.nf'
 
 
@@ -41,6 +41,8 @@ workflow STRUC {
         get_svafdb()
     )
 
+    
+
     // SV_TO_BED(
     //     CLEAN.out
     // )
@@ -54,7 +56,7 @@ workflow STRUC {
         SVAFOTATE.out,
         ref_fasta_channel(),
         get_vep_cache(),
-        get_vep_fields_sv()
+        get_vep_fields(false)
     )
 
     GATHER(
