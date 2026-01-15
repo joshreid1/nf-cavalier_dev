@@ -10,6 +10,7 @@ process SCATTER {
     input:
     tuple path(vcf), path(tbi)
     val(n_shards)
+    val(check)
 
     output:
     path("${prefix}*")

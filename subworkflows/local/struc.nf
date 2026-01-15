@@ -19,6 +19,7 @@ include { GATHER               } from '../../modules/local/gather'
 workflow STRUC {
     take: 
     vcf
+    check
 
     main:
     /*
@@ -27,7 +28,8 @@ workflow STRUC {
 
     SCATTER(
         vcf,
-        params.struc_n_shards
+        params.struc_n_shards,
+        check
     )
 
     vcf_shards = SCATTER.out.flatMap().map{ [((it.name =~ /(?<=\.shard\.)([0-9]+)/)[0][1]), it] }

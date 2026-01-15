@@ -11,6 +11,7 @@ process SPLIT_VEP {
 
     input:
     tuple val(set), path(vcf), path(index), val(inf), val(fmt), val(fam), val(aff), val(unaff)
+    val(check)
 
     output:
     tuple val(set), val(fam), path(out_vcf), path("${out_vcf}.tbi"), emit: vcf

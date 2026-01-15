@@ -12,6 +12,7 @@ workflow ANNOTATE {
     */
     take:
     vcfanno_binary
+    check
     
     main:
     short_vcf = Channel.empty()
@@ -24,7 +25,8 @@ workflow ANNOTATE {
     } else if (params.short_vcf) {
         SHORT(
             vcf_channel(params.short_vcf),
-            vcfanno_binary
+            vcfanno_binary,
+            check
         )
         short_vcf = SHORT.out
     }
@@ -36,6 +38,7 @@ workflow ANNOTATE {
     } else if (params.struc_vcf) {
         STRUC(
             vcf_channel(params.struc_vcf),
+            check
         )
         struc_vcf = STRUC.out
     }

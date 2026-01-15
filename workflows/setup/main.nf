@@ -11,6 +11,7 @@ include { get_external_lists } from '../../functions/helpers.nf'
 /* ----------- processes ----------------*/
 include { INIT_CACHE    } from '../../modules/local/init_cache'
 include { STORE         } from '../../modules/local/store.nf'
+include { CHECK_SAMPLES } from '../../modules/local/check_samples.nf'
 
 workflow SETUP {
     /*
@@ -20,6 +21,14 @@ workflow SETUP {
         - Emit lists and set of all genes (as ensembl_gene_ids)
     */
     main:
+
+    CHECK_SAMPLES(
+        path(params.bams),
+        params.ped ? path(params.ped) : [],
+        params.short_vcf ? path(params.short_vcf) : (params.short_vcf_annotated ? path(params.short_vcf_annotated) : []),
+        params.struc_vcf ? path(params.struc_vcf) : (params.struc_vcf_annotated ? path(params.struc_vcf_annotated) : [])
+    )
+
     INIT_CACHE(
         date_ymd(),
         get_cavalier_opts(),
@@ -41,4 +50,5 @@ workflow SETUP {
     lists          = STORE.out.filter { it.name ==~ /.+\.tsv$/   }.collect()
     gene_set       = STORE.out.filter { it.name ==~ /.+\.txt$/   }.first()
     vcfanno_binary = STORE.out.filter { it.name ==~ /.*vcfanno.*/}.first()
+    check          = CHECK_SAMPLES.out
 }

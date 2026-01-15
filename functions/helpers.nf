@@ -157,14 +157,16 @@ def ref_gene_channel() {
     Channel.value([path(params.ref_gene)])
 }
 
-def families_aff_un() {
+def get_fam_aff_un() {
+
+    def bamids = read_bams().collect { it.iid }.unique()
 
     def fam_af_un = read_ped()
         .groupBy { it.fid }
         .collect { k, v -> [
             k,
-            v.findAll {it.phe == '2'}.collect {it.iid},
-            v.findAll {it.phe == '1'}.collect {it.iid}
+            v.findAll {it.phe == '2'}.collect {it.iid}.intersect(bamids),
+            v.findAll {it.phe == '1'}.collect {it.iid}.intersect(bamids)
         ] }
 
     Channel.fromList(fam_af_un) // fam, aff, unaff

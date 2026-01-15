@@ -21,6 +21,7 @@ workflow SHORT {
     take: 
     vcf
     vcfanno_binary
+    check
 
     main:
     /*
@@ -29,7 +30,8 @@ workflow SHORT {
 
     SCATTER(
         vcf,
-        params.short_n_shards
+        params.short_n_shards,
+        check
     )
 
     vcf_shards = SCATTER.out.flatMap().map{ [((it.name =~ /(?<=\.shard\.)([0-9]+)/)[0][1]), it] }

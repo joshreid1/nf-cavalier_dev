@@ -13,7 +13,8 @@ workflow {
     SETUP()
 
     ANNOTATE(
-        SETUP.out.vcfanno_binary
+        SETUP.out.vcfanno_binary,
+        SETUP.out.check
     )
 
     if (!params.annotate_only) {
@@ -22,7 +23,8 @@ workflow {
             SETUP.out.lists,
             SETUP.out.cavalier_opts,
             ANNOTATE.out.short_vcf,
-            ANNOTATE.out.struc_vcf
+            ANNOTATE.out.struc_vcf,
+            SETUP.out.check
         )
     }
 
