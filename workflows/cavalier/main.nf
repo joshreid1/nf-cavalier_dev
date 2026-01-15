@@ -1,5 +1,6 @@
 
 /* ----------- funtions ----------------*/
+include { path                } from '../../functions/helpers'
 include { get_filter_opts     } from '../../functions/helpers'
 include { collect_csv         } from '../../functions/helpers'
 include { cache_dir_channel   } from '../../functions/channels'
@@ -9,10 +10,9 @@ include { func_source_channel } from '../../functions/channels'
 include { get_slide_info      } from '../../functions/helpers.nf'
 include { get_inf             } from '../../functions/helpers.nf'
 include { get_fmt             } from '../../functions/helpers.nf'
-
+include { get_fam_aff_un      } from '../../functions/helpers.nf'
 
 /* ----------- subworkflows ----------------*/
-include { CHECK_VCF } from '../../subworkflows/local/check_vcf'
 
 
 /* ----------- processes ----------------*/
@@ -25,29 +25,25 @@ include { MAKE_SLIDES } from '../../modules/local/make_slides.nf'
 include { get_struc_inf } from '../../functions/helpers.nf'
 include { get_struc_fmt } from '../../functions/helpers.nf'
 
-
 workflow CAVALIER {
     take:
     gene_set
     lists
     cavalier_opts
     short_vcf
-    struc_vcf // TODO
+    struc_vcf
+    check
 
     main:
     /*
         - Filter and report variants
-    */    
-    CHECK_VCF(
-        short_vcf,
-        'short_vcf'
-    )
-
+    */
     SPLIT_VEP(
         short_vcf.map { ['SHORT'] + it }
             .mix(struc_vcf.map { ['STRUC'] + it })
             .map { it + [get_inf(it[0]), get_fmt(it[0])] }
-            .combine(CHECK_VCF.out.families)
+            .combine(get_fam_aff_un()),
+        check
     )
 
     pedigree = pedigree_channel()
