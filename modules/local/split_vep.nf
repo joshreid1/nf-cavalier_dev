@@ -38,9 +38,11 @@ process SPLIT_VEP {
 
     VEP_HDR=\$( bcftools +split-vep $vcf -l | cut -f2- | paste -sd '\\t' - )
     (
-        echo -e "CHROM\\tPOS\\tREF\\tALT\\t${inf_hdr}\\t${fmt_hdr}\\t\${VEP_HDR}"
-        bcftools +split-vep ${out_vcf} -d -A tab \\
-            -f '%CHROM\\t%POS\\t%REF\\t%ALT\\t${inf_qry}\\t${fmt_query}%CSQ\\n' \\
+        echo -e "LINE_ID\\tCHROM\\tPOS\\tREF\\tALT\\t${inf_hdr}\\t${fmt_hdr}\\t\${VEP_HDR}"
+        bcftools view ${out_vcf} \\
+        | awk 'BEGIN{OFS="\\t"; i=0} /^#/ {print; next} {i++; \$3=i; print}' \\
+        | bcftools +split-vep - -d -A tab \\
+            -f '%ID\\t%CHROM\\t%POS\\t%REF\\t%ALT\\t${inf_qry}\\t${fmt_query}%CSQ\\n' \\
     ) | bgzip > $out_tsv
     """
 }

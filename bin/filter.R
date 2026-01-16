@@ -7,51 +7,19 @@ stopifnot(
   require(cavalier)
 )
 
-# # NB these are set by Nextflow and should be left commented out except for testing
-# options(
-#   # FMT
-#   FILTER_SHORT_MIN_DP = 5,
-#   FILTER_SHORT_MIN_GQ = 10,
-#   # POPULATION SHORT AF/AC/HOM
-#   FILTER_SHORT_POP_DOM_MAX_AF = 0.0001,
-#   FILTER_SHORT_POP_REC_MAX_AF = 0.01,
-#   FILTER_SHORT_POP_DOM_MAX_AC = 20,
-#   FILTER_SHORT_POP_REC_MAX_AC = 100,
-#   FILTER_SHORT_POP_DOM_MAX_HOM = 5,
-#   FILTER_SHORT_POP_REC_MAX_HOM = 10,
-#   # COHORT SHORT AF/AC
-#   FILTER_SHORT_COH_DOM_MAX_AF = NULL,
-#   FILTER_SHORT_COH_REC_MAX_AF = NULL,
-#   FILTER_SHORT_COH_DOM_MAX_AC = NULL,
-#   FILTER_SHORT_COH_REC_MAX_AC = NULL,
-#   # POPULATION SV AF/AC/HOM
-#   FILTER_STRUC_POP_DOM_MAX_AF = 0.0001,
-#   FILTER_STRUC_POP_REC_MAX_AF = 0.01,
-#   FILTER_STRUC_POP_DOM_MAX_AC = 20,
-#   FILTER_STRUC_POP_REC_MAX_AC = 100,
-#   FILTER_STRUC_POP_DOM_MAX_HOM = NULL,
-#   FILTER_STRUC_POP_REC_MAX_HOM = NULL,
-#   # COHORT SV AF/AC
-#   FILTER_STRUC_COH_DOM_MAX_AF = 0.01,
-#   FILTER_STRUC_COH_REC_MAX_AF = 0.01,
-#   FILTER_STRUC_COH_DOM_MAX_AC = NULL,
-#   FILTER_STRUC_COH_REC_MAX_AC = NULL,
-#   # CLINVAR
-#   FILTER_SHORT_CLINVAR_KEEP_PAT  = '(p|P)athogenic(?!ity)',
-#   FILTER_SHORT_CLINVAR_DISC_PAT  = '(b|B)enign',
-#   FILTER_SHORT_CLINVAR_ANYWHERE = TRUE,
-#   # Clingen PP3 supporting  doi: 10.1016/j.ajhg.2022.10.013
-#   FILTER_SHORT_LOF              = TRUE,
-#   FILTER_SHORT_MISSENSE         = TRUE,
-#   FILTER_SHORT_SPLICING         = TRUE,
-#   FILTER_SHORT_MIN_CADD_PP      = 25.3,
-#   # Clingen PP3 supporting https://doi.org/10.1016/j.ajhg.2023.06.002
-#   FILTER_SHORT_MIN_SPLICEAI_PP  = 0.20,
-#   FILTER_SHORT_VEP_MIN_IMPACT   = 'MODERATE',
-#   FILTER_SHORT_VEP_CONSEQUENCES = NULL
-# )
+
 
 MAIN <- function(opts) {
+  
+  # opts <- list(
+  #   ped = '/vast/scratch/users/munro.j/nextflow/work/b0/b45cd2936ba5e45757e9662c3da0ea/Plu_PK86442.ped',
+  #   gene_set = '/vast/scratch/users/munro.j/nextflow/work/b0/b45cd2936ba5e45757e9662c3da0ea/gene_set.b318914302dfd583d53fa98fff9fbb2c.txt',
+  #   options =  '/vast/scratch/users/munro.j/nextflow/work/b0/b45cd2936ba5e45757e9662c3da0ea/filter_options.json',
+  #   short_var = '/vast/scratch/users/munro.j/nextflow/work/0c/bbb0b67d6f5ba6c949d88330b92810/test_snp.chr6_chr19.clean.vcfanno.vep.family_Plu_PK86442.tsv.gz',
+  #   struc_var = '/vast/scratch/users/munro.j/nextflow/work/fe/356dc3615694c49e79a7c9b536f7ad/test_sv.clean.svafotate.vep.family_Plu_PK86442.tsv.gz',
+  #   output = 'test',
+  #   cav_opts = '/vast/scratch/users/munro.j/nextflow/work/b0/b45cd2936ba5e45757e9662c3da0ea/cavalier_options.fe1c52828ebd8fe51360c7b2db3cf991.json'
+  # )
   
   message('Using CLI options:')
   PRINT_STR(
@@ -68,13 +36,13 @@ MAIN <- function(opts) {
     cavalier::set_options_from_json(opts$cav_opts)
   }
   
-  gene_lists <- c(str_split(opts$gene_lists, ',', simplify = T))
-  
   ################# CHECK ARGS ######################
   stopifnot(
-    file.exists(opts$short_var),
+    !is.null(opts$short_var) | !is.null(opts$struc_var),
+    is.null(opts$short_var) | file.exists(opts$short_var),
+    is.null(opts$struc_var) | file.exists(opts$struc_var),
     file.exists(opts$ped),
-    all(file.exists(gene_lists))
+    file.exists(opts$gene_set)
   )
   
   ############## READ PEDIGREE   ################
@@ -86,18 +54,28 @@ MAIN <- function(opts) {
   message('Searching for variants in ', length(gene_set), ' genes')
   
   ########## SHORT VARS #################
-  short_cand <- LOAD_AND_FILTER_SHORT(
-    short_var = opts$short_var, 
-    gene_set = gene_set,
-    pedigree = pedigree
-  )
+  short_cand <- NULL
+  if (!is.null(opts$short_var)) {
+    short_cand <- LOAD_AND_FILTER_SHORT(
+      short_var = opts$short_var, 
+      gene_set = gene_set,
+      pedigree = pedigree
+    )
+  }
   
-  ############## TODO: STRUC VARS #################
-  
+  ######### STRUC VARS #################
+  struc_cand <- NULL
+  if (!is.null(opts$struc_var)) {
+    struc_cand <- LOAD_AND_FILTER_STRUC(
+      struc_var = opts$struc_var, 
+      gene_set = gene_set,
+      pedigree = pedigree
+    )
+  }
   
   ########## COMPOUND FILTER(BOTH) ################
   
-  FC <- FILTER_COMPOUND(SHORT_VAR = short_cand)
+  FC <- FILTER_COMPOUND(SHORT_VAR = short_cand, STRUC_VAR = struc_cand)
   
   ######### OUTPUTS ###############################
 
@@ -155,6 +133,16 @@ MAIN <- function(opts) {
     
     FC$STRUC %>% 
       select(where(~ !is.data.frame(.))) %>% 
+      pivot_longer(
+        cols = starts_with("FMT_"),
+        names_to = c(".value", "sample_id"),
+        names_pattern = "(FMT_[^_]+)_(.*)"
+      ) %>%
+      mutate(across(starts_with("FMT_"), ~ paste0(sample_id, ":", .x))) %>%
+      select(-sample_id) %>%
+      chop(starts_with("FMT_")) %>%
+      mutate(across(starts_with("FMT_"), ~ map_chr(., ~ str_c(.x, collapse = ";")))) %>%
+      mutate(family_id = pedigree$famid[1], .before = 1) %>%
       write_csv(
         file = str_c(opts$output, '.struc.filtered_variants.csv')
       )
@@ -173,16 +161,18 @@ MAIN <- function(opts) {
     cat("0", file = str_c(opts$output, '.struc.count'))
   }
   
-  message('FILTERING COMPLETE')
+  message('\n----- Filtering complete! ------')
 }
 
 ############ LOAD_AND_FILTER_SHORT  ###############################
 LOAD_AND_FILTER_SHORT <- function(short_var, gene_set, pedigree) {
+
+  message('\n----- Filtering short variants -----')
   
   short_cand <- 
     LOAD_SHORT(short_var) %>% 
     FILTER_SHORT_TYPE() %>% 
-    FILTER_GENE(gene_set, set = "SHORT") %>%
+    FILTER_SHORT_GENE(gene_set) %>%
     FILTER_INHERITANCE(pedigree, set = "SHORT") %>%
     FILTER_SHORT_FMT()
 }
@@ -198,6 +188,7 @@ LOAD_SHORT <- function(FILEPATH = NULL, ...) {
   
   # expected types for columns from default annotation sources
   col_spec <- cols(
+    LINE_ID = col_integer(),
     CHROM = col_character(),
     POS = col_integer(),
     REF = col_character(),
@@ -262,11 +253,13 @@ LOAD_SHORT <- function(FILEPATH = NULL, ...) {
     read_tsv(
       file = FILEPATH,
       na = '.',
-      col_types = col_spec
+      col_types = col_spec,
+      show_col_types = FALSE
     ) %>% 
     # try to guess column types not in col_spec, but better to add to col_spec
     readr::type_convert(
-      guess_integer = TRUE
+      guess_integer = TRUE,
+      col_types = col_spec
     ) %>% 
     # convert FMT fields to nested data frames
     FMT_TO_DF() %>%
@@ -354,9 +347,9 @@ TRACK_REASON <- function(data, reason = NA_character_, init=FALSE, set = 'SHORT'
   force(data)
   
   if (set == 'SHORT') {
-    keys = c('CHROM', 'POS', 'REF', 'ALT', 'Gene', 'SYMBOL')
+    keys = c('LINE_ID', 'CHROM', 'POS', 'REF', 'ALT', 'Gene', 'SYMBOL')
   } else {
-    keys = c('CHROM', 'POS', 'REF', 'ALT', 'SVTYPE', 'SVLEN', 'END')
+    keys = c('LINE_ID', 'CHROM', 'POS', 'SVTYPE', 'SVLEN', 'END', 'Gene', 'SYMBOL')
   }
   env_name <- str_c('.tracking.', set)
   
@@ -366,7 +359,7 @@ TRACK_REASON <- function(data, reason = NA_character_, init=FALSE, set = 'SHORT'
     env$filtered <- tibble()
     env$prev <- data
     env$step <- 0L
-    message('Initial short Gene-Variants: n=', nrow(data))
+    message('Initial ', set, ' Gene-Variants: n=', nrow(data))
   } else{
     env <- .GlobalEnv[[env_name]]
     env$step <- env$step + 1L
@@ -382,7 +375,7 @@ TRACK_REASON <- function(data, reason = NA_character_, init=FALSE, set = 'SHORT'
         env$filtered,
         new_flt
       )
-    message(reason, ' removed ', nrow(new_flt), ' short Gene-Variants, ', nrow(data), ' remain')
+    message(reason, ' removed ', nrow(new_flt), ' ', set, ' Gene-Variants, ', nrow(data), ' remain')
     env$prev <- data
   }
   
@@ -421,21 +414,19 @@ FILTER_SHORT_FMT <- function(VARIANTS) {
   
 }
 
-###################### FILTER_SHORT_GENE ###############################
-# filter for pressence in certain genes or clinvar pathogenic
-FILTER_GENE <- function(VARIANTS, GENE_SET, set = 'SHORT') {
+FILTER_SHORT_GENE <- function(VARIANTS, GENE_SET) {
   stopifnot(
     require(tidyverse),
     is.data.frame(VARIANTS),
     is.character(GENE_SET)
   )
-
+  
   FILTER_SHORT_CLINVAR_KEEP_PAT <- '$.' # never TRUE
   FILTER_SHORT_CLINVAR_ANYWHERE <- getOption('FILTER_SHORT_CLINVAR_ANYWHERE', FALSE)
   if (FILTER_SHORT_CLINVAR_ANYWHERE) {
     FILTER_SHORT_CLINVAR_KEEP_PAT <- getOption('FILTER_SHORT_CLINVAR_KEEP_PAT', '$.')
   }
-
+  
   VARIANTS_OUT <-
     VARIANTS %>%
     filter(
@@ -444,7 +435,51 @@ FILTER_GENE <- function(VARIANTS, GENE_SET, set = 'SHORT') {
     )
   
   return(
-    VARIANTS_OUT %>% TRACK_REASON(str_c('FILTER_GENE(', set, ')'))
+    VARIANTS_OUT %>% TRACK_REASON('FILTER_SHORT_GENE')
+  )
+}
+
+###################### FILTER_SHORT_GENE ###############################
+# filter for pressence in certain genes or clinvar pathogenic
+FILTER_STRUC_GENE <- function(VARIANTS, GENE_SET, set = 'SHORT') {
+  stopifnot(
+    require(tidyverse),
+    is.data.frame(VARIANTS),
+    is.character(GENE_SET)
+  )
+  
+  FILTER_STRUC_LARGE_LENGTH   <- getOption('FILTER_STRUC_LARGE_LENGTH', Inf)
+  
+
+  VARIANTS_OUT <-
+    VARIANTS %>%
+    filter(
+      Gene %in% GENE_SET
+    )
+    
+  VARIANTS_OUT <-
+    bind_rows(
+      VARIANTS_OUT,
+      VARIANTS %>% 
+        anti_join(VARIANTS_OUT, by = c('LINE_ID')) %>% 
+        filter(abs(SVLEN) >= FILTER_STRUC_LARGE_LENGTH) %>% 
+        chop(c('SYMBOL', 'Gene', 'Consequence', 'IMPACT', 'Feature', 'BIOTYPE',  'EXON', 'INTRON', 'HGNC_ID',  'ENSP')) %>% 
+        mutate(
+          Genes   = map_chr(Gene, ~ str_c(unique(sort(na.omit(.))), collapse = '; ')),
+          SYMBOLS = map_chr(SYMBOL, ~ str_c(unique(sort(na.omit(.))), collapse = '; ')),
+          Gene = 'LARGE_SV',
+          SYMBOL = 'LARGE_SV') %>% 
+        mutate(across(all_of(c('Consequence', 'IMPACT', 'Feature', 'BIOTYPE',  'EXON', 'INTRON', 'HGNC_ID',  'ENSP')), ~NA_character_))
+    )
+  
+  n_large <- sum(VARIANTS_OUT$Gene == 'LARGE_SV', na.rm = T)
+  
+  if (n_large) {
+    message('FILTER_STRUC_GENE added ', n_large, ' LARGE_SV records')
+  }
+
+  return(
+    VARIANTS_OUT %>% TRACK_REASON('FILTER_STRUC_GENE', set = 'STRUC')
   )
 }
 
@@ -571,6 +606,9 @@ FILTER_INHERITANCE <- function(VARIANTS, PEDIGREE, set = 'SHORT') {
     pull(id) %>% 
     intersect(colnames(VARIANTS_OUT$GENOTYPE))
   
+  # avoid error for struc vars
+  CLNSIG <- NA_character_
+  
   VARIANTS_OUT <-
     VARIANTS_OUT %>% 
     mutate(
@@ -626,7 +664,7 @@ FILTER_INHERITANCE <- function(VARIANTS, PEDIGREE, set = 'SHORT') {
     filter(!is.na(inheritance))
   
   return(
-    VARIANTS_OUT %>% TRACK_REASON(str_c('FILTER_INHERITANCE(', set, ')'))
+    VARIANTS_OUT %>% TRACK_REASON(str_c('FILTER_INHERITANCE(', set, ')'), set = set)
   )
 }
 
@@ -637,6 +675,8 @@ FILTER_COMPOUND <- function(SHORT_VAR = NULL, STRUC_VAR = NULL) {
     is.data.frame(SHORT_VAR) | is.null(SHORT_VAR),
     is.data.frame(STRUC_VAR) | is.null(STRUC_VAR)
   )
+  
+  message('----- Filtering compound variants -----')
   
   GENES <- character()
   
@@ -678,7 +718,7 @@ FILTER_COMPOUND <- function(SHORT_VAR = NULL, STRUC_VAR = NULL) {
       filter(
         inheritance != 'compound' | Gene %in% GENES
       )
-    TRACK_REASON(SHORT_OUT, str_c('FILTER_COMPOUND(STRUC)'), set = 'STRUC')
+    TRACK_REASON(STRUC_OUT, str_c('FILTER_COMPOUND(STRUC)'), set = 'STRUC')
   } else {
     STRUC_OUT <- NULL
   }
@@ -687,6 +727,148 @@ FILTER_COMPOUND <- function(SHORT_VAR = NULL, STRUC_VAR = NULL) {
     list(SHORT = SHORT_OUT, STRUC = STRUC_OUT)
   )
   
+}
+
+############ LOAD_AND_FILTER_SHORT  ###############################
+LOAD_AND_FILTER_STRUC <- function(struc_var, gene_set, pedigree) {
+  
+  message('\n----- Filtering structural variants -----')
+  
+  struc_cand <- 
+    LOAD_STRUC(struc_var) %>% 
+    FILTER_STRUC_TYPE() %>% 
+    FILTER_STRUC_GENE(gene_set) %>% 
+    FILTER_INHERITANCE(pedigree, set = "STRUC")
+}
+
+###################### LOAD_SHORT ###############################
+LOAD_STRUC <- function(FILEPATH = NULL, ...) {
+  # check libraries and args
+  stopifnot(
+    require(tidyverse),
+    rlang::is_scalar_character(FILEPATH),
+    file.exists(FILEPATH)
+  )
+  
+  # expected types for columns from default annotation sources
+  col_spec <- cols(
+    LINE_ID = col_integer(),
+    CHROM = col_character(),
+    POS = col_double(),
+    REF = col_character(),
+    ALT = col_character(),
+    AC = col_integer(),
+    AF = col_double(),
+    AN = col_integer(),
+    SVTYPE = col_character(),
+    SVLEN = col_integer(),
+    END = col_integer(),
+    Max_AF = col_double(),
+    Max_Het = col_double(),
+    Max_HomAlt = col_integer(),
+    Max_PopMax_AF = col_double(),
+    ThousG_Count = col_integer(),
+    gnomAD_Count = col_integer(),
+    CCDG_Count = col_integer(),
+    TOPMed_Count = col_integer(),
+    SYMBOL = col_character(),
+    Gene = col_character(),
+    VARIANT_CLASS = col_character(),
+    Consequence = col_character(),
+    IMPACT = col_character(),
+    Feature_type = col_character(),
+    Feature = col_character(),
+    BIOTYPE = col_character(),
+    EXON = col_character(),
+    INTRON = col_character(),
+    HGVSc = col_logical(),
+    HGVSp = col_logical(),
+    HGVSg = col_logical(),
+    Amino_acids = col_logical(),
+    HGNC_ID = col_character(),
+    MANE = col_logical(),
+    MANE_SELECT = col_logical(),
+    MANE_PLUS_CLINICAL = col_logical(),
+    CCDS = col_logical(),
+    ENSP = col_character(),
+    Existing_variation = col_logical(),
+    .default = col_character()
+  )
+  
+  VARIANTS_OUT <-
+    # read tsv with custom col_spec
+    read_tsv(
+      file = FILEPATH,
+      na = '.',
+      col_types = col_spec,
+      show_col_types = FALSE
+    ) %>% 
+    # try to guess column types not in col_spec, but better to add to col_spec
+    readr::type_convert(
+      guess_integer = TRUE,
+      col_types = col_spec
+    ) %>% 
+    # convert FMT fields to nested data frames
+    FMT_TO_DF() %>%
+    # add/modify columns
+    mutate(
+      AN = AN - (GT %>% mutate_all(~ str_count(., '[01]')) %>% rowSums(na.rm = TRUE)),
+      AC = AC - (GT %>% mutate_all(~ str_count(., '[1]')) %>% rowSums(na.rm = TRUE)),
+      AF = replace_na(AC / AN, 0),
+      # useful for filtering
+      pop_AF =  replace_na(Max_AF, 0),
+      pop_AC =  -1L,
+      pop_hom = replace_na(Max_HomAlt, 0),
+      variant_id = str_c(CHROM, POS, SVTYPE, replace_na(as.character(abs(SVLEN)), '*'), sep = '-')
+    )
+  
+  return(
+    VARIANTS_OUT %>% TRACK_REASON(init=TRUE, set = 'STRUC')
+  )
+}
+
+###################### FILTER_SHORT_TYPE ###############################
+# Filter short variants by type of interest (i.e. VEP consequence)
+FILTER_STRUC_TYPE <- function(VARIANTS) {
+  stopifnot(
+    require(tidyverse),
+    is.data.frame(VARIANTS)
+  )
+  
+  FILTER_STRUC_VEP_MIN_IMPACT <- getOption('FILTER_STRUC_VEP_MIN_IMPACT', 'MODERATE')
+  FILTER_STRUC_LARGE_LENGTH   <- getOption('FILTER_STRUC_LARGE_LENGTH', Inf)
+  
+  FILTER_STRUC_VEP_CONSEQUENCES <- 
+    getOption('FILTER_STRUC_VEP_CONSEQUENCES', character()) %>% 
+    str_split(',', simplify = T) %>% 
+    c()
+  
+  FILTER_STRUC_SVTYPES <- 
+    getOption('FILTER_STRUC_SVTYPES', 'DEL,DUP,INS,INV,BND') %>% 
+    str_split(',', simplify = T) %>% 
+    c()
+  
+  FILTER_STRUC_VEP_IMPACTS <-
+    list(
+      MODIFIER = c('MODIFIER', 'LOW', 'MODERATE', 'HIGH'),
+      LOW = c('LOW', 'MODERATE', 'HIGH'),
+      MODERATE = c('MODERATE', 'HIGH'),
+      HIGH = c('HIGH')
+    )[[FILTER_STRUC_VEP_MIN_IMPACT]]
+  
+  VARIANTS_OUT <-
+    VARIANTS %>% 
+    filter(SVTYPE %in% FILTER_STRUC_SVTYPES) %>% 
+    filter(
+      IMPACT %in% FILTER_STRUC_VEP_IMPACTS |
+        Consequence %in% FILTER_STRUC_VEP_CONSEQUENCES |
+        abs(SVLEN) >= FILTER_STRUC_LARGE_LENGTH
+    ) %>% 
+    mutate(TYPE = SVTYPE)
+  
+  return(
+    VARIANTS_OUT %>% TRACK_REASON('FILTER_STRUC_TYPE', set = 'STRUC')
+  )
 }
 
 PRINT_STR <- function(x) {

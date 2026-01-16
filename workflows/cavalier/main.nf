@@ -49,11 +49,19 @@ workflow CAVALIER {
     pedigree = pedigree_channel()
 
     // TODO: SVs
-    filter_input = SPLIT_VEP.out.tsv // fam, tsv
+
+    filter_input = SPLIT_VEP.out.tsv
         .filter {it[0] == 'SHORT' }
         .map { it[[1,2]] }
-        .combine(pedigree, by: 0) //fam, tsv, ped
-    
+        .join(
+            SPLIT_VEP.out.tsv
+                .filter {it[0] == 'STRUC' }
+                .map { it[[1,2]] },
+            remainder: true
+        )
+        .map { [it[0], it[1] ?: [], it[2] ?: [] ] }
+        .combine(pedigree, by: 0) //fam, short, struc, ped
+
     FILTER(
         filter_input,
         gene_set,

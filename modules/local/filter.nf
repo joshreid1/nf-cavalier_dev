@@ -12,7 +12,7 @@ process FILTER {
     */  
 
     input:
-    tuple val(fam), path(short_var), path(ped)
+    tuple val(fam), path(short_var), path(struc_var), path(ped)
     path(gene_set)
     val(filter_opts)
     path(cav_opts)
@@ -35,7 +35,8 @@ process FILTER {
 cat > filter_options.json <<< '${filter_opts}'
 
 filter.R $ped $gene_set filter_options.json \\
-    --short-var $short_var \\
+    ${short_var.size() > 0 ? "--short-var $short_var" : ""} \\
+    ${struc_var.size() > 0 ? "--struc-var $struc_var" : ""} \\
     --output $fam \\
     --cav-opts $cav_opts
 """
