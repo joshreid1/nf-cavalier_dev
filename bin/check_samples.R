@@ -28,7 +28,7 @@ if (ped != "UNSET") {
             "ℹ BAM and PED sample IDs do not match:\n\t",
             "|union| = ", length(union(bam_ids, ped_ids)), "\n\t",
             "|intersection| = ", length(sample_set), "\n",
-            "Using union ..."
+            "Using intersection ..."
         )
     } else {
         stop("✖ No matching sample IDs between BAM and PED files\n")
@@ -48,8 +48,11 @@ if (short_vcf != "UNSET") {
         warning(
             "ℹ Short VCF and PED/BAM sample IDs do not match:\n\t",
             "|union| = ", length(union(short_vcf_ids, sample_set)), "\n\t",
-            "|intersection| = ", length(intersect(short_vcf_ids, sample_set)), "\n"
+            "|intersection| = ", length(intersect(short_vcf_ids, sample_set)), "\n",
+            "Using intersection ..."
         )
+        sample_set <- intersect(bam_ids, short_vcf_ids)
+    
     } else {
         stop("✖ No matching sample IDs between Short VCF and PED/BAM files\n")
     }
@@ -68,23 +71,24 @@ if (struc_vcf != "UNSET") {
         warning(
             "ℹ Struc VCF and PED/BAM sample IDs do not match:\n\t",
             "|union| = ", length(union(struc_vcf_ids, sample_set)), "\n\t",
-            "|intersection| = ", length(intersect(struc_vcf_ids, sample_set)), "\n"
+            "|intersection| = ", length(intersect(struc_vcf_ids, sample_set)), "\n",
+            "Using intersection ..."
         )
+        sample_set <- intersect(bam_ids, struc_vcf_ids)
     } else {
         stop("✖ No matching sample IDs between Struc VCF and PED/BAM files\n")
     }
 
-    
 } else {
     struc_vcf_ids <- NULL
     message("\nℹ No Struc VCF file provided, skipping Struc VCF sample ID checks\n")
 }
 
-if (!is.null(short_vcf_ids) & !is.null(struc_vcf_ids)) {
-    # check short_vcf_ids match struc_vcf_ids exactly
-    if (setequal(short_vcf_ids, struc_vcf_ids)) {
-        message("✔ Short VCF and Struc VCF sample IDs match\n")
-    } else {
-        stop("✖ Short VCF and Struc VCF sample IDs do not match\n")
-    }
-}
+# if (!is.null(short_vcf_ids) & !is.null(struc_vcf_ids)) {
+#     # check short_vcf_ids match struc_vcf_ids exactly
+#     if (setequal(short_vcf_ids, struc_vcf_ids)) {
+#         message("✔ Short VCF and Struc VCF sample IDs match\n")
+#     } else {
+#         stop("✖ Short VCF and Struc VCF sample IDs do not match\n")
+#     }
+# }

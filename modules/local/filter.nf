@@ -27,6 +27,7 @@ process FILTER {
 
     tuple val(fam), path("${fam}*.struc.filtered_variants.rds") , emit: struc_rds
     tuple val(fam), path("${fam}*.struc.filtered_variants.csv") , emit: struc_csv
+    tuple val(fam), path("${fam}*.struc.bamplot.tsv")           , emit: struc_bamplot
     tuple val(fam), path("${fam}*.struc.count")                 , emit: struc_count
     tuple val(fam), path("${fam}*.struc.reason_filtered.csv.gz"), emit: struc_reason
     

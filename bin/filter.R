@@ -38,9 +38,9 @@ MAIN <- function(opts) {
   
   ################# CHECK ARGS ######################
   stopifnot(
-    !is.null(opts$short_var) | !is.null(opts$struc_var),
-    is.null(opts$short_var) | file.exists(opts$short_var),
-    is.null(opts$struc_var) | file.exists(opts$struc_var),
+    !is.null(opts$short_var) || !is.null(opts$struc_var),
+    is.null(opts$short_var)  || file.exists(opts$short_var),
+    is.null(opts$struc_var)  || file.exists(opts$struc_var),
     file.exists(opts$ped),
     file.exists(opts$gene_set)
   )
@@ -152,12 +152,27 @@ MAIN <- function(opts) {
       file = str_c(opts$output, '.struc.reason_filtered.csv.gz')
     )
 
+    FC$STRUC %>% 
+      transmute(
+        name  = variant_id,
+        chrom = CHROM, 
+        start = POS,
+        end   = END,
+        type  = SVTYPE,
+      ) %>% 
+      distinct() %>% 
+      write_tsv(
+        str_c(opts$output, '.struc.bamplot.tsv'),
+        col_names = F
+    )
+
     cat(nrow(FC$STRUC), file = str_c(opts$output, '.struc.count'))
 
   } else {
     file.create(str_c(opts$output, '.empty.struc.filtered_variants.rds'))
     file.create(str_c(opts$output, '.empty.struc.filtered_variants.csv'))
     file.create(str_c(opts$output, '.empty.struc.reason_filtered.csv.gz'))
+    file.create(str_c(opts$output, '.empty.struc.struc.bamplot.tsv'))
     cat("0", file = str_c(opts$output, '.struc.count'))
   }
   
@@ -819,7 +834,8 @@ LOAD_STRUC <- function(FILEPATH = NULL, ...) {
       pop_AF =  replace_na(Max_AF, 0),
       pop_AC =  -1L,
       pop_hom = replace_na(Max_HomAlt, 0),
-      variant_id = str_c(CHROM, POS, SVTYPE, replace_na(as.character(abs(SVLEN)), '*'), sep = '-')
+      variant_id = str_c(CHROM, POS, SVTYPE, replace_na(as.character(abs(SVLEN)), '_'), sep = '-')
+      # TODO: variant_id is not strictly unique - include line number too ?
     )
   
   return(

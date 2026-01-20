@@ -11,9 +11,8 @@ include { get_slide_info      } from '../../functions/helpers.nf'
 include { get_inf             } from '../../functions/helpers.nf'
 include { get_fmt             } from '../../functions/helpers.nf'
 include { get_fam_aff_un      } from '../../functions/helpers.nf'
-
-/* ----------- subworkflows ----------------*/
-
+include { get_struc_inf       } from '../../functions/helpers.nf'
+include { get_struc_fmt       } from '../../functions/helpers.nf'
 
 /* ----------- processes ----------------*/
 include { SPLIT_VEP   } from '../../modules/local/split_vep'
@@ -22,8 +21,7 @@ include { PPT_TO_PDF  } from '../../modules/local/ppt_to_pdf'
 include { IGV_REPORT  } from '../../modules/local/igv_report'
 include { IGV_TO_PNG  } from '../../modules/local/igv_to_png.nf'
 include { MAKE_SLIDES } from '../../modules/local/make_slides.nf'
-include { get_struc_inf } from '../../functions/helpers.nf'
-include { get_struc_fmt } from '../../functions/helpers.nf'
+include { SAMPLOT     } from '../../modules/local/samplot.nf'
 
 workflow CAVALIER {
     take:
@@ -48,8 +46,6 @@ workflow CAVALIER {
 
     pedigree = pedigree_channel()
 
-    // TODO: SVs
-
     filter_input = SPLIT_VEP.out.tsv
         .filter {it[0] == 'SHORT' }
         .map { it[[1,2]] }
@@ -70,6 +66,8 @@ workflow CAVALIER {
         cache_dir_channel()
     )
 
+    /* ----- Visualise short variants ----- */
+
     short_count = FILTER.out.short_count.map { [it[0], it[1].text as int] }
 
     IGV_REPORT(
@@ -83,6 +81,18 @@ workflow CAVALIER {
     IGV_TO_PNG(
         IGV_REPORT.out.individual
     )
+
+    /* ----- Visualise struct variants ----- */
+
+    struc_count = FILTER.out.struc_count.map { [it[0], it[1].text as int] }
+
+    SAMPLOT(
+        FILTER.out.struc_bamplot
+            .combine(struc_count.filter{it[1] > 0}.map{it[0]}, by:0)
+            .combine(bam_channel(), by:0)
+    )
+
+    /* ----- Create Slides ----- */
 
     MAKE_SLIDES(    
         FILTER.out.short_rds
@@ -98,9 +108,16 @@ workflow CAVALIER {
         MAKE_SLIDES.out
     )
 
+    /* ----- Save CSV results ----- */
+
     collect_csv(
-        FILTER.out.short_csv.map {it[1] },
+        FILTER.out.short_csv.map { it[1] },
         'short_candidates.csv'
+    )
+
+    collect_csv(
+        FILTER.out.struc_csv.map { it[1] },
+        'struc_candidates.csv'
     )
 }
 
