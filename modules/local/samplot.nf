@@ -19,7 +19,7 @@ process SAMPLOT {
     samplot plot \\
         -n ${ids.join(' ')} \\
         -b ${bams.join(' ')} \\
-        -o ${fam}_\$NAME.png \\
+        -o samplot_${fam}_\$NAME.png \\
         -c \$CHROM \\
         -s \$START \\
         -e \$END \\

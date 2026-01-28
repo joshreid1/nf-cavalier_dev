@@ -1,6 +1,6 @@
 
 process FILTER {
-    label 'C2M4T4'
+    label 'C2M16T2'
     label 'cavalier'
     publishDir "${params.outdir}/report/$fam", mode: 'copy', pattern: "*.csv*"
     tag "$fam"
@@ -27,7 +27,7 @@ process FILTER {
 
     tuple val(fam), path("${fam}*.struc.filtered_variants.rds") , emit: struc_rds
     tuple val(fam), path("${fam}*.struc.filtered_variants.csv") , emit: struc_csv
-    tuple val(fam), path("${fam}*.struc.bamplot.tsv")           , emit: struc_bamplot
+    tuple val(fam), path("${fam}*.struc.bamplot.tsv")           , emit: struc_samplot
     tuple val(fam), path("${fam}*.struc.count")                 , emit: struc_count
     tuple val(fam), path("${fam}*.struc.reason_filtered.csv.gz"), emit: struc_reason
     

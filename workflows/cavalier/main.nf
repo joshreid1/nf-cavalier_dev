@@ -23,6 +23,7 @@ include { IGV_TO_PNG  } from '../../modules/local/igv_to_png.nf'
 include { MAKE_SLIDES } from '../../modules/local/make_slides.nf'
 include { SAMPLOT     } from '../../modules/local/samplot.nf'
 include { SVPV        } from '../../modules/local/svpv.nf'
+include { SVPV_TO_PNG } from '../../modules/local/svpv_to_png.nf'
 
 workflow CAVALIER {
     take:
@@ -69,12 +70,14 @@ workflow CAVALIER {
     )
 
     /* ----- Visualise short variants ----- */
-
-    short_count = FILTER.out.short_count.map { [it[0], it[1].text as int] }
+    samples_short = FILTER.out.short_count
+        .map    { [it[0], it[1].text as int] }
+        .filter { it[1] > 0                  }
+        .map    { it[0]                      }
 
     IGV_REPORT(
         FILTER.out.short_igv
-            .combine(short_count.filter{it[1] > 0}.map{it[0]}, by:0)
+            .combine(samples_short, by:0)
             .combine(pedigree, by:0)
             .combine(SPLIT_VEP.out.vcf.filter {it[0] == 'SHORT' }.map { it[[1,2,3]] }, by:0)
             .combine(bam_channel, by:0)
@@ -86,33 +89,45 @@ workflow CAVALIER {
 
     /* ----- Visualise struct variants ----- */
 
-    struc_count = FILTER.out.struc_count.map { [it[0], it[1].text as int] }
+    samples_struc = FILTER.out.struc_count
+        .map    { [it[0], it[1].text as int] }
+        .filter { it[1] > 0                  }
+        .map    { it[0]                      }
 
     SVPV(
         SPLIT_VEP.out.vcf.filter { it[0] == 'STRUC' }.map { it[[1,2]] } // fam, vcf
-            .combine(struc_count.filter {it[1] > 0}.map{ it[0] }, by:0)
+            .combine(samples_struc, by:0)
             .combine(FILTER.out.struc_csv, by:0) // fam, vcf, csv
             .combine(bam_channel, by:0), // fam, vcf, csv, ids, bams, bais
         path(params.ref_gene),
-        path(params.pop_sv)
+        // path(params.pop_sv)
+    )
+
+    SVPV_TO_PNG(
+        SVPV.out
     )
 
     SAMPLOT(
-        FILTER.out.struc_bamplot
-            .combine(struc_count.filter{it[1] > 0}.map{it[0]}, by:0)
+        FILTER.out.struc_samplot
+            .combine(samples_struc, by:0)
             .combine(bam_channel, by:0)
     )
 
     /* ----- Create Slides ----- */
 
-    MAKE_SLIDES(    
-        FILTER.out.short_rds
-            .combine(pedigree, by:0)
-            .combine(IGV_TO_PNG.out, by:0), // fam, vars, ped, igv_imgs
-            lists,
-            get_slide_info(),
-            cavalier_opts,
-            cache_dir_channel()
+    MAKE_SLIDES(   
+        pedigree // fam, ped
+            .join(FILTER.out.short_rds.combine(samples_short, by:0), by: 0, remainder: true) // fam, ped, short_rds
+            .join(IGV_TO_PNG.out,       by: 0, remainder: true) // fam, ped, short_rds, short_igv
+            .join(FILTER.out.struc_rds.combine(samples_struc, by:0), by: 0, remainder: true) // fam, ped, short_rds, short_igv, struc_rds
+            .join(SVPV_TO_PNG.out     , by: 0, remainder: true) // fam, ped, short_rds, short_igv, struc_rds, svpv
+            .join(SAMPLOT.out         , by: 0, remainder: true) // fam, ped, short_rds, short_igv, struc_rds, svpv, samplot
+            .combine(samples_short.mix(samples_struc).unique(), by: 0) // exclude indiv with no variants
+            .map    { row -> row.collect { x -> x ?: [] }   },  // replace missing/null with [] to avoid errors
+        lists,
+        get_slide_info(),
+        cavalier_opts,
+        cache_dir_channel()
     )
 
     PPT_TO_PDF(
@@ -131,4 +146,3 @@ workflow CAVALIER {
         'struc_candidates.csv'
     )
 }
-

@@ -4,19 +4,18 @@ process SVPV {
     label 'svpv'
     tag "$fam"
     /*
-        - Generate samplot for structural variants
+        - Generate SVPV for structural variants
     */
 
     input:
     tuple val(fam), path(vcf), path(flt_svs), val(ids), path(bams), path(bais)
     path(ref_gene)
-    path(pop_sv)
+    // path(pop_sv)
 
     output:
-    tuple val(fam), path(output)
+    tuple val(fam), path("$fam/**.pdf")
 
     script:
-    output = "$fam"
     """
     LINES=\$(awk -F',' 'NR==1{for(i=1;i<=NF;i++) if(\$i=="LINE_ID") c=i; if(!c) exit 1} NR>1{print \$c}' $flt_svs)
     
@@ -31,11 +30,11 @@ process SVPV {
         | gzip -c > filtered.vcf.gz
 
     SVPV \\
-        -o $output \\
+        -o $fam \\
         -samples ${ids.join(',')} \\
         -aln ${bams.join(',')} \\
         -vcf filtered.vcf.gz \\
-        -ref_vcf gnomAD_v4:$pop_sv \\
         -ref_gene $ref_gene
     """
+        // -ref_vcf gnomAD_v4:$pop_sv \\
 }
