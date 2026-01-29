@@ -16,10 +16,10 @@ process SVAFOTATE {
     script:
     output  = in_vcf.name.replace('.vcf.gz', ".svafotate.vcf.gz")
     """
-    # restrict to relevant chromosomes (avoid running our of RAM)
+    # restrict to gnomAD and relevant chromosomes (avoid running our of RAM)
     awk 'BEGIN{FS=OFS="\t"} NR==FNR {keep[\$1]; next} /^#/ || /^track/ {print; next} (\$1 in keep)' \\
         <(zcat $in_vcf | grep -v '^#' | cut -f1 | uniq | sed 's/^chr//') \\
-        <(zcat $svafdb) \\
+        <(zcat $svafdb | awk 'NR==1 || /gnomAD/') \\
         | gzip > svafdb.filt.bed.gz
     
     svafotate annotate \\
@@ -28,6 +28,7 @@ process SVAFOTATE {
         -f 0.9 \\
         -b svafdb.filt.bed.gz \\
         -O vcfgz \\
+        -s gnomAD \\
         -o $output
     """
 }

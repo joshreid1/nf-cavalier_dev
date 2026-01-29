@@ -8,21 +8,21 @@ stopifnot(
 )
 
 MAIN <- function(opts) {
-  
-  setwd('/vast/scratch/users/munro.j/nextflow/work/22/f7f951e306d2e1450232ced94176d4')
-  
-  opts <- list(
-    ped = 'Haf_PK271.ped',
-    gene_lists =  'PAA_202.a9ffc3a8a68443fe561c4f3f820ed628.tsv',
-    short_var = 'Haf_PK271.short.filtered_variants.rds',
-    struc_var = 'Haf_PK271.struc.filtered_variants.rds',
-    igv       = 'SID_T21432.VID_chr6-170283291-G-A.png,SID_T21437.VID_chr6-170283291-G-A.png',
-    svpv      = 'SVPV_chr19.13323531.DEL.95499b5cc7.png,SVPV_chr19.13323546.DEL.95499b5cc7.png,SVPV_chr19.13324001.DEL.95499b5cc7.png',
-    samplot   = 'samplot_Haf_PK271_chr19-13323531-DEL-21293.png,samplot_Haf_PK271_chr19-13323546-DEL-21281.png,samplot_Haf_PK271_chr19-13324001-DEL-21000.png',
-    slide_info = 'slide_info.json', 
-    cav_opts  = 'cavalier_options.e044d87757d209315972f2caa5d05f3c.json',
-    output    = 'test'
-  )
+  # 
+  # setwd('/vast/scratch/users/munro.j/nextflow/work/22/f7f951e306d2e1450232ced94176d4')
+  # 
+  # opts <- list(
+  #   ped = 'Haf_PK271.ped',
+  #   gene_lists =  'PAA_202.a9ffc3a8a68443fe561c4f3f820ed628.tsv',
+  #   short_var = 'Haf_PK271.short.filtered_variants.rds',
+  #   struc_var = 'Haf_PK271.struc.filtered_variants.rds',
+  #   igv       = 'SID_T21432.VID_chr6-170283291-G-A.png,SID_T21437.VID_chr6-170283291-G-A.png',
+  #   svpv      = 'SVPV_chr19.13323531.DEL.95499b5cc7.png,SVPV_chr19.13323546.DEL.95499b5cc7.png,SVPV_chr19.13324001.DEL.95499b5cc7.png',
+  #   samplot   = 'samplot_Haf_PK271_chr19-13323531-DEL-21293.png,samplot_Haf_PK271_chr19-13323546-DEL-21281.png,samplot_Haf_PK271_chr19-13324001-DEL-21000.png',
+  #   slide_info = '/vast/scratch/users/munro.j/nextflow/work/f2/13e34b3ceb2ee313e345e6eca46e92/slide_info.json', 
+  #   cav_opts  = 'cavalier_options.e044d87757d209315972f2caa5d05f3c.json',
+  #   output    = 'test'
+  # )
 
   message('Using CLI options:')
   PRINT_STR(
@@ -42,6 +42,7 @@ MAIN <- function(opts) {
   igv_pngs <- c(str_split(opts$igv, ',', simplify = T))
   svpv_pngs <- c(str_split(opts$svpv, ',', simplify = T))
   samplots  <- c(str_split(opts$samplot, ',', simplify = T))
+  output    <- str_c(opts$output, '.pptx')
   
   ################# CHECK ARGS ######################
   stopifnot(
@@ -77,7 +78,7 @@ MAIN <- function(opts) {
   }
   
   ########### LOAD VARIANTS ######################
-  empty_cand <- tibble(SYMBOL = character(), Gene = character(), variant_id = character(), GT = list())
+  empty_cand <- tibble(SYMBOL = character(), Gene = character(), variant_id = character(), GT = tibble())
   
   short_cand <- empty_cand
   if (opts$short_var != 'NONE') {
@@ -223,7 +224,6 @@ MAIN <- function(opts) {
         Gene2 = Gene,
         # reporting summary columns
         broad_id = str_c(CHROM, POS, REF, ALT, sep = '-'),
-        title = str_c(opts$output, SYMBOL, broad_id, sep = " - "),
         gnomAD = str_c("AF=", signif(replace_na(gnomad_AF, 0), 2), "; AC=", replace_na(gnomad_AC, 0), "; Hom=",  replace_na(gnomad_nhomalt, 0)),
         Cohort = str_c("AF=", signif(replace_na(AF, 0), 2), "; AC=", replace_na(AC, 0)),
         SpliceAI = str_c("AG=", SpliceAI_pred_DS_AG, "; DG=", SpliceAI_pred_DS_DG, "; AL=", SpliceAI_pred_DS_AL, "; DL=", SpliceAI_pred_DS_DL),
@@ -296,7 +296,7 @@ MAIN <- function(opts) {
     
     ############# SHORT SLIDE LAYOUT #####################  
     if (ncol(short_cand$GT) == 1) {
-      layout <-
+      short_layout <-
         cavalier::slide_layout(
           c('VAR_INFO', 'IGV', 'GTEX'),
           c('OMIM', 'LISTS'),
@@ -306,7 +306,7 @@ MAIN <- function(opts) {
           transpose = 'VAR_INFO'
         )
     } else {
-      layout <-
+      short_layout <-
         bind_rows(
           cavalier::slide_layout(
             c('VAR_INFO', 'PEDIGREE', 'GTEX'),
@@ -325,12 +325,12 @@ MAIN <- function(opts) {
         )
     }
     
-    slides <-
-      cavalier::create_slides(
-        slide_layout = layout,
-        slide_data = SHORT_SLIDE_DATA,
-        output = str_c(opts$output, '.pptx')
-      )
+    message('----- Creating Short Variant Slides ------')
+    cavalier::create_slides(
+      slide_layout = short_layout,
+      slide_data = SHORT_SLIDE_DATA,
+      output = output
+    )
   }
   
   if (opts$struc_var != 'NONE') { 
@@ -396,16 +396,6 @@ MAIN <- function(opts) {
       (function(x) x[unique(names(x))]) %>% 
       unlist()
     
-    # STRUC_FIELDS <-
-    #   struc_cand %>% 
-    #   select(TYPE) %>% 
-    #   distinct() %>% 
-    #   mutate(FIELDS = map(TYPE, function(x) {
-    #     fields <- names(slide_info$SHORT$DEFAULT)
-    #     custom <- names(slide_info$SHORT[[x]])
-    #     union(fields, custom)
-    #   })) %>% 
-    #   with(setNames(FIELDS, TYPE))
     
     STRUC_VAR_INFO <-
       struc_cand %>% 
@@ -414,61 +404,185 @@ MAIN <- function(opts) {
         # need to maintain Gene
         Gene2 = Gene,
         # reporting summary columns
-        title = str_c(opts$output, SYMBOL, variant_id, sep = " - "),
-        gnomAD = str_c("AF=", signif(replace_na(gnomad_AF, 0), 2), "; AC=", replace_na(gnomad_AC, 0), "; Hom=",  replace_na(gnomad_nhomalt, 0)),
+        gnomAD = str_c("AF=", signif(replace_na(pop_AF, 0), 2), "; Hom=",  replace_na(pop_hom, 0)),
         Cohort = str_c("AF=", signif(replace_na(AF, 0), 2), "; AC=", replace_na(AC, 0)),
-        SpliceAI = str_c("AG=", SpliceAI_pred_DS_AG, "; DG=", SpliceAI_pred_DS_DG, "; AL=", SpliceAI_pred_DS_AL, "; DL=", SpliceAI_pred_DS_DL),
-        AlphaMissense = str_c(am_class, "(", am_pathogenicity, ")"),
-        dbSNP = str_extract(Existing_variation, 'rs[0-9]+'),
         # add GRCh38 for mutatylzer compatibility
-        HGVSg = str_replace(HGVSg, "^([^:]+):(.*)$", "GRCh38(\\1):\\2"),
-        # prefer coding & protein, or coding, or genomic. Drop IDs to better fit
-        HGVS = coalesce(
-          str_c(str_remove(HGVSc, '^.+:(?=[cp])'), '; ', str_remove(HGVSp, '^.+:(?=[cp])')),
-          str_remove(HGVSc, '^.+:(?=[cp])'),
-          HGVSg
+        HGVS = case_when(
+          SVTYPE %in% c("DEL", "DUP", "INV", "CNV") ~ str_c(CHROM, ':g.', POS, "_", END, str_to_lower(SVTYPE)),
+          SVTYPE == "INS" ~ str_c(CHROM, ':g.', POS, "_", POS + 1L, "ins"),
+          # SVTYPE %in% c("BND", "TRA") ~ {
+          #   # untested
+          #   m <- str_match(ALT, "[\\[\\]]([^:\\[\\]]+):(\\d+)[\\[\\]]")
+          #   j <- str_match(ALT, "([\\[\\]])[^\\[\\]]+:(\\d+)([\\[\\]])")
+          #   chr2 <- m[,2]
+          #   pos2 <- m[,3]
+          #   sig  <- str_c(j[,2], j[,3])   # "]]", "[[", "][", "[]"
+          #   str_c(CHROM, ":g.", POS, sig, chr2, ":g.", pos2, sig)
+          # },
+          TRUE ~ NA_character_
         ),
         # # add URLS to slides
-        gnomAD_url = str_c(
-          'https://gnomad.broadinstitute.org/variant/',
-          URLencode(broad_id),
-          '?dataset=gnomad_r4'
-        ),
-        HGVS_url = str_c(
-          'https://mutalyzer.nl/normalizer/',
-          URLencode(HGVSg)
-        ),
-        SpliceAI_url = str_c(
-          'https://spliceailookup.broadinstitute.org/#hg=38&variant=',
-          URLencode(broad_id)
+        gnomAD_url = if_else(
+          Gene == 'LARGE_SV',
+          str_c(
+            'https://gnomad.broadinstitute.org/region/',
+            str_remove(CHROM, 'chr'), '-', POS, '-', END,
+            '?dataset=gnomad_sv_r4'
+          ),
+          str_c(
+            'https://gnomad.broadinstitute.org/gene/',
+            Gene,
+            '?dataset=gnomad_sv_r4'
+          ),
         ),
         Gene_url = str_c(
           'https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=',
-          URLencode(Gene)
-        ),
-        CLNSIG_url = str_c(
-          "https://www.ncbi.nlm.nih.gov/clinvar/variation/",
-          CLNVID
-        ),
+          if_else(Gene == 'LARGE_SV', NA_character_,  URLencode(Gene))
+        )
       ) %>% 
       select(
         variant_id,
         Gene2,
         TYPE,
-        all_of(SHORT_FIELDS_ALL),
+        all_of(STRUC_FIELDS_ALL),
         any_of(
           setNames(
-            str_c(SHORT_FIELDS_ALL, '_url'),
-            str_c(names(SHORT_FIELDS_ALL), '_url')
+            str_c(STRUC_FIELDS_ALL, '_url'),
+            str_c(names(STRUC_FIELDS_ALL), '_url')
           )
         )
       ) %>% 
       nest(VAR_INFO = -c(variant_id, Gene2, TYPE)) %>% 
-      rename(Gene = Gene2) %>% 
-      mutate(VAR_INFO = map2(VAR_INFO, TYPE, function(VI, TYPE_) {
-        select(VI, all_of(SHORT_FIELDS[[TYPE_]]), any_of(str_c(SHORT_FIELDS[[TYPE_]], '_url')))
-      }))
+      rename(Gene = Gene2)
+    
+    ########### STRUC SLIDE DATA ########################
+    STRUC_SLIDE_DATA <-
+      struc_cand %>% 
+      select(Gene, SYMBOL, variant_id) %>% 
+      distinct() %>% 
+      mutate(TITLE = str_c(opts$output, SYMBOL, variant_id, sep = ' - ')) %>% 
+      select(TITLE, Gene, variant_id) %>% 
+      left_join(STRUC_VAR_INFO, by = c('Gene', 'variant_id')) %>% 
+      left_join(SVPV, by = 'variant_id') %>% 
+      left_join(SAMPLOT, by = 'variant_id') %>% 
+      left_join(PEDIGREE, by = 'variant_id') %>% 
+      left_join(OMIM, by = 'Gene') %>% 
+      left_join(LISTS, by = 'Gene') %>% 
+      left_join(GTEX, by = 'Gene') %>% 
+      arrange(TITLE)
+    
+    ############# STRUC SLIDE LAYOUT #####################  
+    if (nrow(pedigree) > 1) {
+      struc_layout <-
+        cavalier::slide_layout(
+          c('VAR_INFO', 'PEDIGREE', 'GTEX'),
+          c('OMIM', 'LISTS'),
+          heights = c(23, 8),
+          title_height = 0.09,
+          pad = 0.015,
+          transpose = 'VAR_INFO'
+        )
+    } else {
+      struc_layout <-
+        cavalier::slide_layout(
+          c('VAR_INFO', 'GTEX'),
+          c('OMIM', 'LISTS'),
+          heights = c(23, 8),
+          title_height = 0.09,
+          pad = 0.015,
+          transpose = 'VAR_INFO'
+        )
+    }
+    struc_layout <-
+      bind_rows(
+        struc_layout,
+        cavalier::slide_layout(
+          c('SVPV'),
+          slide_num = 2L,
+          title_height = 0.09,
+          pad = 0.015
+        ),
+        cavalier::slide_layout(
+          c('SAMPLOT'),
+          slide_num = 3L,
+          title_height = 0.09,
+          pad = 0.015
+        )
+      )
+    
+    message('----- Creating Structural Variant Slides -----')
+    cavalier::create_slides(
+      slide_template = `if`(
+        file.exists(output),
+        output,
+        cavalier:::get_slide_template()
+      ),
+      slide_layout = struc_layout,
+      slide_data = STRUC_SLIDE_DATA,
+      output = output
+    )
   }
+  
+  if (opts$struc_var != 'NONE' & opts$short_var != 'NONE') {
+    ########### SORT SLIDES ########
+    new_order <- 
+      bind_rows(
+        SHORT_SLIDE_DATA %>% 
+          select(TITLE) %>% 
+          expand_grid(slide_num = unique(short_layout$slide_num)),
+        STRUC_SLIDE_DATA %>% 
+          select(TITLE) %>% 
+          expand_grid(slide_num = unique(struc_layout$slide_num))
+      ) %>% 
+      mutate(current_pos = row_number()) %>% 
+      arrange(TITLE, slide_num) %>% 
+      mutate(target_pos = row_number()) %>% 
+      arrange(current_pos) %>% 
+      pull(target_pos)
+    
+    REORDER_PPTX(output, new_order)
+  }
+}
+
+# TODO - move to cavalier R package
+REORDER_PPTX <- function(pptx_filename, new_order) {
+  
+  n <- length(new_order)
+  
+  stopifnot(
+    n == length(unique(new_order)),
+    all(new_order %in% seq_len(n))
+  )
+  
+  new_order <- match(seq_len(n), new_order)
+  
+  if (identical(new_order, seq_along(new_order))) {
+    return()
+  }
+  
+  pos <- seq_len(n)
+  pptx <- officer::read_pptx(pptx_filename)
+  
+  for (i in seq_len(n)) {
+    s <- new_order[i]     # original slide id that should be at position i
+    from <- pos[s]        # where it currently is
+    
+    if (from == i) next
+    
+    # with a left-to-right placement, the desired slide should never be before i
+    stopifnot(from > i)
+    
+    pptx <- officer::move_slide(pptx, index = from, to = i)
+    
+    # slides in [i, from-1] shift right by 1
+    affected <- which(pos >= i & pos < from)
+    pos[affected] <- pos[affected] + 1L
+    
+    # moved slide now sits at i
+    pos[s] <- i
+  }
+  
+  print(pptx, target = pptx_filename)
 }
 
 
@@ -497,4 +611,4 @@ Options:
 "
 
 # run main function
-# invisible(MAIN(docopt(doc)))
+invisible(MAIN(docopt(doc)))

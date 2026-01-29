@@ -256,7 +256,7 @@ def get_struc_fmt() {
 def get_struc_inf() {
     (
         (params.struc_info ?: []) + 
-        (['Max_AF', 'Max_Het', 'Max_HomAlt', 'Max_PopMax_AF', 'ThousG_Count', 'gnomAD_Count', 'CCDG_Count', 'TOPMed_Count']) // from SVAFotate
+        (['Max_AF', 'Max_Het', 'Max_HomAlt', 'Max_PopMax_AF']) // from SVAFotate
     ).unique()
 }
 
