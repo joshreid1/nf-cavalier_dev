@@ -8,21 +8,6 @@ stopifnot(
 )
 
 MAIN <- function(opts) {
-  # 
-  # setwd('/vast/scratch/users/munro.j/nextflow/work/22/f7f951e306d2e1450232ced94176d4')
-  # 
-  # opts <- list(
-  #   ped = 'Haf_PK271.ped',
-  #   gene_lists =  'PAA_202.a9ffc3a8a68443fe561c4f3f820ed628.tsv',
-  #   short_var = 'Haf_PK271.short.filtered_variants.rds',
-  #   struc_var = 'Haf_PK271.struc.filtered_variants.rds',
-  #   igv       = 'SID_T21432.VID_chr6-170283291-G-A.png,SID_T21437.VID_chr6-170283291-G-A.png',
-  #   svpv      = 'SVPV_chr19.13323531.DEL.95499b5cc7.png,SVPV_chr19.13323546.DEL.95499b5cc7.png,SVPV_chr19.13324001.DEL.95499b5cc7.png',
-  #   samplot   = 'samplot_Haf_PK271_chr19-13323531-DEL-21293.png,samplot_Haf_PK271_chr19-13323546-DEL-21281.png,samplot_Haf_PK271_chr19-13324001-DEL-21000.png',
-  #   slide_info = '/vast/scratch/users/munro.j/nextflow/work/f2/13e34b3ceb2ee313e345e6eca46e92/slide_info.json', 
-  #   cav_opts  = 'cavalier_options.e044d87757d209315972f2caa5d05f3c.json',
-  #   output    = 'test'
-  # )
 
   message('Using CLI options:')
   PRINT_STR(
@@ -135,7 +120,7 @@ MAIN <- function(opts) {
                                          list_id),
       str_starts(list_id, 'G4E:') ~ 'https://bahlolab.github.io/Genes4Epilepsy/'
     )) %>%
-    select(Gene = ensembl_gene_id, list_name, list_name_url, list_version, any_of ('inheritance')) %>% 
+    select(Gene = ensembl_gene_id, `Gene list` = list_name, `Gene list_url` = list_name_url, Version = list_version, any_of('inheritance')) %>% 
     semi_join( 
       bind_rows(
         short_cand %>% select(Gene),
@@ -173,6 +158,8 @@ MAIN <- function(opts) {
       distinct() %>% 
       mutate(PEDIGREE = map(variant_id, ~ NULL))
   }
+  
+  file.copy(cavalier:::get_slide_template(), output, TRUE)
   
   ########### CREATE SHORT SLIDES ##############
   if (opts$short_var != 'NONE') { 
@@ -326,7 +313,16 @@ MAIN <- function(opts) {
     }
     
     message('----- Creating Short Variant Slides ------')
+    
+    # add title slide
+    officer::read_pptx(output) %>% 
+      officer::add_slide(layout = "Title Slide") %>% 
+      officer::ph_with("SNVs and Indels", location = officer::ph_location_type("ctrTitle")) %>% 
+      officer::ph_with(str_c('n = ', nrow(SHORT_SLIDE_DATA)), location = officer::ph_location_type(type = "subTitle")) %>% 
+      print(target = output)
+    
     cavalier::create_slides(
+      slide_template = output,
       slide_layout = short_layout,
       slide_data = SHORT_SLIDE_DATA,
       output = output
@@ -348,6 +344,7 @@ MAIN <- function(opts) {
         struc_cand %>% 
           select(CHROM, POS, SVTYPE, variant_id) %>% 
           distinct(),
+        by = join_by(CHROM, POS, SVTYPE)
       ) %>% 
       transmute(
         id = 'x',
@@ -360,7 +357,7 @@ MAIN <- function(opts) {
                map(cavalier::plot_png_facets, crop_left = 0, crop_right = 0) %>% 
                map(~ . + ggplot2::theme(strip.text = element_blank())) # kludge
       )
-    
+
     ########### SAMPLOTS ########################
     SAMPLOT <-
       tibble(png = samplots) %>% 
@@ -376,6 +373,7 @@ MAIN <- function(opts) {
           select(CHROM, POS, SVTYPE, SVLEN, variant_id) %>% 
           mutate(SVLEN = abs(SVLEN)) %>% 
           distinct(),
+        by = join_by(CHROM, POS, SVTYPE, SVLEN)
       ) %>% 
       transmute(
         id = 'x',
@@ -453,6 +451,7 @@ MAIN <- function(opts) {
         )
       ) %>% 
       nest(VAR_INFO = -c(variant_id, Gene2, TYPE)) %>% 
+      mutate(VAR_INFO = map(VAR_INFO, head, 1)) %>% # remove dups
       rename(Gene = Gene2)
     
     ########### STRUC SLIDE DATA ########################
@@ -511,78 +510,20 @@ MAIN <- function(opts) {
       )
     
     message('----- Creating Structural Variant Slides -----')
+    # add title slide
+    officer::read_pptx(output) %>% 
+      officer::add_slide(layout = "Title Slide") %>% 
+      officer::ph_with("SVs", location = officer::ph_location_type("ctrTitle")) %>% 
+      officer::ph_with(str_c('n = ', nrow(STRUC_SLIDE_DATA)), location = officer::ph_location_type(type = "subTitle")) %>% 
+      print(target = output)
+    
     cavalier::create_slides(
-      slide_template = `if`(
-        file.exists(output),
-        output,
-        cavalier:::get_slide_template()
-      ),
+      slide_template = output,
       slide_layout = struc_layout,
       slide_data = STRUC_SLIDE_DATA,
       output = output
     )
   }
-  
-  if (opts$struc_var != 'NONE' & opts$short_var != 'NONE') {
-    ########### SORT SLIDES ########
-    new_order <- 
-      bind_rows(
-        SHORT_SLIDE_DATA %>% 
-          select(TITLE) %>% 
-          expand_grid(slide_num = unique(short_layout$slide_num)),
-        STRUC_SLIDE_DATA %>% 
-          select(TITLE) %>% 
-          expand_grid(slide_num = unique(struc_layout$slide_num))
-      ) %>% 
-      mutate(current_pos = row_number()) %>% 
-      arrange(TITLE, slide_num) %>% 
-      mutate(target_pos = row_number()) %>% 
-      arrange(current_pos) %>% 
-      pull(target_pos)
-    
-    REORDER_PPTX(output, new_order)
-  }
-}
-
-# TODO - move to cavalier R package
-REORDER_PPTX <- function(pptx_filename, new_order) {
-  
-  n <- length(new_order)
-  
-  stopifnot(
-    n == length(unique(new_order)),
-    all(new_order %in% seq_len(n))
-  )
-  
-  new_order <- match(seq_len(n), new_order)
-  
-  if (identical(new_order, seq_along(new_order))) {
-    return()
-  }
-  
-  pos <- seq_len(n)
-  pptx <- officer::read_pptx(pptx_filename)
-  
-  for (i in seq_len(n)) {
-    s <- new_order[i]     # original slide id that should be at position i
-    from <- pos[s]        # where it currently is
-    
-    if (from == i) next
-    
-    # with a left-to-right placement, the desired slide should never be before i
-    stopifnot(from > i)
-    
-    pptx <- officer::move_slide(pptx, index = from, to = i)
-    
-    # slides in [i, from-1] shift right by 1
-    affected <- which(pos >= i & pos < from)
-    pos[affected] <- pos[affected] + 1L
-    
-    # moved slide now sits at i
-    pos[s] <- i
-  }
-  
-  print(pptx, target = pptx_filename)
 }
 
 

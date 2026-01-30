@@ -3,6 +3,8 @@ process SAMPLOT {
     label 'C2M4T4'
     label 'samplot'
     tag "$fam"
+    publishDir "${params.outdir}/report/$fam/samplot", mode: 'copy'
+
     /*
         - Generate samplot for structural variants
     */
@@ -15,6 +17,8 @@ process SAMPLOT {
 
     script:
     """
+    export MPLCONFIGDIR=\$PWD/mpl_tmp
+
     while IFS=\$'\\t' read -r NAME CHROM START END TYPE; do
     samplot plot \\
         -n ${ids.join(' ')} \\

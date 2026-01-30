@@ -32,6 +32,8 @@ workflow CAVALIER {
     cavalier_opts
     short_vcf
     struc_vcf
+    pedigree_channel
+    bam_channel
     check
 
     main:
@@ -42,12 +44,9 @@ workflow CAVALIER {
         short_vcf.map { ['SHORT'] + it }
             .mix(struc_vcf.map { ['STRUC'] + it })
             .map { it + [get_inf(it[0]), get_fmt(it[0])] }
-            .combine(get_fam_aff_un()),
+            .combine(get_fam_aff_un(pedigree_channel, bam_channel)),
         check
     )
-
-    pedigree = pedigree_channel()
-    bam_channel = bam_channel()
 
     filter_input = SPLIT_VEP.out.tsv
         .filter {it[0] == 'SHORT' }
@@ -59,7 +58,7 @@ workflow CAVALIER {
             remainder: true
         )
         .map { [it[0], it[1] ?: [], it[2] ?: [] ] }
-        .combine(pedigree, by: 0) //fam, short, struc, ped
+        .combine(pedigree_channel, by: 0) //fam, short, struc, ped
 
     FILTER(
         filter_input,
@@ -78,7 +77,7 @@ workflow CAVALIER {
     IGV_REPORT(
         FILTER.out.short_igv
             .combine(samples_short, by:0)
-            .combine(pedigree, by:0)
+            .combine(pedigree_channel, by:0)
             .combine(SPLIT_VEP.out.vcf.filter {it[0] == 'SHORT' }.map { it[[1,2,3]] }, by:0)
             .combine(bam_channel, by:0)
     )
@@ -116,7 +115,7 @@ workflow CAVALIER {
     /* ----- Create Slides ----- */
 
     MAKE_SLIDES(   
-        pedigree // fam, ped
+        pedigree_channel // fam, ped
             .join(FILTER.out.short_rds.combine(samples_short, by:0), by: 0, remainder: true) // fam, ped, short_rds
             .join(IGV_TO_PNG.out,       by: 0, remainder: true) // fam, ped, short_rds, short_igv
             .join(FILTER.out.struc_rds.combine(samples_struc, by:0), by: 0, remainder: true) // fam, ped, short_rds, short_igv, struc_rds
@@ -135,7 +134,6 @@ workflow CAVALIER {
     )
 
     /* ----- Save CSV results ----- */
-
     collect_csv(
         FILTER.out.short_csv.map { it[1] },
         'short_candidates.csv'

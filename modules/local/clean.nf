@@ -61,8 +61,11 @@ process CLEAN_STRUC {
         (params.struc_format  ? ',^' + params.struc_format.collect{ "FMT/$it" }.join(',') : '')
     """
     bcftools view $vcf --no-version -Ou ${params.struc_vcf_filter ? "-f  '$params.struc_vcf_filter'": ''} \\
+        -e "SVTYPE='BND'" \\
         | bcftools annotate --no-version -Ou --remove '$remove' \\
         ${params.struc_fill_tags ? '| bcftools +fill-tags --no-version -Ou -- -t AC,AF,AN' : ''} \\
         | bcftools view -e 'AF=0' --no-version -Oz -o $output --write-index=tbi
     """
+    // Exclude BNDs for now as VEP annotation with BNDs present is buggy
+    // - (other variants in proximity to BND are annotated with genes from other side/chrom of BND)
 }

@@ -705,9 +705,7 @@ FILTER_COMPOUND <- function(SHORT_VAR = NULL, STRUC_VAR = NULL) {
     tibble(GENES) %>% 
     count(GENES, name = 'n_hit') %>% 
     filter(n_hit > 1) %>% 
-    pull()
-
-  
+    pull(GENES)
 
   if (!is.null(SHORT_VAR)) {
     FILTER_SHORT_CLINVAR_KEEP_PAT <- getOption('FILTER_SHORT_CLINVAR_KEEP_PAT', '$.')
@@ -718,7 +716,13 @@ FILTER_COMPOUND <- function(SHORT_VAR = NULL, STRUC_VAR = NULL) {
         inheritance != 'compound' | 
           Gene %in% GENES | 
           str_detect(CLNSIG, FILTER_SHORT_CLINVAR_KEEP_PAT)
-      )
+      )  %>% 
+      mutate(inheritance = if_else(
+        inheritance == 'dominant' & Gene %in% GENES,
+        'dominant/compound',
+        inheritance
+      ))
+
     TRACK_REASON(SHORT_OUT, str_c('FILTER_COMPOUND(SHORT)'), set = 'SHORT')
   } else {
     SHORT_OUT <- NULL
@@ -729,7 +733,12 @@ FILTER_COMPOUND <- function(SHORT_VAR = NULL, STRUC_VAR = NULL) {
       STRUC_VAR %>% 
       filter(
         inheritance != 'compound' | Gene %in% GENES
-      )
+      ) %>% 
+      mutate(inheritance = if_else(
+        inheritance == 'dominant' & Gene %in% GENES,
+        'dominant/compound',
+        inheritance
+      ))
     TRACK_REASON(STRUC_OUT, str_c('FILTER_COMPOUND(STRUC)'), set = 'STRUC')
   } else {
     STRUC_OUT <- NULL

@@ -50,9 +50,10 @@ def func_source_channel() {
     )
 }
 
-def pedigree_channel() {
+def pedigree_channel(ped) {
 
-    Channel.fromList(read_ped())
+    ped 
+        .flatMap { read_ped(it) }
         .unique()
         .map { it.values() as ArrayList }
         .collectFile(newLine: true) {
@@ -62,21 +63,20 @@ def pedigree_channel() {
     // fam, ped
 }
 
-def bam_channel() {
-
-    Channel.fromList(read_bams())
-        .unique()
+def bam_channel(bams, ped) {
+    bams
+        .splitCsv(sep: '\t')
         .map { 
             [
-                it.iid,
-                file(it.bam, checkIfExists: true).toAbsolutePath(),
-                file(it.bam + '.bai', checkIfExists: true).toAbsolutePath()
+                it[0],
+                file(it[1], checkIfExists: true).toAbsolutePath(),
+                file(it[1] + '.bai', checkIfExists: true).toAbsolutePath()
             ] 
         }
-        .combine(read_ped().collect { [it.iid, it.fid] }, by: 0)
+        .combine(ped.flatMap { read_ped(it) }.map { [it.iid, it.fid] }, by: 0)
         .map { it[[3,0,1,2]] }
-        .groupTuple(by: 0)  
-    // fam, iid, bam, bai
+        .groupTuple(by: 0) 
+    // fam, [iid], [bam], [bai]
 }
 
 def cache_dir_channel() {

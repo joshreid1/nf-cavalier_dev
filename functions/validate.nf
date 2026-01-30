@@ -18,7 +18,7 @@ def vcf_is_set() {
 def validate_params() {
     
     if (!vcf_is_set()){
-        throw new Exception("ERROR: Must specify at least one of 'params.short_vcf' or 'params.sv_vcf'")
+        throw new Exception("ERROR: Must specify at least one of 'params.short_vcf' or 'params.struc_vcf'")
     }
 
     if (!params.bams) {

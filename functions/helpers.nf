@@ -56,14 +56,9 @@ def checkMode(mode) {
     }
 }
 
-def read_ped() {
-    def ped
-    if (params.ped) {
-        ped = read_tsv(path(params.ped), ['fid', 'iid', 'pid', 'mid', 'sex', 'phe'])
-    } else {
-        ped = read_bams().collect { it -> [fid: it.iid, iid: it.iid, pid: '0', mid: '0', sex: '0', phe: '2'] }
-    }
-    
+def read_ped(input) {
+
+    def ped = read_tsv(input, ['fid', 'iid', 'pid', 'mid', 'sex', 'phe'])
     def ped_families = ped.collect { it.fid }.unique()
     
     def fam_w_aff = ped
@@ -157,20 +152,20 @@ def ref_gene_channel() {
     Channel.value([path(params.ref_gene)])
 }
 
-def get_fam_aff_un() {
+def get_fam_aff_un(pedigree_channel, bam_channel) {
 
-    def bamids = read_bams().collect { it.iid }.unique()
-
-    def fam_af_un = read_ped()
-        .groupBy { it.fid }
-        .collect { k, v -> [
-            k,
-            v.findAll {it.phe == '2'}.collect {it.iid}.intersect(bamids),
-            v.findAll {it.phe == '1'}.collect {it.iid}.intersect(bamids)
-        ] }
-
-    Channel.fromList(fam_af_un) // fam, aff, unaff
-    
+    pedigree_channel
+        .splitCsv(sep: '\t')
+        .map { [ it[0], it[1][1], it[1][5] == '2'] } // fam_id, sam_id, is_affected
+        .combine(bam_channel.flatMap { x -> x[1].collect { [x[0], it]} }, by: [0,1])
+        .groupTuple(by:0)
+        .map { 
+            [
+                it[0],
+                [it[1], it[2]].transpose().findAll{ it[1] }.collect {it[0]},
+                [it[1], it[2]].transpose().findAll{ !it[1] }.collect {it[0]}
+            ] 
+        } // fam, [aff], [un]
 }
 
 def get_cavalier_opts() {
