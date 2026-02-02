@@ -56,14 +56,9 @@ def checkMode(mode) {
     }
 }
 
-def read_ped() {
-    def ped
-    if (params.ped) {
-        ped = read_tsv(path(params.ped), ['fid', 'iid', 'pid', 'mid', 'sex', 'phe'])
-    } else {
-        ped = read_bams().collect { it -> [fid: it.iid, iid: it.iid, pid: '0', mid: '0', sex: '0', phe: '2'] }
-    }
-    
+def read_ped(input) {
+
+    def ped = read_tsv(input, ['fid', 'iid', 'pid', 'mid', 'sex', 'phe'])
     def ped_families = ped.collect { it.fid }.unique()
     
     def fam_w_aff = ped
@@ -157,18 +152,20 @@ def ref_gene_channel() {
     Channel.value([path(params.ref_gene)])
 }
 
-def families_aff_un() {
+def get_fam_aff_un(pedigree_channel, bam_channel) {
 
-    def fam_af_un = read_ped()
-        .groupBy { it.fid }
-        .collect { k, v -> [
-            k,
-            v.findAll {it.phe == '2'}.collect {it.iid},
-            v.findAll {it.phe == '1'}.collect {it.iid}
-        ] }
-
-    Channel.fromList(fam_af_un) // fam, aff, unaff
-    
+    pedigree_channel
+        .splitCsv(sep: '\t')
+        .map { [ it[0], it[1][1], it[1][5] == '2'] } // fam_id, sam_id, is_affected
+        .combine(bam_channel.flatMap { x -> x[1].collect { [x[0], it]} }, by: [0,1])
+        .groupTuple(by:0)
+        .map { 
+            [
+                it[0],
+                [it[1], it[2]].transpose().findAll{ it[1] }.collect {it[0]},
+                [it[1], it[2]].transpose().findAll{ !it[1] }.collect {it[0]}
+            ] 
+        } // fam, [aff], [un]
 }
 
 def get_cavalier_opts() {
@@ -223,4 +220,46 @@ def short_enabled() {
 
 def sv_enabled() {
     params.sv_vcf ? true : params.sv_vcf_annotated ? true : false
+}
+
+
+
+def get_short_fmt() {
+    (params.short_format ?: []).toList().unique()
+}
+
+def get_short_inf() {
+    (
+        (params.short_info ?: []) + 
+        (params.short_vcfanno ? params.short_vcfanno.collectMany { it.fields.keySet() } : [])
+    ).unique()
+}
+
+def get_fmt(type) {
+    if (type == 'SHORT') {
+        return(get_short_fmt())
+    }
+    if (type == 'STRUC') {
+        return(get_struc_fmt())
+    }
+}
+
+def get_struc_fmt() {
+    (params.struc_format ?: []).toList().unique()
+}
+
+def get_struc_inf() {
+    (
+        (params.struc_info ?: []) + 
+        (['Max_AF', 'Max_Het', 'Max_HomAlt', 'Max_PopMax_AF']) // from SVAFotate
+    ).unique()
+}
+
+def get_inf(type) {
+    if (type == 'SHORT') {
+        return(get_short_inf())
+    }
+    if (type == 'STRUC') {
+        return(get_struc_inf())
+    }
 }

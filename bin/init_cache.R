@@ -103,7 +103,8 @@ for (reg in regions) {
     MAP_IDS() %>% 
     mutate(
       list_id = str_c('region:', reg_chrom, '_', reg_start, '_', reg_end),
-      list_name = list_id) %>% 
+      list_name = list_id,
+      list_version = cav_opts$gencode_version) %>% 
     arrange_all()
   
   gene_set <- union(gene_set, na.omit(lst$ensembl_gene_id))

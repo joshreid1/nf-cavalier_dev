@@ -17,7 +17,7 @@ process GATHER {
     script:
     output = vcfs[0].name.replaceAll('shard\\.\\d+\\.', '')
     """
-    bcftools concat $vcfs --threads $task.cpus --naive -Oz -o $output
+    bcftools concat $vcfs --threads $task.cpus --naive-force -Oz -o $output
     bcftools index -t --threads $task.cpus $output
     """
 }

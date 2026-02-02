@@ -81,3 +81,69 @@ process VEP {
     """
 }
 
+
+process VEP_STRUC {
+    label 'C4M8T8'
+    label 'vep'
+    tag "$i"
+    /*
+        - Run VEP on structural variants
+        - Optionally check no variants are being dropped
+    */
+
+    input:
+        tuple val(i), path(vcf_input)
+        tuple path(fasta), path(fai)
+        path(vep_cache)
+        val(vep_fields)
+
+    output:
+        path(output)
+
+    script:
+    output = vcf_input.name.replaceAll('.vcf.gz', '.vep.vcf.gz')
+    
+    check_block = params.vep_check ?
+        """
+        zcat $vcf_input | grep -v '^#' | wc -l > NIN.txt &
+        zcat $output    | grep -v '^#' | wc -l > NOUT.txt
+        wait; NIN=\$(<NIN.txt); NOUT=\$(<NOUT.txt)
+        if [[ "\$NIN" != "\$NOUT" ]]; then
+            echo "Error: Number of input variants (\$NIN) not equal to number of output variants (\$NOUT)"
+            exit 1
+        fi
+        """ :
+        ''
+
+    """
+    zcat $vcf_input \\
+        | vep \\
+            --input_file STDIN \\
+            --format vcf \\
+            --vcf \\
+            --fork $task.cpus \\
+            --offline \\
+            --cache \\
+            --cache_version $params.vep_cache_ver \\
+            --dir $vep_cache \\
+            --assembly GRCh38 \\
+            --fasta $fasta \\
+            --pick_allele_gene \\
+            --check_existing \\
+            --hgvs \\
+            --hgvsg \\
+            --symbol \\
+            --numbers \\
+            --protein \\
+            --no_stats \\
+            --no_intergenic \\
+            --variant_class \\
+            --dont_skip \\
+            --fields "${vep_fields.join(',')}" \\
+            --output_file STDOUT \\
+        | bgzip -c > $output
+
+    $check_block
+    """
+}
+
