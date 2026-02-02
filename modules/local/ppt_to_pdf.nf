@@ -1,8 +1,9 @@
 
 process PPT_TO_PDF {
     container 'linuxserver/libreoffice:7.6.7'
-    errorStrategy 'ignore'
-    memory '4G'
+    label 'C2M4T4'
+    maxRetries 3
+    errorStrategy { task.attempt < 3 ? 'retry' : 'ignore' }    
     tag { "$fam" }
     publishDir "${params.outdir}/report/$fam", mode: 'copy', pattern: "*.pdf"
     /*

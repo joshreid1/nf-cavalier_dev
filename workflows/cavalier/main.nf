@@ -69,10 +69,12 @@ workflow CAVALIER {
     )
 
     /* ----- Visualise short variants ----- */
-    samples_short = FILTER.out.short_count
+    short_count = FILTER.out.short_count
         .map    { [it[0], it[1].text as int] }
-        .filter { it[1] > 0                  }
-        .map    { it[0]                      }
+    
+    samples_short = short_count
+        .filter { it[1] > 0 }
+        .map    { it[0]     }
 
     IGV_REPORT(
         FILTER.out.short_igv
@@ -88,10 +90,12 @@ workflow CAVALIER {
 
     /* ----- Visualise struct variants ----- */
 
-    samples_struc = FILTER.out.struc_count
+    struc_count = FILTER.out.struc_count
         .map    { [it[0], it[1].text as int] }
-        .filter { it[1] > 0                  }
-        .map    { it[0]                      }
+
+    samples_struc = struc_count
+        .filter { it[1] > 0 }
+        .map    { it[0]     } 
 
     SVPV(
         SPLIT_VEP.out.vcf.filter { it[0] == 'STRUC' }.map { it[[1,2]] } // fam, vcf

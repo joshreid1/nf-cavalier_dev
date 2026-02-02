@@ -1,13 +1,13 @@
 
 process MAKE_SLIDES {
-    label 'C2M8T2'
+    label 'C2M16T2'
     label 'cavalier'
     publishDir "${params.outdir}/report/$fam", mode: 'copy'
     tag "$fam"
     /*
         - Create slides for candidate variants
         - Loads data directly from FILTER output
-    */  
+    */
 
     input:
     tuple val(fam), path(ped), path(short_var), path(igv), path(struc_var), path(svpv), path(samplot)
