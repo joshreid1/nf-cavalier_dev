@@ -160,6 +160,22 @@ MAIN <- function(opts) {
   }
   
   file.copy(cavalier:::get_slide_template(), output, TRUE)
+
+  if (!str_detect(opts$short_flt_plot, '\\.empty\\.')) {
+    # add title slides
+    flt_plt <-
+      cavalier::plot_png_facets(
+        tibble(id = "x", png = opts$short_flt_plot),
+        crop_left = 0, crop_right = 0
+      ) +
+      ggplot2::theme(strip.text = element_blank())
+    
+    officer::read_pptx(output) %>%
+      officer::add_slide(layout = "Title and Content") %>%
+      officer::ph_with(str_c("SNVs and Indels (n=", nrow(short_cand), ')'), location = officer::ph_location_type("title")) %>%
+      officer::ph_with(flt_plt, location =  officer::ph_location_type(type = "body"))  %>% 
+      print(target = output)
+  }
   
   ########### CREATE SHORT SLIDES ##############
   if (opts$short_var != 'NONE') { 
@@ -314,19 +330,28 @@ MAIN <- function(opts) {
     
     message('----- Creating Short Variant Slides ------')
     
-    # add title slide
-    officer::read_pptx(output) %>% 
-      officer::add_slide(layout = "Title Slide") %>% 
-      officer::ph_with("SNVs and Indels", location = officer::ph_location_type("ctrTitle")) %>% 
-      officer::ph_with(str_c('n = ', nrow(SHORT_SLIDE_DATA)), location = officer::ph_location_type(type = "subTitle")) %>% 
-      print(target = output)
-    
     cavalier::create_slides(
       slide_template = output,
       slide_layout = short_layout,
       slide_data = SHORT_SLIDE_DATA,
       output = output
     )
+  }
+
+  if (!str_detect(opts$struc_flt_plot, '\\.empty\\.')) {
+    # add title slides
+    flt_plt <-
+      cavalier::plot_png_facets(
+        tibble(id = "x", png = opts$struc_flt_plot),
+        crop_left = 0, crop_right = 0
+      ) +
+      ggplot2::theme(strip.text = element_blank())
+    
+    officer::read_pptx(output) %>%
+      officer::add_slide(layout = "Title and Content") %>%
+      officer::ph_with(str_c("SVs (n=", nrow(struc_cand), ')'), location = officer::ph_location_type("title")) %>%
+      officer::ph_with(flt_plt, location =  officer::ph_location_type(type = "body"))  %>% 
+      print(target = output)
   }
   
   if (opts$struc_var != 'NONE') { 
@@ -408,15 +433,6 @@ MAIN <- function(opts) {
         HGVS = case_when(
           SVTYPE %in% c("DEL", "DUP", "INV", "CNV") ~ str_c(CHROM, ':g.', POS, "_", END, str_to_lower(SVTYPE)),
           SVTYPE == "INS" ~ str_c(CHROM, ':g.', POS, "_", POS + 1L, "ins"),
-          # SVTYPE %in% c("BND", "TRA") ~ {
-          #   # untested
-          #   m <- str_match(ALT, "[\\[\\]]([^:\\[\\]]+):(\\d+)[\\[\\]]")
-          #   j <- str_match(ALT, "([\\[\\]])[^\\[\\]]+:(\\d+)([\\[\\]])")
-          #   chr2 <- m[,2]
-          #   pos2 <- m[,3]
-          #   sig  <- str_c(j[,2], j[,3])   # "]]", "[[", "][", "[]"
-          #   str_c(CHROM, ":g.", POS, sig, chr2, ":g.", pos2, sig)
-          # },
           TRUE ~ NA_character_
         ),
         # # add URLS to slides
@@ -509,14 +525,7 @@ MAIN <- function(opts) {
         )
       )
     
-    message('----- Creating Structural Variant Slides -----')
-    # add title slide
-    officer::read_pptx(output) %>% 
-      officer::add_slide(layout = "Title Slide") %>% 
-      officer::ph_with("SVs", location = officer::ph_location_type("ctrTitle")) %>% 
-      officer::ph_with(str_c('n = ', nrow(STRUC_SLIDE_DATA)), location = officer::ph_location_type(type = "subTitle")) %>% 
-      print(target = output)
-    
+    message('----- Creating Structural Variant Slides -----')    
     cavalier::create_slides(
       slide_template = output,
       slide_layout = struc_layout,
@@ -542,7 +551,9 @@ Options:
   gene_lists                  Comma serparated list of gene list filenames.
   options                     Slide options Json file.
   --short-var=<RDS>           Short Variants RDS input.
+  --short-flt-plot=<PNG>      Short Variants filtering plot.
   --struc-var=<RDS>           Structural Variants RDS input.
+  --struc-flt-plot=<PNG>      Short Variants filtering plot.
   --igv=<PNG>                 IGV screenshot PNGs, comma separated.
   --svpv=<PNG>                SVPV PNGs, comma separated.
   --samplot=<PNG>             samplot PNGs, comma separated.

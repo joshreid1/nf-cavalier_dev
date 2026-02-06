@@ -32,7 +32,7 @@ workflow ANNOTATE {
     }
 
     if (params.struc_vcf_annotated) {
-        println "INFO: Skipping struc annotation, using annotated VCF - $params.struc_vcf_annotated"
+        println "INFO: Skipping STRUC annotation, using annotated VCF - $params.struc_vcf_annotated"
         struc_vcf = vcf_channel(params.struc_vcf_annotated)
 
     } else if (params.struc_vcf) {

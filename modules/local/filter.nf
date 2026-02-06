@@ -3,6 +3,7 @@ process FILTER {
     label 'C2M16T2'
     label 'cavalier'
     publishDir "${params.outdir}/report/$fam", mode: 'copy', pattern: "*.csv*"
+    publishDir "${params.outdir}/report/$fam", mode: 'copy', pattern: "*.png"
     tag "$fam"
     /*
         - Read TSV formatted variants for a given family
@@ -24,12 +25,14 @@ process FILTER {
     tuple val(fam), path("${fam}*.short.igv.bed.gz")            , emit: short_igv
     tuple val(fam), path("${fam}*.short.count")                 , emit: short_count
     tuple val(fam), path("${fam}*.short.reason_filtered.csv.gz"), emit: short_reason
+    tuple val(fam), path("${fam}*.short.filtering.png")         , emit: short_flt_plot
 
     tuple val(fam), path("${fam}*.struc.filtered_variants.rds") , emit: struc_rds
     tuple val(fam), path("${fam}*.struc.filtered_variants.csv") , emit: struc_csv
     tuple val(fam), path("${fam}*.struc.bamplot.tsv")           , emit: struc_samplot
     tuple val(fam), path("${fam}*.struc.count")                 , emit: struc_count
     tuple val(fam), path("${fam}*.struc.reason_filtered.csv.gz"), emit: struc_reason
+    tuple val(fam), path("${fam}*.struc.filtering.png")         , emit: struc_flt_plot
     
     script:
 """
