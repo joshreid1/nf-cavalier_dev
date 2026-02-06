@@ -121,10 +121,12 @@ workflow CAVALIER {
     MAKE_SLIDES(   
         pedigree_channel // fam, ped
             .join(FILTER.out.short_rds.combine(samples_short, by:0), by: 0, remainder: true) // fam, ped, short_rds
-            .join(IGV_TO_PNG.out,       by: 0, remainder: true) // fam, ped, short_rds, short_igv
+            .join(FILTER.out.short_flt_plot, by: 0, remainder: true)
+            .join(IGV_TO_PNG.out           , by: 0, remainder: true) // fam, ped, short_rds, short_igv
             .join(FILTER.out.struc_rds.combine(samples_struc, by:0), by: 0, remainder: true) // fam, ped, short_rds, short_igv, struc_rds
-            .join(SVPV_TO_PNG.out     , by: 0, remainder: true) // fam, ped, short_rds, short_igv, struc_rds, svpv
-            .join(SAMPLOT.out         , by: 0, remainder: true) // fam, ped, short_rds, short_igv, struc_rds, svpv, samplot
+            .join(FILTER.out.struc_flt_plot, by: 0, remainder: true)
+            .join(SVPV_TO_PNG.out          , by: 0, remainder: true) // fam, ped, short_rds, short_igv, struc_rds, svpv
+            .join(SAMPLOT.out              , by: 0, remainder: true) // fam, ped, short_rds, short_igv, struc_rds, svpv, samplot
             .combine(samples_short.mix(samples_struc).unique(), by: 0) // exclude indiv with no variants
             .map    { row -> row.collect { x -> x ?: [] }   },  // replace missing/null with [] to avoid errors
         lists,

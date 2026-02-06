@@ -103,6 +103,12 @@ MAIN <- function(opts) {
       .GlobalEnv$.tracking.SHORT$filtered,
       file = str_c(opts$output, '.short.reason_filtered.csv.gz')
     )
+
+    PLOT_FILTERING(
+      n_pass = nrow(FC$SHORT),
+      filtered = .GlobalEnv$.tracking.SHORT$filtered,
+      output = str_c(opts$output, '.short.filtering.png')
+    )
     
     FC$SHORT %>% 
       transmute(
@@ -123,7 +129,8 @@ MAIN <- function(opts) {
     file.create(str_c(opts$output, '.empty.short.filtered_variants.rds'))
     file.create(str_c(opts$output, '.empty.short.filtered_variants.csv'))
     file.create(str_c(opts$output, '.empty.short.reason_filtered.csv.gz'))
-    file.create(str_c(opts$output, '.empty.short.igv.bed.gz'))
+    file.create(str_c(opts$output, ".empty.short.igv.bed.gz"))
+    file.create(str_c(opts$output, '.empty.short.filtering.png'))
     cat("0", file = str_c(opts$output, '.short.count'))
   }
   
@@ -152,6 +159,12 @@ MAIN <- function(opts) {
       file = str_c(opts$output, '.struc.reason_filtered.csv.gz')
     )
 
+    PLOT_FILTERING(
+      n_pass = nrow(FC$STRUC),
+      filtered = .GlobalEnv$.tracking.STRUC$filtered,
+      output = str_c(opts$output, '.struc.filtering.png')
+    )
+
     FC$STRUC %>% 
       transmute(
         name  = variant_id,
@@ -172,7 +185,8 @@ MAIN <- function(opts) {
     file.create(str_c(opts$output, '.empty.struc.filtered_variants.rds'))
     file.create(str_c(opts$output, '.empty.struc.filtered_variants.csv'))
     file.create(str_c(opts$output, '.empty.struc.reason_filtered.csv.gz'))
-    file.create(str_c(opts$output, '.empty.struc.struc.bamplot.tsv'))
+    file.create(str_c(opts$output, ".empty.struc.struc.bamplot.tsv"))
+    file.create(str_c(opts$output, '.empty.struc.filtering.png'))
     cat("0", file = str_c(opts$output, '.struc.count'))
   }
   
@@ -375,7 +389,7 @@ TRACK_REASON <- function(data, reason = NA_character_, init=FALSE, set = 'SHORT'
     env$prev <- data
     env$step <- 0L
     message('Initial ', set, ' Gene-Variants: n=', nrow(data))
-  } else{
+  } else {
     env <- .GlobalEnv[[env_name]]
     env$step <- env$step + 1L
     
@@ -891,6 +905,41 @@ FILTER_STRUC_TYPE <- function(VARIANTS) {
   return(
     VARIANTS_OUT %>% TRACK_REASON('FILTER_STRUC_TYPE', set = 'STRUC')
   )
+}
+
+PLOT_FILTERING <- function(n_pass, filtered, output, title = 'Variant filtering') {
+  n_init <- n_pass + nrow(filtered)
+  
+  filtered %>%
+    mutate(REASON = REASON %>%
+      str_remove_all("FILTER_") %>%
+      str_remove_all("\\(?(STRUC|SHORT)\\)?_?")) %>%
+    mutate(REASON = case_when(
+      REASON == "TYPE" ~ "Type/Impact",
+      REASON == "GENE" ~ "Gene list",
+      REASON == "FMT" ~ "Quality/Depth",
+      REASON == "INHERITANCE" ~ "Inheritance/Frequency",
+      REASON == "COMPOUND" ~ "Inheritance/Frequency",
+      TRUE ~ str_to_sentence(REASON)
+    )) %>%
+    group_by(REASON) %>% 
+    summarise(n = n(), STEP = min(STEP), .groups = 'drop') %>%
+    arrange(STEP) %>%
+    mutate(n = n_init - cumsum(n)) %>%
+    add_row(REASON = "Initial", n = n_init, STEP = 0, .before = 1) %>%
+    mutate(REASON = factor(REASON, levels = unique(rev(REASON))))  %>%
+    ggplot(aes(REASON, n)) +
+    geom_col(aes(fill = REASON), show.legend = FALSE) +
+    geom_label(aes(y = pmax(n, 1), label = str_c('n=', map_chr(n, format, big.mark = ','))), hjust=1) +
+    scale_y_continuous(
+      trans = "log1p",
+      breaks = c(0, 10**seq(1, ceiling(log10(n_init)))),
+    ) +
+    coord_flip() +
+    labs(x = 'Filter', y = 'Remaining Gene-Variants') 
+
+  ggsave(output, width = 7, height = 4)
+
 }
 
 PRINT_STR <- function(x) {
