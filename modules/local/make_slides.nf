@@ -1,8 +1,8 @@
 
 process MAKE_SLIDES {
-    label 'C2M16T2'
+    label 'C2M16T4'
     label 'cavalier'
-    publishDir "${params.outdir}/report/$fam", mode: 'copy'
+    publishDir "${params.outdir}/by_family/$fam", mode: 'copy', pattern: "${fam}.pptx"
     tag "$fam"
     /*
         - Create slides for candidate variants
@@ -19,7 +19,7 @@ process MAKE_SLIDES {
     path(cache_dir)
 
     output:
-    tuple val(fam), path("${fam}.pptx")
+    tuple val(fam), path("*.pptx")
 
     
     script:
@@ -36,6 +36,8 @@ make_slides.R $ped ${lists.join(',')} slide_options.json \\
     --samplot   ${samplot.size()   > 0 ? "${samplot.join(',')}" : 'NONE' } \\
     --slide-info slide_info.json \\
     --cav-opts $cav_opts \\
-    --output $fam
+    --output $fam \\
+    --max-short-per-deck $params.max_short_per_deck \\
+    --max-struc-per-deck $params.max_struc_per_deck
 """
 }

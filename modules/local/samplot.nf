@@ -3,7 +3,7 @@ process SAMPLOT {
     label 'C2M4T4'
     label 'samplot'
     tag "$fam"
-    publishDir "${params.outdir}/report/$fam/samplot", mode: 'copy'
+    publishDir "${params.outdir}/by_family/$fam/samplot", mode: 'copy'
 
     /*
         - Generate samplot for structural variants

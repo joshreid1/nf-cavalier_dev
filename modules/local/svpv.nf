@@ -3,7 +3,7 @@ process SVPV {
     label 'C2M4T4'
     label 'svpv'
     tag "$fam"
-    publishDir "${params.outdir}/report/$fam/svpv", mode: 'copy'
+    publishDir "${params.outdir}/by_family/$fam/svpv", mode: 'copy'
 
     /*
         - Generate SVPV for structural variants

@@ -78,7 +78,7 @@ def read_ped(input) {
     if (fam_wo_aff.size() > 0) {
         def n = fam_wo_aff.size()
         def fams =  n > 5 ? fam_wo_aff[0..4] + ['...'] : fam_wo_aff
-        println "WARNING: $n famil${n > 1 ? 'ies':'y'} with no affected members will be excluded: ${fams.join(', ')}"
+        log.warn("$n famil${n > 1 ? 'ies':'y'} with no affected members will be excluded: ${fams.join(', ')}")
     }
 
     ped.findAll { fam_w_aff.contains(it.fid) }

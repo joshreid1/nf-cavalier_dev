@@ -33,7 +33,7 @@ if (length(bam_ids) > length(unique(bam_ids))) {
 message('\nℹ Found ', length(bam_ids), ' samples in bam manifest')
 
 if (in_ped == 'UNSET') {
-  message('\nℹGenerating uniformative pedigree based on bam manifest')
+  message('\nℹGenerating uninformative pedigree based on bam manifest')
   # generate uniformative pedigree
   pedigree <- 
     tibble(

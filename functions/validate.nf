@@ -30,7 +30,7 @@ def validate_params() {
     }
 
     if (!params.ped) {
-        log.info("WARNING: params.ped not defined, generating uniformative pedigree\n")
+        log.info("INFO: params.ped not defined, generating uninformative pedigree\n")
     }
 
     /*
