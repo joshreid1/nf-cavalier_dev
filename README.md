@@ -1,57 +1,112 @@
 # nf-cavalier
 
-Nextflow Pipeline for singleton and family based candidate variant prioritisation based on gene lists using the Cavalier R package. This pipeline is a work in progress.
+Nextflow pipeline for singleton and family based candidate variant reporting based on gene lists. Variants are reported in CSV, Powerpoint and PDF format. Supports joint SNV/Indel and Structural Variant analysis.
 
 ## Installation
 * Clone this repositoty
 
-## Usage
-* Create and navigate to run working directory
-* Create configuration file in run directory named `nextflow.config`:
-  ```Nextflow
-    params {
-      // output directory
-      outdir = 'output'
-      
-      // inputs
-      snp_vcf = 'my_cohort.SNPs.vcf.gz'
-      sv_vcf = 'my_cohort.SVs.vcf.gz'
-      ped = 'families.ped'
-      bams = 'bams.tsv'
-      lists = 'my_list_file.tsv,HP:0001250'
-      
-      // filtering
-      maf_dom = 0.0001
-      maf_rec = 0.01
-      maf_comp_het = 0.01
-      maf_de_novo = 0.0001
-      max_cohort_af = 1.0
-      max_cohort_ac = 'Inf'
-      min_impact = 'LOW'
-      exclude_benign_missense = false
-      include_sv_csv = true
+## Basic Usage
+1. Create and navigate to run working directory
+2. Download required annotation sources - see [annotations](#annotations)
+3. Create configuration file in run directory named `nextflow.config` - see [parameters](#parameters)
+4. Run nf-cavalier  
   
-      // reference config
-      ref_hg38 = true
-      ref_fasta = '/PATH/TO/GRCh38.fasta'
-      pop_sv = '/PATH/TO/gnomad-sv.vcf.gz'
-      ref_gene = '/PATH/TO/RefSeqGene.hg38.UCSC.txt'
-      vep_cache = '/PATH/T0/vep-cache'
-      vep_cache_ver = '104'
-    }
     ```
-* Note: Bahlo Lab members should use this [config](https://github.com/bahlolab/nextflow-config/blob/master/nf-cavalier/milton.config) as a starting point.
+    nextflow run /PATH/TO/nf-cavalier -resume
+    ```
+### Bahlolab users only
+* Do not need to download annotations sources and can use the preconfigured profile:
+    ```
+    nextflow run /PATH/TO/nf-cavalier -resume -profile bahlolab
+    ```
+  
+## Parameters
+The following parameters may be set in the Nextflow configuration file:
+### Required
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `bams` | - | TSV file with BAM paths (Col 1: sample ID, Col 2: BAM path) |
+| `lists` | - | Gene lists, comma separated (TSV or ID) - [see below](#gene-lists) |
+| `ped` | - | Pedigree file (required for familial analysis, leave blank for singletons) |
+| `short_vcf` | - | Input VCF for short variants (SNVs/Indels) |
+| `struc_vcf` | - | Input VCF for structural variants |
+| `vep_cache` | - | VEP cache directory |
+| `ref_fasta` | - | Reference FASTA file |
+| `vep_cache_ver` | `'115'` | VEP cache version |
+| `vep_spliceai_snv` | - | SpliceAI SNV VCF path (available for Illumina) |
+| `vep_spliceai_indel` | - | SpliceAI Indel VCF path (available for Illumina) |
+| `vep_alphamissense` | - | AlphaMissense annotation file (TSV) |
+| `vep_revel` | - | REVEL annotation file (TSV) |
+| `short_vcfanno` | - | vcfanno annotation Map |
+| `svafdb` | - | SVAFotate database path |
+| `pop_sv` | - | gnomAD v4.1 Population SV VCF  |
+| `ref_gene` | - | NCBI RefSeq Select (UCSC) TSV |
 
-* **Params**  
-  * `outdir` - Output directory
-  * `snp_vcf` - (Optional) Input VCF file with SNP variant calls for all samples.
-  * `sv_vcf` - (Optional) Input VCF file with SV variant calls for all samples.
-  * `ped` - A [Ped format file](https://gatk.broadinstitute.org/hc/en-us/articles/360035531972-PED-Pedigree-format) describing familial relationships, with 1/2 coding for unaffected/affected phenotypes (missing phenotype not supported).
-  * `bams` - TSV file with first column containing individual ID, second column containing path to indexed BAM file (no header row/  column names).
-  * `lists` - Comma separated list of gene lists to use for filtering. This may be a local TSV file, e.g. 'my_list_file.tsv' or a web based gene list, e.g. [PAA:289](https://panelapp.agha.umccr.org/panels/289/).
+### Optional
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `outdir` | `'output'` | Output directory |
+| `short_vcf_annotated` | `null` | Pre-annotated short variant VCF (skips annotation) |
+| `struc_vcf_annotated` | `null` | Pre-annotated structural variant VCF (skips annotation) |
+| `max_short_per_deck` | `500` | Maximum number of short variants per slide deck |
+| `max_struc_per_deck` | `500` | Maximum number of structural variants per slide deck |
+| `annotate_only` | `false` | Will not filter and report variants |
+| `make_slides` | `true` | Output PPT/PDF slides |
+| `vep_check` | `true` | Check number of variants output by VEP equal to number input |
+| `vep_utr_annotator` | - | UTR Annotator file |
+| `short_n_shards` | `200` | Split input VCF into shards for parallel processing |
+| `short_vcf_filter` | `"PASS,."` | Apply filter to input variants |
+| `short_info` | `['AC', 'AF', 'AN']` | INFO fields to keep from VCF |
+| `short_format` | `['GT', 'GQ', 'DP']` | FORMAT fields to keep from VCF |
+| `short_fill_tags` | `false` | Fill AC, AF, and AN from VCF |
+| `short_vcfanno_filter` | `'gnomad_AF<0.01 \|\| gnomad_AF="."'` | Filter to apply after vcfanno |
+| `FILTER_SHORT_MIN_DP` | `5` | Minimum Depth for short variants |
+| `FILTER_SHORT_MIN_GQ` | `10` | Minimum Genotype Quality for short variants |
+| `FILTER_SHORT_POP_DOM_MAX_AF` | `0.0001` | Max population AF for dominant short variants |
+| `FILTER_SHORT_POP_REC_MAX_AF` | `0.01` | Max population AF for recessive short variants |
+| `FILTER_SHORT_POP_DOM_MAX_AC` | `20` | Max population AC for dominant short variants |
+| `FILTER_SHORT_POP_REC_MAX_AC` | `100` | Max population AC for recessive short variants |
+| `FILTER_SHORT_POP_DOM_MAX_HOM` | `5` | Max population homozygotes for dominant short variants |
+| `FILTER_SHORT_POP_REC_MAX_HOM` | `20` | Max population homozygotes for recessive short variants |
+| `FILTER_SHORT_COH_DOM_MAX_AF` | `null` | Max cohort AF for dominant short variants |
+| `FILTER_SHORT_COH_REC_MAX_AF` | `null` | Max cohort AF for recessive short variants |
+| `FILTER_SHORT_COH_DOM_MAX_AC` | `null` | Max cohort AC for dominant short variants |
+| `FILTER_SHORT_COH_REC_MAX_AC` | `null` | Max cohort AC for recessive short variants |
+| `FILTER_SHORT_CLINVAR_LIST_ONLY` | `true` | Restrict ClinVar filtering to list genes only |
+| `FILTER_SHORT_CLINVAR_KEEP_PAT` | `'(p\|P)athogenic(?!ity)'` | Regex for keeping ClinVar pathogenic variants |
+| `FILTER_SHORT_CLINVAR_DISC_PAT` | `'(b\|B)enign'` | Regex for discarding ClinVar benign variants |
+| `FILTER_SHORT_LOF` | `true` | Enable TYPE='LOF' (VEP IMPACT == 'HIGH') |
+| `FILTER_SHORT_MISSENSE` | `true` | Enable TYPE='MISSENSE' (VEP CSQ contains 'missense') |
+| `FILTER_SHORT_SPLICING` | `true` | Enable TYPE='SPLICING' |
+| `FILTER_SHORT_MIN_CADD_PP` | `25.3` | Minimum CADD Phred score |
+| `FILTER_SHORT_MIN_SPLICEAI_PP` | `0.20` | Minimum SpliceAI score |
+| `FILTER_SHORT_VEP_MIN_IMPACT` | `'MODERATE'` | Minimum VEP Impact to retain |
+| `FILTER_SHORT_VEP_CONSEQUENCES` | `null` | Specific VEP consequences to retain |
+| `FILTER_STRUC_POP_DOM_MAX_AF` | `0.0001` | Max population AF for dominant SVs |
+| `FILTER_STRUC_POP_REC_MAX_AF` | `0.01` | Max population AF for recessive SVs |
+| `FILTER_STRUC_POP_DOM_MAX_HOM` | `null` | Max population homozygotes for dominant SVs |
+| `FILTER_STRUC_POP_REC_MAX_HOM` | `null` | Max population homozygotes for recessive SVs |
+| `FILTER_STRUC_COH_DOM_MAX_AF` | `0.01` | Max cohort AF for dominant SVs |
+| `FILTER_STRUC_COH_REC_MAX_AF` | `0.01` | Max cohort AF for recessive SVs |
+| `FILTER_STRUC_COH_DOM_MAX_AC` | `null` | Max cohort AC for dominant SVs |
+| `FILTER_STRUC_COH_REC_MAX_AC` | `null` | Max cohort AC for recessive SVs |
+| `FILTER_STRUC_SVTYPES` | `'DEL,DUP,INS,INV'` | SV Types to retain |
+| `FILTER_STRUC_VEP_MIN_IMPACT` | `'LOW'` | Minimum VEP Impact for SVs |
+| `FILTER_STRUC_VEP_CONSEQUENCES` |  | Specific VEP consequences for SVs |
+| `FILTER_STRUC_LARGE_LENGTH` | `null` | Automatically report SVs larger than this length |
+| `SLIDE_INFO_SHORT` | `[Map]` | Fields to include in short variant slides |
+| `SLIDE_INFO_STRUC` | `[Map]` | Fields to include in structural variant slides |
+| `struc_vcf_filter` | `"PASS,."` | Initial filter for structural variant VCF |
+| `struc_info` | `['AC', 'AF', 'AN', 'SVTYPE', 'SVLEN', 'END']` | INFO fields to keep from SV VCF |
+| `struc_format` | `['GT']` | FORMAT fields to keep from SV VCF |
+| `struc_fill_tags` | `false` | Fill AC, AF, AN tags for SVs |
+| `struc_n_shards` | `20` | Number of shards for parallel SV processing |
+
+### Gene Lists
+* Gene lists are passed as a comma separated set of gene lists to use for filtering. This may be a local TSV file, e.g. 'my_gene_list.tsv' or a web based gene list, e.g. [PAA:289](https://panelapp.agha.umccr.org/panels/289/).
     * **Local TSV file**  
       * Path to a TSV file with mandatory named column. The file should have at least one of the following column names:
-     `ensembl_gene_id`, `hgnc_id`, `entrez_id` or `symbol`. Optional column names are `list_id`, `list_name`, `list_version` and `inheritance`. Note that all gene IDs are ultimately converted to Ensembl Gene IDs using HGNC to match VEP annotation.
+     `ensembl_gene_id`, `hgnc_id`, `entrez_id` or `symbol`. Optional column names are `list_id`, `list_name`, `list_version` and `inheritance`. Note that all gene IDs are converted to Ensembl Gene IDs using HGNC to match VEP annotation.
      
          e.g.
 
@@ -70,17 +125,20 @@ Nextflow Pipeline for singleton and family based candidate variant prioritisatio
             PAA:202	Genetic Epilepsy	1.26	ENSG00000107331	AR
               
     * **Web List** - Cavalier will automatically retrieve the latest version of these web lists
-      * **PanelApp**: PanelApp Australia or PanelApp Genomics England lists may be specified with "PAA:" or "PAE:" prefix respectively. e.g. [PAA:289](https://panelapp.agha.umccr.org/panels/289/)
+      * **PanelApp**: PanelApp Australia or PanelApp Genomics England lists may be specified with "PAA:" or "PAE:" prefix respectively. e.g. [PAA:202](https://panelapp-aus.org/panels/202/)
       * **HPO**: Human phenotype ontology terms may be specified with the "HP:" prefex, e.g. [HP:0001250](https://hpo.jax.org/browse/term/HP:0001250)
       * **Genes4Epilepsy**: [Genes4Epilepsy](https://github.com/bahlolab/Genes4Epilepsy) lists may be specified with the "G4E:" prexif, e.g. "G4E:All" for All Epilepsy genes, or "G4E:Focal" for Focal epilepsy genes only
       * **HGNC**: Gene subsets by locus group can be extracted from HGNC, for example "HGNC:protein-coding" will give a list of all protein coding genes
-  * `exclude_benign_missense` - exclude missense variants that are predicted/annotated as benign by all of Sift, 
-  Polyphen and ClinVar. Missing annotations are ignored.
-  * `include_sv_csv` - Include "coding_sequence_variant" SVs regardless of VEP Impact.
+    * **Genomic Region** - by specifying a genomic region such as "chr1:1000000-2000000", cavalier will extract all ensemble/gencode genes in that region.
 
-* First run:  
-`nextflow run /PATH/TO/nf-cavalier`
-* Resume run:  
-`nextflow run /PATH/TO/nf-cavalier -resume`
-* Recommended to run workflow in a `screen` session
-  
+
+## Annotations
+### CADD
+* CADD 1.7 downloads are available [here](https://cadd.gs.washington.edu/download), required files:
+  * whole_genome_SNVs.tsv.gz
+  * whole_genome_SNVs.tsv.gz.tbi
+  * gnomad.genomes.r4.0.indel.tsv.gz
+  * gnomad.genomes.r4.0.indel.tsv.gz.tbi
+### ClinVar
+* ClinVar VCFs and TBI may be downloaded [here](https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/weekly/)
+* These should be regularly updated to keep results current

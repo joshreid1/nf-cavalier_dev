@@ -4,26 +4,21 @@ include { path                } from '../../functions/helpers'
 include { get_filter_opts     } from '../../functions/helpers'
 include { collect_csv         } from '../../functions/helpers'
 include { cache_dir_channel   } from '../../functions/channels'
-include { pedigree_channel    } from '../../functions/channels'
-include { bam_channel         } from '../../functions/channels'
-include { func_source_channel } from '../../functions/channels'
 include { get_slide_info      } from '../../functions/helpers.nf'
 include { get_inf             } from '../../functions/helpers.nf'
 include { get_fmt             } from '../../functions/helpers.nf'
 include { get_fam_aff_un      } from '../../functions/helpers.nf'
-include { get_struc_inf       } from '../../functions/helpers.nf'
-include { get_struc_fmt       } from '../../functions/helpers.nf'
 
 /* ----------- processes ----------------*/
 include { SPLIT_VEP   } from '../../modules/local/split_vep'
 include { FILTER      } from '../../modules/local/filter.nf'
-include { PPT_TO_PDF  } from '../../modules/local/ppt_to_pdf'
 include { IGV_REPORT  } from '../../modules/local/igv_report'
 include { IGV_TO_PNG  } from '../../modules/local/igv_to_png.nf'
-include { MAKE_SLIDES } from '../../modules/local/make_slides.nf'
 include { SAMPLOT     } from '../../modules/local/samplot.nf'
 include { SVPV        } from '../../modules/local/svpv.nf'
 include { SVPV_TO_PNG } from '../../modules/local/svpv_to_png.nf'
+include { MAKE_SLIDES } from '../../modules/local/make_slides.nf'
+include { PPT_TO_PDF  } from '../../modules/local/ppt_to_pdf'
 include { PDF_UNITE   } from '../../modules/local/pdf_unite.nf'
 include { PDF_COPY    } from '../../modules/local/pdf_copy.nf'
 include { PDF_SPLIT   } from '../../modules/local/pdf_split.nf'
@@ -135,44 +130,52 @@ workflow CAVALIER {
             .combine(bam_channel, by:0)
     )
 
-    /* ----- Create Slides ----- */
-    MAKE_SLIDES(   
-        pedigree_channel // fam, ped
-            .join(FILTER.out.short_rds.combine(samples_short, by:0), by: 0, remainder: true) // fam, ped, short_rds
-            .join(FILTER.out.short_flt_plot, by: 0, remainder: true)
-            .join(IGV_TO_PNG.out           , by: 0, remainder: true) // fam, ped, short_rds, short_igv
-            .join(FILTER.out.struc_rds.combine(samples_struc, by:0), by: 0, remainder: true) // fam, ped, short_rds, short_igv, struc_rds
-            .join(FILTER.out.struc_flt_plot, by: 0, remainder: true)
-            .join(SVPV_TO_PNG.out          , by: 0, remainder: true) // fam, ped, short_rds, short_igv, struc_rds, svpv
-            .join(SAMPLOT.out              , by: 0, remainder: true) // fam, ped, short_rds, short_igv, struc_rds, svpv, samplot
-            .map    { row -> row.collect { x -> x ?: [] }   },  // replace missing/null with [] to avoid errors
-        lists,
-        get_slide_info(),
-        cavalier_opts,
-        cache_dir_channel()
-    )
+    if (params.make_slides) {
+         /* ----- Create Slides ----- */
+        MAKE_SLIDES(   
+            pedigree_channel // fam, ped
+                .join(FILTER.out.short_rds.combine(samples_short, by:0), by: 0, remainder: true) // fam, ped, short_rds
+                .join(FILTER.out.short_flt_plot, by: 0, remainder: true)
+                .join(IGV_TO_PNG.out           , by: 0, remainder: true) // fam, ped, short_rds, short_igv
+                .join(FILTER.out.struc_rds.combine(samples_struc, by:0), by: 0, remainder: true) // fam, ped, short_rds, short_igv, struc_rds
+                .join(FILTER.out.struc_flt_plot, by: 0, remainder: true)
+                .join(SVPV_TO_PNG.out          , by: 0, remainder: true) // fam, ped, short_rds, short_igv, struc_rds, svpv
+                .join(SAMPLOT.out              , by: 0, remainder: true) // fam, ped, short_rds, short_igv, struc_rds, svpv, samplot
+                .map    { row -> row.collect { x -> x ?: [] }   },  // replace missing/null with [] to avoid errors
+            lists,
+            get_slide_info(),
+            cavalier_opts,
+            cache_dir_channel()
+        )
 
-    PPT_TO_PDF(
-        MAKE_SLIDES.out
-    )
+        PPT_TO_PDF(
+            MAKE_SLIDES.out
+        )
 
-    /* ----- Create PDFs by gene ----- */
-    PDF_SPLIT(
-        PPT_TO_PDF.out
-    )
+        /* ----- Create PDFs by gene ----- */
+        PDF_SPLIT(
+            PPT_TO_PDF.out
+        )
 
-    by_gene = 
-        PDF_SPLIT.out.flatten()
-        .map  { [(it.name =~ /([^.]+)\.pdf/)[0][1], it] }
-        .groupTuple()
+        by_gene = 
+            PDF_SPLIT.out.flatten()
+            .map  { [(it.name =~ /([^.]+)\.pdf/)[0][1], it] }
+            .groupTuple()
 
-    PDF_UNITE(
-        by_gene.filter { it[1].size() >  1 }
-    )
+        PDF_UNITE(
+            by_gene.filter { it[1].size() >  1 }
+        )
 
-    PDF_COPY(
-        by_gene.filter { it[1].size() == 1 }
-    )
+        PDF_COPY(
+            by_gene.filter { it[1].size() == 1 }
+        )
+
+        by_gene
+            .map { [it[0], it[1].size()] }
+            .toSortedList { it[0] }
+            .map { "SYMBOL,n_samples\n" + it.collect { it.join(',') }.join('\n') }
+            .collectFile(name: 'by_gene_counts.csv',storeDir: "${params.outdir}")
+    }
 
     /* ----- Save CSV results ----- */
     collect_csv(
@@ -184,10 +187,5 @@ workflow CAVALIER {
         FILTER.out.struc_csv.map { it[1] },
         'struc_candidates.csv'
     )
-
-    by_gene
-        .map { [it[0], it[1].size()] }
-        .toSortedList { it[0] }
-        .map { "SYMBOL,n_samples\n" + it.collect { it.join(',') }.join('\n') }
-        .collectFile(name: 'by_gene_counts.csv',storeDir: "${params.outdir}")
+    
 }
