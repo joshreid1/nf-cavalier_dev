@@ -153,8 +153,8 @@ The following parameters may be set in the Nextflow configuration file:
 * Set parameter `vcfanno_clinvar`
 ### GnomAD 4.1
 * The joint callset is available [here](https://gnomad.broadinstitute.org/data#v4-joint-freq-stats)
-* Individual VCFs need to be downloaded and merged into a single file, and indexed (can be done with bcftools)
-* Extracting only required annotations -  AC, AF, fafmax_faf95_max, nhomalt - will reduce file size massively
+* Chromosomal VCFs need to be downloaded, merged into a single file, and indexed (this can be done with `bcftools`)
+* Extracting only required annotations -  AC, AF, fafmax_faf95_max, nhomalt - will reduce file size massively (`bcftools annotate -x`)
 * Set parameter `vcfanno_gnomad`
 ### VEP Plugins
 * Cavalier makes use of VEP plugins, see the following links for details on how to download:
@@ -165,7 +165,7 @@ The following parameters may be set in the Nextflow configuration file:
 * Set parameters `vep_spliceai_snv`, `vep_spliceai_indel`, `vep_revel`, `vep_utr_annotator` and `vep_alphamissense`
 ### SVAFotate
 * [SVAFotate](https://github.com/fakedrtom/SVAFotate) is used to annotate gnomAD v4.1 SV frequencies
-* The database file is available [here](SVAFotate)
+* The database file is available [here](https://zenodo.org/records/11642574)
 * Set parameter `svafdb`
 
 
