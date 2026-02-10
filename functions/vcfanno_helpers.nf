@@ -1,7 +1,23 @@
+def get_vcfanno_map() {
+    [
+        [   vcf: params.vcfanno_gnomad, 
+            fields: [gnomad_AF: 'AF', gnomad_AC: 'AC', gnomad_FAF95: 'fafmax_faf95_max', gnomad_nhomalt: 'nhomalt']
+        ],
+        [   tsv: params.vcfanno_cadd_snv,
+            fields: [CADD: 6]
+        ],
+        [   tsv: params.vcfanno_cadd_indel,
+            fields: [CADD: 6]
+        ],
+        [   vcf: params.vcfanno_clinvar ,
+            fields: [CLNSIG: 'CLNSIG', CLNGENE: 'GENEINFO',  CLNVID: 'ID']
+        ]
+    ] + (params.vcfanno_custom ?: [])
+}
 
 def get_vcfanno_conf() {
     Channel
-        .fromList(params.short_vcfanno)
+        .fromList(get_vcfanno_map())
         .map { ann ->
             // choose file key and toml keyword
             def file   = file(ann.vcf ?: ann.tsv).name
@@ -28,12 +44,14 @@ def get_vcfanno_conf() {
 
 def get_vcfanno_files() {
     Channel
-        .fromList(params.short_vcfanno)
+        .fromList(get_vcfanno_map())
         .flatMap { 
             [
                 file(it.vcf ?: it.tsv, checkIfExists: true).toAbsolutePath(),
-                file("${it.vcf ?: it.tsv}.${it.csi ? 'csi' : 'tbi'}", checkIfExists: true).toAbsolutePath()
-            ] 
+                file("${it.vcf ?: it.tsv}.csi").exists() ?
+                    file("${it.vcf ?: it.tsv}.csi", checkIfExists: true).toAbsolutePath() :
+                    file("${it.vcf ?: it.tsv}.tbi", checkIfExists: true).toAbsolutePath() 
+            ]
         }
         .toSortedList()
 }

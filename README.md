@@ -35,17 +35,20 @@ The following parameters may be set in the Nextflow configuration file:
 | `ped` | - | Pedigree file (required for familial analysis, leave blank for singletons) |
 | `short_vcf` | - | Input VCF for short variants (SNVs/Indels) |
 | `struc_vcf` | - | Input VCF for structural variants |
-| `vep_cache` | - | VEP cache directory |
-| `ref_fasta` | - | Reference FASTA file |
+| `vep_cache` | - | VEP cache directory - [see here](https://www.ensembl.org/info/docs/tools/vep/script/vep_cache.html) |
+| `ref_fasta` | - | GRCh38 Reference FASTA file |
 | `vep_cache_ver` | `'115'` | VEP cache version |
-| `vep_spliceai_snv` | - | SpliceAI SNV VCF path (available from Illumina) |
-| `vep_spliceai_indel` | - | SpliceAI Indel VCF path (available from Illumina) |
-| `vep_alphamissense` | - | AlphaMissense annotation file (TSV) |
-| `vep_revel` | - | REVEL annotation file (TSV) |
-| `short_vcfanno` | - | vcfanno annotation Map |
-| `svafdb` | - | SVAFotate database path |
-| `pop_sv` | - | gnomAD v4.1 Population SV VCF  |
-| `ref_gene` | - | NCBI RefSeq Select (UCSC) TSV |
+| `vep_utr_annotator` | - | UTR Annotator file - [see below](#vep-plugins)|
+| `vep_spliceai_snv` | - | SpliceAI SNV VCF path (available from Illumina) - [see below](#vep-plugins)|
+| `vep_spliceai_indel` | - | SpliceAI Indel VCF path (available from Illumina) - [see below](#vep-plugins)|
+| `vep_alphamissense` | - | AlphaMissense annotation file (TSV) - [see below](#vep-plugins)|
+| `vep_revel` | - | REVEL annotation file (TSV) - [see below](#vep-plugins) |
+| `vcfanno_gnomad` | - | gnomAD 4.1 callset vcf.gz, with INFO: AC, AF, fafmax_faf95_max, nhomalt  [see below](#gnomad-4.1) |
+| `vcfanno_cadd_snv` | - | CADD 1.7 SNV TSV [see below](#cadd) |
+| `vcfanno_cadd_indel` | - | CADD 1.7 gnomad indel TSV  |
+| `vcfanno_clinvar` | - | ClinVar VCF, with INFO: CLNSIG, GENEINFO and ID [see below](#clinvar) |
+| `svafdb` | - | SVAFotate database path [see below](#SVAFotate)|
+| `ref_gene` | - | NCBI RefSeq Select (UCSC) TSV - [available here](https://genome.ucsc.edu/cgi-bin/hgTables?hgsid=3670191553_zqnYvk2x5XApGbDxqWZWmWYbAFNP&clade=mammal&org=&db=hg38&hgta_group=genes&hgta_track=refSeqComposite&hgta_table=ncbiRefSeqSelect&hgta_regionType=genome&position=&hgta_outputType=primaryTable&hgta_outFileName=ncbiRefSeqSelect.tsv) |
 
 ### Optional
 | Parameter | Default | Description |
@@ -58,9 +61,8 @@ The following parameters may be set in the Nextflow configuration file:
 | `annotate_only` | `false` | Will not filter and report variants |
 | `make_slides` | `true` | Output PPT/PDF slides |
 | `vep_check` | `true` | Check number of variants output by VEP equal to number input |
-| `vep_utr_annotator` | - | UTR Annotator file |
 | `short_n_shards` | `200` | Split input VCF into shards for parallel processing |
-| `short_vcf_filter` | `"PASS,."` | Apply filter to input variants |
+| `short_vcf_filter` | `"PASS,."` | Apply filter to input short variants |
 | `short_info` | `['AC', 'AF', 'AN']` | INFO fields to keep from VCF |
 | `short_format` | `['GT', 'GQ', 'DP']` | FORMAT fields to keep from VCF |
 | `short_fill_tags` | `false` | Fill AC, AF, and AN from VCF |
@@ -97,11 +99,11 @@ The following parameters may be set in the Nextflow configuration file:
 | `FILTER_STRUC_COH_REC_MAX_AC` | `null` | Max cohort AC for recessive SVs |
 | `FILTER_STRUC_SVTYPES` | `'DEL,DUP,INS,INV'` | SV Types to retain |
 | `FILTER_STRUC_VEP_MIN_IMPACT` | `'LOW'` | Minimum VEP Impact for SVs |
-| `FILTER_STRUC_VEP_CONSEQUENCES` |  | Specific VEP consequences for SVs |
+| `FILTER_STRUC_VEP_CONSEQUENCES` |  | Specific VEP consequences to keep for SVs |
 | `FILTER_STRUC_LARGE_LENGTH` | `null` | Automatically report SVs larger than this length |
 | `SLIDE_INFO_SHORT` | `[Map]` | Fields to include in short variant slides |
 | `SLIDE_INFO_STRUC` | `[Map]` | Fields to include in structural variant slides |
-| `struc_vcf_filter` | `"PASS,."` | Initial filter for structural variant VCF |
+| `struc_vcf_filter` | `"PASS,."` | Apply VCF filter to structural variant VCF |
 | `struc_info` | `['AC', 'AF', 'AN', 'SVTYPE', 'SVLEN', 'END']` | INFO fields to keep from SV VCF |
 | `struc_format` | `['GT']` | FORMAT fields to keep from SV VCF |
 | `struc_fill_tags` | `false` | Fill AC, AF, AN tags for SVs |
@@ -144,15 +146,26 @@ The following parameters may be set in the Nextflow configuration file:
   * whole_genome_SNVs.tsv.gz.tbi
   * gnomad.genomes.r4.0.indel.tsv.gz
   * gnomad.genomes.r4.0.indel.tsv.gz.tbi
+* set parameters `vcfanno_cadd_snv` and `vcfanno_cadd_indel`
 ### ClinVar
 * ClinVar VCFs and TBI may be downloaded [here](https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/weekly/)
 * These should be regularly updated to keep results current
-### GnomAD
-* The gnomad v4.1 callset is used to annotate short variant with vcfanno, and structural variants with svafotate
+* Set parameter `vcfanno_clinvar`
+### GnomAD 4.1
+* The joint callset is available [here](https://gnomad.broadinstitute.org/data#v4-joint-freq-stats)
+* Individual VCFs need to be downloaded and merged into a single file, and indexed (can be done with bcftools)
+* Extracting only required annotations -  AC, AF, fafmax_faf95_max, nhomalt - will reduce file size massively
+* Set parameter `vcfanno_gnomad`
 ### VEP Plugins
 * Cavalier makes use of VEP plugins, see the following links for details on how to download:
   * [REVEL](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html#revel)
   * [SpliceAI](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html#spliceai)
   * [UTRannotator](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html#utrannotator)
   * [AlphaMissense](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html#alphamissense)
+* Set parameters `vep_spliceai_snv`, `vep_spliceai_indel`, `vep_revel`, `vep_utr_annotator` and `vep_alphamissense`
+### SVAFotate
+* [SVAFotate](https://github.com/fakedrtom/SVAFotate) is used to annotate gnomAD v4.1 SV frequencies
+* The database file is available [here](SVAFotate)
+* Set parameter `svafdb`
+
 

@@ -144,10 +144,6 @@ def get_variants_override() {
     params.variants_override ? path(params.variants_override) : path("$projectDir/data/dummy/VARIANTS_OVERRIDE")
 }
 
-def pop_sv_channel() {
-    Channel.value([path(params.pop_sv), path(params.pop_sv + '.tbi')])
-}
-
 def ref_gene_channel() {
     Channel.value([path(params.ref_gene)])
 }

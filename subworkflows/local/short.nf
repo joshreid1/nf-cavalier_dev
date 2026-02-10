@@ -41,23 +41,15 @@ workflow SHORT {
         ref_fasta_channel()
     )
 
-    if (params.short_vcfanno) {
-
-        VCFANNO(
+    VCFANNO(
             CLEAN.out,
             get_vcfanno_conf(),
             get_vcfanno_files(),
             vcfanno_binary
-        )
-
-        vep_input = VCFANNO.out
-
-    } else {
-        vep_input = CLEAN.out.map{ [it[0], it[1]] }
-    }
-
+    )
+    
     VEP(
-        vep_input,
+        VCFANNO.out,
         ref_fasta_channel(),
         get_vep_cache(),
         get_spliceai_files(),
