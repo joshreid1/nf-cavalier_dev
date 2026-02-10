@@ -1,3 +1,4 @@
+include { get_vcfanno_map  } from './vcfanno_helpers.nf'
 
 Path path(filename) {
     file(filename, checkIfExists: true).toAbsolutePath()
@@ -144,10 +145,6 @@ def get_variants_override() {
     params.variants_override ? path(params.variants_override) : path("$projectDir/data/dummy/VARIANTS_OVERRIDE")
 }
 
-def pop_sv_channel() {
-    Channel.value([path(params.pop_sv), path(params.pop_sv + '.tbi')])
-}
-
 def ref_gene_channel() {
     Channel.value([path(params.ref_gene)])
 }
@@ -231,7 +228,7 @@ def get_short_fmt() {
 def get_short_inf() {
     (
         (params.short_info ?: []) + 
-        (params.short_vcfanno ? params.short_vcfanno.collectMany { it.fields.keySet() } : [])
+        (get_vcfanno_map().collectMany { it.fields.keySet() })
     ).unique()
 }
 

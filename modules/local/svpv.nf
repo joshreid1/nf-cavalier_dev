@@ -12,7 +12,6 @@ process SVPV {
     input:
     tuple val(fam), path(vcf), path(flt_svs), val(ids), path(bams), path(bais)
     path(ref_gene)
-    // path(pop_sv)
 
     output:
     tuple val(fam), path("$fam/**.pdf")
@@ -38,5 +37,4 @@ process SVPV {
         -vcf filtered.vcf.gz \\
         -ref_gene $ref_gene
     """
-        // -ref_vcf gnomAD_v4:$pop_sv \\
 }
