@@ -154,6 +154,5 @@ The following parameters may be set in the Nextflow configuration file:
   * [REVEL](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html#revel)
   * [SpliceAI](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html#spliceai)
   * [UTRannotator](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html#utrannotator)
-  * [AlphaMissense]https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html#alphamissense
-
+  * [AlphaMissense](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html#alphamissense)
 
