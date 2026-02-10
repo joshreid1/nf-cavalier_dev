@@ -3,7 +3,7 @@ process IGV_REPORT {
     label 'C4M4T2'
     label 'igvreports'
     tag "$fam"
-    publishDir "${params.outdir}/report/$fam", mode: 'copy', pattern: '*.igv_report.html'
+    publishDir "${params.outdir}/by_family/$fam", mode: 'copy', pattern: '*.igv_report.html'
     /*
         - Generate html igv-reports for candidate variants identified by cavalier
         - Firstly for all samples combined with VCF 

@@ -27,7 +27,9 @@ MAIN <- function(opts) {
   igv_pngs <- c(str_split(opts$igv, ',', simplify = T))
   svpv_pngs <- c(str_split(opts$svpv, ',', simplify = T))
   samplots  <- c(str_split(opts$samplot, ',', simplify = T))
-  output    <- str_c(opts$output, '.pptx')
+  output <- str_c(opts$output, ".pptx")
+  max_short_per_deck <- as.integer(opts$max_short_per_deck)
+  max_struc_per_deck <- as.integer(opts$max_struc_per_deck)
   
   ################# CHECK ARGS ######################
   stopifnot(
@@ -162,107 +164,99 @@ MAIN <- function(opts) {
   file.copy(cavalier:::get_slide_template(), output, TRUE)
 
   if (!str_detect(opts$short_flt_plot, '\\.empty\\.')) {
-    # add title slides
-    flt_plt <-
-      cavalier::plot_png_facets(
-        tibble(id = "x", png = opts$short_flt_plot),
-        crop_left = 0, crop_right = 0
-      ) +
-      ggplot2::theme(strip.text = element_blank())
-    
+    ##### ADD TITLE SLIDE #####
     officer::read_pptx(output) %>%
       officer::add_slide(layout = "Title and Content") %>%
-      officer::ph_with(str_c("SNVs and Indels (n=", nrow(short_cand), ')'), location = officer::ph_location_type("title")) %>%
-      officer::ph_with(flt_plt, location =  officer::ph_location_type(type = "body"))  %>% 
+      officer::ph_with(str_c(opts$output, ': SNVs and Indels (n=', nrow(short_cand), ')'), location = officer::ph_location_type("title")) %>%
+      officer::ph_with(readRDS(opts$short_flt_plot) + theme_gray(base_size = 16), location =  officer::ph_location_type(type = "body"))  %>% 
       print(target = output)
   }
   
   ########### CREATE SHORT SLIDES ##############
-  if (opts$short_var != 'NONE') { 
-    
+  if (opts$short_var != "NONE") {
     ########### IGV Plots ########################
     IGV <-
       tibble(
         png = igv_pngs,
-        id = str_extract(png, '(?<=SID_).+(?=\\.VID_)'),
-        variant_id = str_extract(png, '(?<=VID_).+(?=\\.png$)'),
-      ) %>% 
+        id = str_extract(png, "(?<=SID_).+(?=\\.VID_)"),
+        variant_id = str_extract(png, "(?<=VID_).+(?=\\.png$)"),
+      ) %>%
       inner_join(
-        short_cand %>% 
-          select(variant_id, GT) %>% 
+        short_cand %>%
+          select(variant_id, GT) %>%
           unnest(GT) %>%
-          pivot_longer(-variant_id, names_to = 'id', values_to = 'GT'),
-        by = c('variant_id', 'id')
-      ) %>% 
+          pivot_longer(-variant_id, names_to = "id", values_to = "GT"),
+        by = c("variant_id", "id")
+      ) %>%
       transmute(
-        id = str_c(id, ': ', GT),
+        id = str_c(id, ": ", GT),
         png,
         variant_id
-      ) %>% 
-      nest(IGV = -variant_id) %>% 
+      ) %>%
+      nest(IGV = -variant_id) %>%
       mutate(IGV = map(IGV, cavalier::plot_png_facets, crop_left = 70, crop_right = 120))
-    
+
     ########### SHORT VAR INFO TABLE ########################
-    SHORT_FIELDS_ALL <- 
-      reduce(slide_info$SHORT, c) %>% 
-      (function(x) x[unique(names(x))]) %>% 
+    SHORT_FIELDS_ALL <-
+      reduce(slide_info$SHORT, c) %>%
+      (function(x) x[unique(names(x))]) %>%
       unlist()
-    
+
     SHORT_FIELDS <-
-      short_cand %>% 
-      select(TYPE) %>% 
-      distinct() %>% 
+      short_cand %>%
+      select(TYPE) %>%
+      distinct() %>%
       mutate(FIELDS = map(TYPE, function(x) {
         fields <- names(slide_info$SHORT$DEFAULT)
         custom <- names(slide_info$SHORT[[x]])
         union(fields, custom)
-      })) %>% 
+      })) %>%
       with(setNames(FIELDS, TYPE))
-    
+
     SHORT_VAR_INFO <-
-      short_cand %>% 
+      short_cand %>%
       # add/modify columns
       mutate(
         # need to maintain Gene
         Gene2 = Gene,
         # reporting summary columns
-        broad_id = str_c(CHROM, POS, REF, ALT, sep = '-'),
-        gnomAD = str_c("AF=", signif(replace_na(gnomad_AF, 0), 2), "; AC=", replace_na(gnomad_AC, 0), "; Hom=",  replace_na(gnomad_nhomalt, 0)),
+        broad_id = str_c(CHROM, POS, REF, ALT, sep = "-"),
+        gnomAD = str_c("AF=", signif(replace_na(gnomad_AF, 0), 2), "; AC=", replace_na(gnomad_AC, 0), "; Hom=", replace_na(gnomad_nhomalt, 0)),
         Cohort = str_c("AF=", signif(replace_na(AF, 0), 2), "; AC=", replace_na(AC, 0)),
         SpliceAI = str_c("AG=", SpliceAI_pred_DS_AG, "; DG=", SpliceAI_pred_DS_DG, "; AL=", SpliceAI_pred_DS_AL, "; DL=", SpliceAI_pred_DS_DL),
         AlphaMissense = str_c(am_class, "(", am_pathogenicity, ")"),
-        dbSNP = str_extract(Existing_variation, 'rs[0-9]+'),
+        dbSNP = str_extract(Existing_variation, "rs[0-9]+"),
         # add GRCh38 for mutatylzer compatibility
         HGVSg = str_replace(HGVSg, "^([^:]+):(.*)$", "GRCh38(\\1):\\2"),
         # prefer coding & protein, or coding, or genomic. Drop IDs to better fit
         HGVS = coalesce(
-          str_c(str_remove(HGVSc, '^.+:(?=[cp])'), '; ', str_remove(HGVSp, '^.+:(?=[cp])')),
-          str_remove(HGVSc, '^.+:(?=[cp])'),
+          str_c(str_remove(HGVSc, "^.+:(?=[cp])"), "; ", str_remove(HGVSp, "^.+:(?=[cp])")),
+          str_remove(HGVSc, "^.+:(?=[cp])"),
           HGVSg
         ),
         # # add URLS to slides
         gnomAD_url = str_c(
-          'https://gnomad.broadinstitute.org/variant/',
+          "https://gnomad.broadinstitute.org/variant/",
           URLencode(broad_id),
-          '?dataset=gnomad_r4'
+          "?dataset=gnomad_r4"
         ),
         HGVS_url = str_c(
-          'https://mutalyzer.nl/normalizer/',
+          "https://mutalyzer.nl/normalizer/",
           URLencode(HGVSg)
         ),
         SpliceAI_url = str_c(
-          'https://spliceailookup.broadinstitute.org/#hg=38&variant=',
+          "https://spliceailookup.broadinstitute.org/#hg=38&variant=",
           URLencode(broad_id)
         ),
         Gene_url = str_c(
-          'https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=',
+          "https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=",
           URLencode(Gene)
         ),
         CLNSIG_url = str_c(
           "https://www.ncbi.nlm.nih.gov/clinvar/variation/",
           CLNVID
         ),
-      ) %>% 
+      ) %>%
       select(
         variant_id,
         Gene2,
@@ -270,66 +264,79 @@ MAIN <- function(opts) {
         all_of(SHORT_FIELDS_ALL),
         any_of(
           setNames(
-            str_c(SHORT_FIELDS_ALL, '_url'),
-            str_c(names(SHORT_FIELDS_ALL), '_url')
+            str_c(SHORT_FIELDS_ALL, "_url"),
+            str_c(names(SHORT_FIELDS_ALL), "_url")
           )
         )
-      ) %>% 
-      nest(VAR_INFO = -c(variant_id, Gene2, TYPE)) %>% 
-      rename(Gene = Gene2) %>% 
+      ) %>%
+      nest(VAR_INFO = -c(variant_id, Gene2, TYPE)) %>%
+      rename(Gene = Gene2) %>%
       mutate(VAR_INFO = map2(VAR_INFO, TYPE, function(VI, TYPE_) {
-        select(VI, all_of(SHORT_FIELDS[[TYPE_]]), any_of(str_c(SHORT_FIELDS[[TYPE_]], '_url')))
+        select(VI, all_of(SHORT_FIELDS[[TYPE_]]), any_of(str_c(SHORT_FIELDS[[TYPE_]], "_url")))
       }))
-    
-    
+
+
     ########### SHORT SLIDE DATA ########################
     SHORT_SLIDE_DATA <-
-      short_cand %>% 
-      select(Gene, SYMBOL, variant_id) %>% 
-      distinct() %>% 
-      mutate(TITLE = str_c(opts$output, SYMBOL, variant_id, sep = ' - ')) %>% 
-      select(TITLE, Gene, variant_id) %>% 
-      left_join(SHORT_VAR_INFO, by = c('Gene', 'variant_id')) %>% 
-      left_join(IGV, by = 'variant_id') %>% 
-      left_join(PEDIGREE, by = 'variant_id') %>% 
-      left_join(OMIM, by = 'Gene') %>% 
-      left_join(LISTS, by = 'Gene') %>% 
-      left_join(GTEX, by = 'Gene') %>% 
+      short_cand %>%
+      select(Gene, SYMBOL, variant_id) %>%
+      distinct() %>%
+      mutate(TITLE = str_c(opts$output, ": ", SYMBOL, " - ", variant_id)) %>%
+      select(TITLE, Gene, SYMBOL, variant_id) %>%
+      left_join(SHORT_VAR_INFO, by = c("Gene", "variant_id")) %>%
+      left_join(IGV, by = "variant_id") %>%
+      left_join(PEDIGREE, by = "variant_id") %>%
+      left_join(OMIM, by = "Gene") %>%
+      left_join(LISTS, by = "Gene") %>%
+      left_join(GTEX, by = "Gene") %>%
       arrange(TITLE)
-    
-    ############# SHORT SLIDE LAYOUT #####################  
+
+    ############# SHORT SLIDE LAYOUT #####################
     if (ncol(short_cand$GT) == 1) {
       short_layout <-
         cavalier::slide_layout(
-          c('VAR_INFO', 'IGV', 'GTEX'),
-          c('OMIM', 'LISTS'),
+          c("VAR_INFO", "IGV", "GTEX"),
+          c("OMIM", "LISTS"),
           heights = c(23, 8),
           title_height = 0.09,
           pad = 0.015,
-          transpose = 'VAR_INFO'
+          transpose = "VAR_INFO"
         )
     } else {
       short_layout <-
         bind_rows(
           cavalier::slide_layout(
-            c('VAR_INFO', 'PEDIGREE', 'GTEX'),
-            c('OMIM', 'LISTS'),
+            c("VAR_INFO", "PEDIGREE", "GTEX"),
+            c("OMIM", "LISTS"),
             heights = c(23, 8),
             title_height = 0.09,
             pad = 0.015,
-            transpose = 'VAR_INFO'
+            transpose = "VAR_INFO"
           ),
           cavalier::slide_layout(
-            c('IGV'),
+            c("IGV"),
             slide_num = 2L,
             title_height = 0.09,
             pad = 0.015
           )
         )
     }
-    
-    message('----- Creating Short Variant Slides ------')
-    
+
+    message("----- Creating Short Variant Slides ------")
+
+    if (nrow(SHORT_SLIDE_DATA) > max_short_per_deck) {
+      ##### TRUNCATE #####
+      officer::read_pptx(output) %>%
+        officer::add_slide(layout = "Title and Content") %>%
+        officer::ph_with(
+          str_c("Limited to ", max_short_per_deck, " of ", nrow(SHORT_SLIDE_DATA), " short variants"),
+          location = officer::ph_location_type("title")
+        ) %>%
+        print(target = output)
+
+      SHORT_SLIDE_DATA <- slice(SHORT_SLIDE_DATA, seq_len(max_short_per_deck))
+    }
+
     cavalier::create_slides(
       slide_template = output,
       slide_layout = short_layout,
@@ -339,18 +346,11 @@ MAIN <- function(opts) {
   }
 
   if (!str_detect(opts$struc_flt_plot, '\\.empty\\.')) {
-    # add title slides
-    flt_plt <-
-      cavalier::plot_png_facets(
-        tibble(id = "x", png = opts$struc_flt_plot),
-        crop_left = 0, crop_right = 0
-      ) +
-      ggplot2::theme(strip.text = element_blank())
-    
+     ##### ADD TITLE SLIDE #####
     officer::read_pptx(output) %>%
       officer::add_slide(layout = "Title and Content") %>%
-      officer::ph_with(str_c("SVs (n=", nrow(struc_cand), ')'), location = officer::ph_location_type("title")) %>%
-      officer::ph_with(flt_plt, location =  officer::ph_location_type(type = "body"))  %>% 
+      officer::ph_with(str_c(opts$output, ': SVs (n=', nrow(struc_cand), ')'), location = officer::ph_location_type("title")) %>%
+      officer::ph_with(readRDS(opts$struc_flt_plot) + theme_gray(base_size = 16), location =  officer::ph_location_type(type = "body"))  %>% 
       print(target = output)
   }
   
@@ -475,8 +475,8 @@ MAIN <- function(opts) {
       struc_cand %>% 
       select(Gene, SYMBOL, variant_id) %>% 
       distinct() %>% 
-      mutate(TITLE = str_c(opts$output, SYMBOL, variant_id, sep = ' - ')) %>% 
-      select(TITLE, Gene, variant_id) %>% 
+      mutate(TITLE = str_c(opts$output, ': ', SYMBOL, ' - ', variant_id)) %>% 
+      select(TITLE, Gene, SYMBOL, variant_id) %>% 
       left_join(STRUC_VAR_INFO, by = c('Gene', 'variant_id')) %>% 
       left_join(SVPV, by = 'variant_id') %>% 
       left_join(SAMPLOT, by = 'variant_id') %>% 
@@ -525,7 +525,21 @@ MAIN <- function(opts) {
         )
       )
     
-    message('----- Creating Structural Variant Slides -----')    
+    message("----- Creating Structural Variant Slides -----")
+
+    if (nrow(STRUC_SLIDE_DATA) > max_struc_per_deck) {
+      ##### TRUNCATE #####
+      officer::read_pptx(output) %>%
+        officer::add_slide(layout = "Title and Content") %>%
+        officer::ph_with(
+          str_c("Limited to ", max_struc_per_deck, ' of ', nrow(STRUC_SLIDE_DATA), ' structural variants'),
+          location = officer::ph_location_type("title")
+        ) %>%
+        print(target = output)
+
+      STRUC_SLIDE_DATA <- slice(STRUC_SLIDE_DATA, seq_len(max_struc_per_deck))
+    }
+
     cavalier::create_slides(
       slide_template = output,
       slide_layout = struc_layout,
@@ -551,15 +565,17 @@ Options:
   gene_lists                  Comma serparated list of gene list filenames.
   options                     Slide options Json file.
   --short-var=<RDS>           Short Variants RDS input.
-  --short-flt-plot=<PNG>      Short Variants filtering plot.
+  --short-flt-plot=<RDS>      Short Variants filtering plot.
   --struc-var=<RDS>           Structural Variants RDS input.
-  --struc-flt-plot=<PNG>      Short Variants filtering plot.
+  --struc-flt-plot=<RDS>      Short Variants filtering plot.
   --igv=<PNG>                 IGV screenshot PNGs, comma separated.
   --svpv=<PNG>                SVPV PNGs, comma separated.
   --samplot=<PNG>             samplot PNGs, comma separated.
   --output=<prefix>           Output file prefix [default: output].
   --slide-info=<json>         Json file specifying fields to include in VAR_INFO.
   --cav-opts=<json>           Json file with additional options for cavalier package.
+  --max-short-per-deck=<n>    Maximum short variant slides to create [default: 500].
+  --max-struc-per-deck=<n>    Maximum stuctural variant slides to create [default: 500].
 "
 
 # run main function

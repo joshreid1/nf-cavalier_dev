@@ -107,7 +107,7 @@ MAIN <- function(opts) {
     PLOT_FILTERING(
       n_pass = nrow(FC$SHORT),
       filtered = .GlobalEnv$.tracking.SHORT$filtered,
-      output = str_c(opts$output, '.short.filtering.png')
+      output = str_c(opts$output, '.short.filtering')
     )
     
     FC$SHORT %>% 
@@ -131,6 +131,7 @@ MAIN <- function(opts) {
     file.create(str_c(opts$output, '.empty.short.reason_filtered.csv.gz'))
     file.create(str_c(opts$output, ".empty.short.igv.bed.gz"))
     file.create(str_c(opts$output, '.empty.short.filtering.png'))
+    file.create(str_c(opts$output, '.empty.short.filtering.rds'))
     cat("0", file = str_c(opts$output, '.short.count'))
   }
   
@@ -162,7 +163,7 @@ MAIN <- function(opts) {
     PLOT_FILTERING(
       n_pass = nrow(FC$STRUC),
       filtered = .GlobalEnv$.tracking.STRUC$filtered,
-      output = str_c(opts$output, '.struc.filtering.png')
+      output = str_c(opts$output, '.struc.filtering')
     )
 
     FC$STRUC %>% 
@@ -187,6 +188,7 @@ MAIN <- function(opts) {
     file.create(str_c(opts$output, '.empty.struc.reason_filtered.csv.gz'))
     file.create(str_c(opts$output, ".empty.struc.struc.bamplot.tsv"))
     file.create(str_c(opts$output, '.empty.struc.filtering.png'))
+    file.create(str_c(opts$output, '.empty.struc.filtering.rds'))
     cat("0", file = str_c(opts$output, '.struc.count'))
   }
   
@@ -910,7 +912,8 @@ FILTER_STRUC_TYPE <- function(VARIANTS) {
 PLOT_FILTERING <- function(n_pass, filtered, output, title = 'Variant filtering') {
   n_init <- n_pass + nrow(filtered)
   
-  filtered %>%
+  plot <-
+    filtered %>%
     mutate(REASON = REASON %>%
       str_remove_all("FILTER_") %>%
       str_remove_all("\\(?(STRUC|SHORT)\\)?_?")) %>%
@@ -938,7 +941,8 @@ PLOT_FILTERING <- function(n_pass, filtered, output, title = 'Variant filtering'
     coord_flip() +
     labs(x = 'Filter', y = 'Remaining Gene-Variants') 
 
-  ggsave(output, width = 7, height = 4)
+  saveRDS(plot, str_c(output, '.rds'))
+  ggsave(str_c(output, '.png'), width = 7, height = 4)
 
 }
 

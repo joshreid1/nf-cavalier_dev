@@ -58,7 +58,7 @@ workflow SETUP {
             params.struc_vcf ? path(params.struc_vcf) : (params.struc_vcf_annotated ? path(params.struc_vcf_annotated) : [])
         )
 
-        GET_SAMPLES.out.warnings.readLines().flatten().map { log.info ("WARNING: $it") }
+        GET_SAMPLES.out.warnings.readLines().flatten().map { log.warn(it)}
 
         pedigree_channel = pedigree_channel(GET_SAMPLES.out.ped)
 

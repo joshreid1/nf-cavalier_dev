@@ -24,6 +24,9 @@ include { MAKE_SLIDES } from '../../modules/local/make_slides.nf'
 include { SAMPLOT     } from '../../modules/local/samplot.nf'
 include { SVPV        } from '../../modules/local/svpv.nf'
 include { SVPV_TO_PNG } from '../../modules/local/svpv_to_png.nf'
+include { PDF_UNITE   } from '../../modules/local/pdf_unite.nf'
+include { PDF_COPY    } from '../../modules/local/pdf_copy.nf'
+include { PDF_SPLIT   } from '../../modules/local/pdf_split.nf'
 
 workflow CAVALIER {
     take:
@@ -75,6 +78,15 @@ workflow CAVALIER {
     samples_short = short_count
         .filter { it[1] > 0 }
         .map    { it[0]     }
+    
+    short_count
+        .filter { it[1] > params.max_short_per_deck }
+        .map    { it[0] }
+        .toList()
+        .filter { it.size() > 0 }
+        .map { 
+            log.warn("${it.size()} samples with more than ${params.max_short_per_deck} short variants - slides will be truncated")
+        }
 
     IGV_REPORT(
         FILTER.out.short_igv
@@ -89,7 +101,6 @@ workflow CAVALIER {
     )
 
     /* ----- Visualise struct variants ----- */
-
     struc_count = FILTER.out.struc_count
         .map    { [it[0], it[1].text as int] }
 
@@ -97,13 +108,21 @@ workflow CAVALIER {
         .filter { it[1] > 0 }
         .map    { it[0]     } 
 
+    struc_count
+        .filter { it[1] > params.max_struc_per_deck }
+        .map    { it[0] }
+        .toList()
+        .filter { it.size() > 0 }
+        .map { 
+            log.warn("${it.size()} samples with more than ${params.max_short_per_deck} struc variants - slides will be truncated")
+        }
+
     SVPV(
         SPLIT_VEP.out.vcf.filter { it[0] == 'STRUC' }.map { it[[1,2]] } // fam, vcf
             .combine(samples_struc, by:0)
             .combine(FILTER.out.struc_csv, by:0) // fam, vcf, csv
             .combine(bam_channel, by:0), // fam, vcf, csv, ids, bams, bais
-        path(params.ref_gene),
-        // path(params.pop_sv)
+        path(params.ref_gene)
     )
 
     SVPV_TO_PNG(
@@ -117,7 +136,6 @@ workflow CAVALIER {
     )
 
     /* ----- Create Slides ----- */
-
     MAKE_SLIDES(   
         pedigree_channel // fam, ped
             .join(FILTER.out.short_rds.combine(samples_short, by:0), by: 0, remainder: true) // fam, ped, short_rds
@@ -127,7 +145,6 @@ workflow CAVALIER {
             .join(FILTER.out.struc_flt_plot, by: 0, remainder: true)
             .join(SVPV_TO_PNG.out          , by: 0, remainder: true) // fam, ped, short_rds, short_igv, struc_rds, svpv
             .join(SAMPLOT.out              , by: 0, remainder: true) // fam, ped, short_rds, short_igv, struc_rds, svpv, samplot
-            .combine(samples_short.mix(samples_struc).unique(), by: 0) // exclude indiv with no variants
             .map    { row -> row.collect { x -> x ?: [] }   },  // replace missing/null with [] to avoid errors
         lists,
         get_slide_info(),
@@ -137,6 +154,24 @@ workflow CAVALIER {
 
     PPT_TO_PDF(
         MAKE_SLIDES.out
+    )
+
+    /* ----- Create PDFs by gene ----- */
+    PDF_SPLIT(
+        PPT_TO_PDF.out
+    )
+
+    by_gene = 
+        PDF_SPLIT.out.flatten()
+        .map  { [(it.name =~ /([^.]+)\.pdf/)[0][1], it] }
+        .groupTuple()
+
+    PDF_UNITE(
+        by_gene.filter { it[1].size() >  1 }
+    )
+
+    PDF_COPY(
+        by_gene.filter { it[1].size() == 1 }
     )
 
     /* ----- Save CSV results ----- */
@@ -149,4 +184,10 @@ workflow CAVALIER {
         FILTER.out.struc_csv.map { it[1] },
         'struc_candidates.csv'
     )
+
+    by_gene
+        .map { [it[0], it[1].size()] }
+        .toSortedList { it[0] }
+        .map { "SYMBOL,n_samples\n" + it.collect { it.join(',') }.join('\n') }
+        .collectFile(name: 'by_gene_counts.csv',storeDir: "${params.outdir}")
 }
