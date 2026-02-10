@@ -3,6 +3,9 @@ process PDF_SPLIT {
     label 'C2M2T2'
     label 'qpdf'
     tag "$fam"
+    /*
+        - Speparate sample PDFs into individual genes, to by compiled by gene
+    */
 
     input:
     tuple val(fam), path(pdf)

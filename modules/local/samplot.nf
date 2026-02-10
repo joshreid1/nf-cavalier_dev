@@ -19,15 +19,17 @@ process SAMPLOT {
     """
     export MPLCONFIGDIR=\$PWD/mpl_tmp
 
-    while IFS=\$'\\t' read -r NAME CHROM START END TYPE; do
-    samplot plot \\
-        -n ${ids.join(' ')} \\
-        -b ${bams.join(' ')} \\
-        -o samplot_${fam}_\$NAME.png \\
-        -c \$CHROM \\
-        -s \$START \\
-        -e \$END \\
-        -t \$TYPE
-    done < ${sites}
+    (
+        while IFS=\$'\\t' read -r NAME CHROM START END TYPE; do
+        echo "samplot plot \\
+            -n ${ids.join(' ')} \\
+            -b ${bams.join(' ')} \\
+            -o samplot_${fam}_\$NAME.png \\
+            -c \$CHROM \\
+            -s \$START \\
+            -e \$END \\
+            -t \$TYPE"
+        done < ${sites}
+    ) | xargs -n 1 -P ${task.cpus} -I {} sh -c '{}'
     """
 }
