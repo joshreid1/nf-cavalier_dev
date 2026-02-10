@@ -2,10 +2,15 @@
 
 Nextflow pipeline for singleton and family based candidate variant reporting based on gene lists. Variants are reported in CSV, Powerpoint and PDF format. Supports joint SNV/Indel and Structural Variant analysis.
 
+## Overview
+* Variants are annotated with vcfanno, svafotate and VEP
+* Variants are filtered by family based on inheritance, population frequency, predicted impact and gene lists
+* Candidate variants are reported along with IGV and Structural variant visualisations
+
 ## Installation
 * Clone this repositoty
 
-## Basic Usage
+## Usage
 1. Create and navigate to run working directory
 2. Download required annotation sources - see [annotations](#annotations)
 3. Create configuration file in run directory named `nextflow.config` - see [parameters](#parameters)
@@ -33,8 +38,8 @@ The following parameters may be set in the Nextflow configuration file:
 | `vep_cache` | - | VEP cache directory |
 | `ref_fasta` | - | Reference FASTA file |
 | `vep_cache_ver` | `'115'` | VEP cache version |
-| `vep_spliceai_snv` | - | SpliceAI SNV VCF path (available for Illumina) |
-| `vep_spliceai_indel` | - | SpliceAI Indel VCF path (available for Illumina) |
+| `vep_spliceai_snv` | - | SpliceAI SNV VCF path (available from Illumina) |
+| `vep_spliceai_indel` | - | SpliceAI Indel VCF path (available from Illumina) |
 | `vep_alphamissense` | - | AlphaMissense annotation file (TSV) |
 | `vep_revel` | - | REVEL annotation file (TSV) |
 | `short_vcfanno` | - | vcfanno annotation Map |
@@ -142,3 +147,13 @@ The following parameters may be set in the Nextflow configuration file:
 ### ClinVar
 * ClinVar VCFs and TBI may be downloaded [here](https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/weekly/)
 * These should be regularly updated to keep results current
+### GnomAD
+* The gnomad v4.1 callset is used to annotate short variant with vcfanno, and structural variants with svafotate
+### VEP Plugins
+* Cavalier makes use of VEP plugins, see the following links for details on how to download:
+  * [REVEL](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html#revel)
+  * [SpliceAI](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html#spliceai)
+  * [UTRannotator](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html#utrannotator)
+  * [AlphaMissense]https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html#alphamissense
+
+
