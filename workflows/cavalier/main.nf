@@ -179,12 +179,12 @@ workflow CAVALIER {
 
     /* ----- Save CSV results ----- */
     collect_csv(
-        FILTER.out.short_csv.map { it[1] },
+        FILTER.out.short_csv.combine(samples_short).map { it[1] },
         'short_candidates.csv'
     )
 
     collect_csv(
-        FILTER.out.struc_csv.map { it[1] },
+        FILTER.out.struc_csv.combine(samples_struc).map { it[1] },
         'struc_candidates.csv'
     )
     
