@@ -1,3 +1,4 @@
+include { get_vcfanno_map  } from './vcfanno_helpers.nf'
 
 Path path(filename) {
     file(filename, checkIfExists: true).toAbsolutePath()
@@ -227,7 +228,7 @@ def get_short_fmt() {
 def get_short_inf() {
     (
         (params.short_info ?: []) + 
-        (params.short_vcfanno ? params.short_vcfanno.collectMany { it.fields.keySet() } : [])
+        (get_vcfanno_map().collectMany { it.fields.keySet() })
     ).unique()
 }
 
