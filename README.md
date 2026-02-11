@@ -35,8 +35,8 @@ The following parameters may be set in the Nextflow configuration file:
 | `ped` | - | Pedigree file (required for familial analysis, leave blank for singletons) |
 | `short_vcf` | - | Input VCF for short variants (SNVs/Indels) |
 | `struc_vcf` | - | Input VCF for structural variants |
+| `ref_fasta` | - | GRCh38 reference FASTA file |
 | `vep_cache` | - | VEP cache directory - [see here](https://www.ensembl.org/info/docs/tools/vep/script/vep_cache.html) |
-| `ref_fasta` | - | GRCh38 Reference FASTA file |
 | `vep_cache_ver` | `'115'` | VEP cache version |
 | `vep_utr_annotator` | - | UTR Annotator file - [see below](#vep-plugins)|
 | `vep_spliceai_snv` | - | SpliceAI SNV VCF path (available from Illumina) - [see below](#vep-plugins)|
@@ -58,7 +58,7 @@ The following parameters may be set in the Nextflow configuration file:
 | `struc_vcf_annotated` | `null` | Pre-annotated structural variant VCF (skips annotation) |
 | `max_short_per_deck` | `500` | Maximum number of short variants per slide deck |
 | `max_struc_per_deck` | `500` | Maximum number of structural variants per slide deck |
-| `annotate_only` | `false` | Will not filter and report variants |
+| `annotate_only` | `false` | Only performs annotation, no filtering or reporting of variants |
 | `make_slides` | `true` | Output PPT/PDF slides |
 | `vep_check` | `true` | Check number of variants output by VEP equal to number input |
 | `short_n_shards` | `200` | Split input VCF into shards for parallel processing |
@@ -79,14 +79,14 @@ The following parameters may be set in the Nextflow configuration file:
 | `FILTER_SHORT_COH_REC_MAX_AF` | `null` | Max cohort AF for recessive short variants |
 | `FILTER_SHORT_COH_DOM_MAX_AC` | `null` | Max cohort AC for dominant short variants |
 | `FILTER_SHORT_COH_REC_MAX_AC` | `null` | Max cohort AC for recessive short variants |
-| `FILTER_SHORT_CLINVAR_LIST_ONLY` | `true` | Restrict ClinVar filtering to list genes only |
+| `FILTER_SHORT_CLINVAR_LIST_ONLY` | `true` | Restrict ClinVar reporting to list genes only |
 | `FILTER_SHORT_CLINVAR_KEEP_PAT` | `'(p\|P)athogenic(?!ity)'` | Regex for keeping ClinVar pathogenic variants |
 | `FILTER_SHORT_CLINVAR_DISC_PAT` | `'(b\|B)enign'` | Regex for discarding ClinVar benign variants |
 | `FILTER_SHORT_LOF` | `true` | Enable TYPE='LOF' (VEP IMPACT == 'HIGH') |
 | `FILTER_SHORT_MISSENSE` | `true` | Enable TYPE='MISSENSE' (VEP CSQ contains 'missense') |
 | `FILTER_SHORT_SPLICING` | `true` | Enable TYPE='SPLICING' |
-| `FILTER_SHORT_MIN_CADD_PP` | `25.3` | Minimum CADD Phred score |
-| `FILTER_SHORT_MIN_SPLICEAI_PP` | `0.20` | Minimum SpliceAI score |
+| `FILTER_SHORT_MIN_CADD_PP` | `25.3` | Minimum CADD Phred score to force inclusion in results |
+| `FILTER_SHORT_MIN_SPLICEAI_PP` | `0.20` | Minimum SpliceAI score to force inclusion in results |
 | `FILTER_SHORT_VEP_MIN_IMPACT` | `'MODERATE'` | Minimum VEP Impact to retain |
 | `FILTER_SHORT_VEP_CONSEQUENCES` | `null` | Specific VEP consequences to retain |
 | `FILTER_STRUC_POP_DOM_MAX_AF` | `0.0001` | Max population AF for dominant SVs |
@@ -101,8 +101,8 @@ The following parameters may be set in the Nextflow configuration file:
 | `FILTER_STRUC_VEP_MIN_IMPACT` | `'LOW'` | Minimum VEP Impact for SVs |
 | `FILTER_STRUC_VEP_CONSEQUENCES` |  | Specific VEP consequences to keep for SVs |
 | `FILTER_STRUC_LARGE_LENGTH` | `null` | Automatically report SVs larger than this length |
-| `SLIDE_INFO_SHORT` | `[Map]` | Fields to include in short variant slides |
-| `SLIDE_INFO_STRUC` | `[Map]` | Fields to include in structural variant slides |
+| `SLIDE_INFO_SHORT` | `[Map]` | Fields to include in short variant slides - [see below](#slide-info)|
+| `SLIDE_INFO_STRUC` | `[Map]` | Fields to include in structural variant slides - [see below](#slide-info)|
 | `struc_vcf_filter` | `"PASS,."` | Apply VCF filter to structural variant VCF |
 | `struc_info` | `['AC', 'AF', 'AN', 'SVTYPE', 'SVLEN', 'END']` | INFO fields to keep from SV VCF |
 | `struc_format` | `['GT']` | FORMAT fields to keep from SV VCF |
@@ -138,6 +138,49 @@ The following parameters may be set in the Nextflow configuration file:
       * **HGNC**: Gene subsets by locus group can be extracted from HGNC, for example "HGNC:protein-coding" will give a list of all protein coding genes
     * **Genomic Region** - by specifying a genomic region such as "chr1:1000000-2000000", cavalier will extract all ensemble/gencode genes in that region.
 
+### Slide Info
+* Output slides contain a table reporting variant and gene level information
+* The defaults for short and structural variants are:
+  ```nextflow
+  params {
+      SLIDE_INFO_SHORT = [
+            DEFAULT: [
+                Gene         : 'Gene',
+                Inheritance  : 'inheritance', 
+                Consequence  : 'Consequence',
+                HGVS         : 'HGVS',
+                ClinVar      : 'CLNSIG',
+                'gnomAD v4.1': 'gnomAD', 
+                Cohort       : 'Cohort',
+                PhyloP100    : 'phyloP100',
+                SpliceAI     : 'SpliceAI',
+                'CADD v1.7'  : 'CADD',
+            ],
+            MISSENSE: [
+                REVEL        : 'REVEL',
+                AlphaMissense: 'AlphaMissense',
+                SIFT         : 'SIFT',
+                PolyPhen     : 'PolyPhen',
+            ]
+        ]
+      SLIDE_INFO_STRUC = [
+          DEFAULT: [
+              Gene         : 'Gene',
+              Inheritance  : 'inheritance', 
+              Consequence  : 'Consequence',
+              HGVS         : 'HGVS',
+             'SV Type'     : 'SVTYPE',
+              Chromosome   : 'CHROM',
+              Position     : 'POS',
+              End          : 'END',
+              Length       : 'SVLEN',
+              'gnomAD v4.1': 'gnomAD',
+              Cohort       : 'Cohort'
+          ]
+      ]
+  }
+  ```
+* "DEFAULT" fileds are reported for all variants of each class, whereas "MISSENSE" are only reported for missense variants
 
 ## Annotations
 ### CADD
