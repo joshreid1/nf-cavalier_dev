@@ -191,16 +191,15 @@ def get_slide_info() {
 
 def collect_csv(csv_channel, filename) {
     
-    def split_csv = csv_channel.splitCsv(header: true)
-
-    split_csv
+    csv_channel
         .first()
-        .map { (it.keySet() as List).join(',') }
+        .splitText(limit:1)
+        .map {it.trim() }
         .concat(
-            split_csv
-                .map { (it.values() as List).join(',') }
-                .toSortedList()
+            csv_channel
+                .toSortedList { it.name }
                 .flatten()
+                .map { it.text.split('\n').drop(1).join('\n') }
         )
         .collectFile(
             name: filename, 

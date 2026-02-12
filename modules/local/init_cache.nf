@@ -3,9 +3,7 @@ process INIT_CACHE {
     label 'C2M2T2'
     label 'cavalier'
     tag "$date_ymd"
-    publishDir "${params.outdir}/by_family/",
-        mode: 'copy',
-        pattern: 'cavalier_options.*.json'
+    publishDir "${params.outdir}", mode: 'copy', pattern: 'cavalier_options.*.json'
     
     /*
         - Initialise cavalier cache, checking for latest version of HGNC, HPO, MI_OMIM
