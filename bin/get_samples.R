@@ -105,9 +105,11 @@ ped_flt <-
   ungroup() %>% 
   write_tsv(out_ped, col_names = F)
 
+file.create("warnings.txt")
+
 if (length(bam_ids) > length(ISEC)) {
   str_c("Dropped ", length(bam_ids) - length(ISEC), ' sample(s) from bam manifest missing from intersection') %>% 
-    write_lines('warnings.txt')
+    write_lines('warnings.txt', append = T)
 }
 
 fams <- unique(pedigree$fid)
