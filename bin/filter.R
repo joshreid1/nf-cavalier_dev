@@ -657,27 +657,27 @@ FILTER_INHERITANCE <- function(VARIANTS, PEDIGREE, set = 'SHORT') {
          
         ( 
           inheritance == 'dominant' &
-            pop_AF  < pop_dom_max_af &
-            pop_AC  < pop_dom_max_ac &
-            pop_hom < pop_dom_max_hom &
-            AF      < coh_dom_max_af &
-            AC      < coh_dom_max_ac 
+            pop_AF  <= pop_dom_max_af &
+            pop_AC  <= pop_dom_max_ac &
+            pop_hom <= pop_dom_max_hom &
+            AF      <= coh_dom_max_af &
+            AC      <= coh_dom_max_ac 
         ) ~ 'dominant',
         ( 
           inheritance == 'recessive' &
-            pop_AF  < pop_rec_max_af &
-            pop_AC  < pop_rec_max_ac &
-            pop_hom < pop_rec_max_hom &
-            AF      < coh_rec_max_af &
-            AC      < coh_rec_max_ac 
+            pop_AF  <= pop_rec_max_af &
+            pop_AC  <= pop_rec_max_ac &
+            pop_hom <= pop_rec_max_hom &
+            AF      <= coh_rec_max_af &
+            AC      <= coh_rec_max_ac 
         ) ~ 'recessive',
         ( 
           inheritance == 'dominant' &
-            pop_AF  < pop_rec_max_af &
-            pop_AC  < pop_rec_max_ac &
-            pop_hom < pop_rec_max_hom &
-            AF      < coh_rec_max_af &
-            AC      < coh_rec_max_ac 
+            pop_AF  <= pop_rec_max_af &
+            pop_AC  <= pop_rec_max_ac &
+            pop_hom <= pop_rec_max_hom &
+            AF      <= coh_rec_max_af &
+            AC      <= coh_rec_max_ac 
         ) ~ 'compound',
         (
           inheritance == 'dominant' &
@@ -936,7 +936,7 @@ PLOT_FILTERING <- function(n_pass, filtered, output, title = 'Variant filtering'
     geom_label(aes(y = pmax(n, 1), label = str_c('n=', map_chr(n, format, big.mark = ','))), hjust=1) +
     scale_y_continuous(
       trans = "log1p",
-      breaks = c(0, 10**seq(1, ceiling(log10(n_init)))),
+      breaks = c(0, 10**seq(1, max(2, ceiling(log10(n_init))))),
     ) +
     coord_flip() +
     labs(x = 'Filter', y = 'Remaining Gene-Variants') 

@@ -109,7 +109,7 @@ workflow CAVALIER {
         .toList()
         .filter { it.size() > 0 }
         .map { 
-            log.warn("${it.size()} samples with more than ${params.max_short_per_deck} struc variants - slides will be truncated")
+            log.warn("${it.size()} samples with more than ${params.max_struc_per_deck} struc variants - slides will be truncated")
         }
 
     SVPV(

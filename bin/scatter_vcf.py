@@ -50,6 +50,29 @@ def extract_tbi_block_starts(tbi_path: str):
         buf.read(8 * n_intv)
     return sorted(starts)
 
+def extract_csi_block_starts(csi_path: str):
+    logger.info(f"Reading CSI index from {csi_path}")
+    data = gzip.open(csi_path, "rb").read()
+    buf = io.BytesIO(data)
+    if buf.read(4) != b"CSI\x01":
+        raise ValueError("Not a CSI index")
+    
+    min_shift, depth, l_aux = struct.unpack("<3i", buf.read(12))
+    buf.read(l_aux)
+    
+    n_ref = struct.unpack("<i", buf.read(4))[0]
+    starts = set()
+    for _ in range(n_ref):
+        n_bin = struct.unpack("<i", buf.read(4))[0]
+        for _ in range(n_bin):
+            buf.read(12) # bin (4) + loffset (8)
+            n_chunk = struct.unpack("<i", buf.read(4))[0]
+            for _ in range(n_chunk):
+                beg, end = struct.unpack("<QQ", buf.read(16))
+                if end > beg:
+                    starts.add(beg >> 16)
+    return sorted(starts)
+
 _scan_bgzf_cache = {}
 
 def scan_bgzf_block_starts(vcf_path: str, start_at=0, end_at=None):
@@ -97,6 +120,7 @@ def get_header_and_first_block(vcf_path: str):
                 header = compress_to_bgzf("".join(header_lines).encode("utf-8"))
                 return header, block_offset
     logger.error("No data records found in VCF header")
+    
     sys.exit(1)
 
 def is_valid_boundary(vcf_path: str, start:int, length:int):
@@ -139,7 +163,6 @@ def split_chunk(vcf_path: str, offset: int, size: int):
 def remove_header(vcf_path: str, offset: int, size: int):
     """
     remove header from one a chunk of one of more BGZF blocks at [offset:offset+size],
-    split into rougly equal pieces, on a newline
     recompress as bgzf
     """
     with open(vcf_path, "rb") as f:
@@ -254,17 +277,22 @@ def main():
 
     # gather BGZF block starts
     tbi_path = vcf_path.with_suffix(vcf_path.suffix + ".tbi")
-    if not tbi_path.exists():
-        logger.error("Warning: No .tbi index found - please index file with bcftools or tabix.")
+    csi_path = vcf_path.with_suffix(vcf_path.suffix + ".csi")
+    if tbi_path.exists():
+        starts = extract_tbi_block_starts(str(tbi_path))
+        logger.info(f"starts: {starts}")
+    elif csi_path.exists():
+        starts = extract_csi_block_starts(str(csi_path))
+    else:
+        logger.error("Warning: No .tbi or .csi index found - please index file with bcftools or tabix.")
         sys.exit(1)
-    starts = extract_tbi_block_starts(str(tbi_path))
     logger.info(f"Found {len(starts)} BGZF blocks")
 
     logger.info(f"Extracting header")
     header, first_block = get_header_and_first_block(str(vcf_path))
     # improve resolution of chopping of first chunk and header
     starts = sorted(set(starts) | {first_block})
-    starts = sorted(set(starts + scan_bgzf_block_starts(str(vcf_path), starts[0], starts[1])))
+    starts = sorted(set(starts + scan_bgzf_block_starts(str(vcf_path), starts[0], starts[1])))    
 
     file_size = os.path.getsize(vcf_path)
     bounds, starts, lengths = optimise_boundaries(vcf_path, starts, n_shards)
@@ -275,8 +303,8 @@ def main():
     write_args = []
     for i in range(n_shards):
         if i == 0:
-            prepend = header + remove_header(str(vcf_path), 0, starts[1])
-            start = starts[1]
+            prepend = header + remove_header(str(vcf_path), 0, starts[0])
+            start = starts[0]
         else:
             prepend = header + bounds_split[i-1][1]
             start = starts[bounds[i-1]+1]
@@ -290,7 +318,7 @@ def main():
             (
                 str(vcf_path),
                 Path(f"{output_prefix}.{i+1:0{len(str(n_shards))}d}.vcf.gz"),
-                prepend, start,  length, append
+                prepend, start, length, append
             )
         )
     

@@ -11,7 +11,7 @@ process PDF_SPLIT {
     tuple val(fam), path(pdf)
 
     output:
-    path("genes/*.pdf")
+    path("genes/*.pdf"), optional: true
 
     script:
     """
