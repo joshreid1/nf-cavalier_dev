@@ -484,7 +484,7 @@ FILTER_STRUC_GENE <- function(VARIANTS, GENE_SET, set = 'SHORT') {
     filter(
       Gene %in% GENE_SET
     )
-    
+      
   VARIANTS_OUT <-
     bind_rows(
       VARIANTS_OUT,
@@ -893,14 +893,14 @@ FILTER_STRUC_TYPE <- function(VARIANTS) {
       MODERATE = c('MODERATE', 'HIGH'),
       HIGH = c('HIGH')
     )[[FILTER_STRUC_VEP_MIN_IMPACT]]
-  
+
   VARIANTS_OUT <-
     VARIANTS %>% 
     filter(SVTYPE %in% FILTER_STRUC_SVTYPES) %>% 
     filter(
       IMPACT %in% FILTER_STRUC_VEP_IMPACTS |
-        Consequence %in% FILTER_STRUC_VEP_CONSEQUENCES |
-        abs(SVLEN) >= FILTER_STRUC_LARGE_LENGTH
+      str_split(Consequence, "&") %>% map_lgl(~ any(. %in% FILTER_STRUC_VEP_CONSEQUENCES)) |
+      abs(SVLEN) >= FILTER_STRUC_LARGE_LENGTH
     ) %>% 
     mutate(TYPE = SVTYPE)
   
