@@ -18,8 +18,8 @@ process SPLIT_VEP {
     tuple val(set), val(fam), path(out_tsv)                        , emit: tsv
 
     script:
-    out_vcf = vcf.name.replace('.vcf.gz', ".family_${fam}.vcf.gz")
-    out_tsv = vcf.name.replace('.vcf.gz', ".family_${fam}.tsv.gz")
+    out_vcf = vcf.name.replaceAll(/(\.vcf\.gz)|(\.bcf)/, ".family_${fam}.vcf.gz")
+    out_tsv = vcf.name.replaceAll(/(\.vcf\.gz)|(\.bcf)/, ".family_${fam}.tsv.gz")
     // extract INFO fields from VCF
     def inf_hdr = inf.join('\\t')
     def inf_qry = inf.collect {"%$it"}.join('\\t')
@@ -30,11 +30,12 @@ process SPLIT_VEP {
         .flatten()
         .join('\t')
     def fmt_query = fmt.collect{"[%$it\\t]"}.join('')
+
     """
     printf "${aff.join('\\n')}\\n" > aff
-    
-    bcftools view --threads ${task.cpus} --no-version --no-update $vcf -Ou -s ${samples.join(',')} |
-        bcftools view --no-version --threads ${task.cpus} -i "GT[@aff]='alt'" --write-index=tbi -Oz -o $out_vcf
+
+    bcftools view --threads ${task.cpus} --no-version --no-update $vcf -s ${samples.join(',')} -Ou \\
+        | bcftools view --no-version --threads ${task.cpus} -i "GT[@aff]='alt'" --write-index=tbi -Oz -o $out_vcf
 
     VEP_HDR=\$( bcftools +split-vep $vcf -l | cut -f2- | paste -sd '\\t' - )
     (

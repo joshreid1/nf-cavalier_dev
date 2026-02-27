@@ -32,7 +32,7 @@ workflow SETUP {
         )    
         pedigree_channel = Channel.empty()
         bam_channel      = Channel.empty()
-        check            = Channel.empty()
+        check            = Channel.value(true)
 
     } else {
         INIT_CACHE(

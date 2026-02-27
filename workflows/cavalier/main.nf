@@ -1,13 +1,15 @@
 
 /* ----------- funtions ----------------*/
-include { path                } from '../../functions/helpers'
-include { get_filter_opts     } from '../../functions/helpers'
-include { collect_csv         } from '../../functions/helpers'
-include { cache_dir_channel   } from '../../functions/channels'
-include { get_slide_info      } from '../../functions/helpers.nf'
-include { get_inf             } from '../../functions/helpers.nf'
-include { get_fmt             } from '../../functions/helpers.nf'
-include { get_fam_aff_un      } from '../../functions/helpers.nf'
+include { path              } from '../../functions/helpers'
+include { get_filter_opts   } from '../../functions/helpers'
+include { collect_csv       } from '../../functions/helpers'
+include { cache_dir_channel } from '../../functions/channels'
+include { get_slide_info    } from '../../functions/helpers.nf'
+include { get_inf           } from '../../functions/helpers.nf'
+include { get_fmt           } from '../../functions/helpers.nf'
+include { get_fam_aff_un    } from '../../functions/helpers.nf'
+include { short_enabled     } from '../../functions/helpers.nf'
+include { struc_enabled     } from '../../functions/helpers.nf'
 
 /* ----------- processes ----------------*/
 include { SPLIT_VEP   } from '../../modules/local/split_vep'
@@ -46,20 +48,19 @@ workflow CAVALIER {
         check
     )
 
-    filter_input = SPLIT_VEP.out.tsv
-        .filter {it[0] == 'SHORT' }
-        .map { it[[1,2]] }
-        .join(
-            SPLIT_VEP.out.tsv
-                .filter {it[0] == 'STRUC' }
-                .map { it[[1,2]] },
-            remainder: true
-        )
-        .map { [it[0], it[1] ?: [], it[2] ?: [] ] }
-        .combine(pedigree_channel, by: 0) //fam, short, struc, ped
+    split_short = SPLIT_VEP.out.tsv.filter {it[0] == 'SHORT' }.map { it[[1,2]] }
+    split_struc = SPLIT_VEP.out.tsv.filter {it[0] == 'STRUC' }.map { it[[1,2]] }
+
+    if (short_enabled() & struc_enabled()) {
+        filter_input = split_short.join(split_struc) // fam, short, struc
+    } else if (short_enabled()) {
+        filter_input = split_short.map { [it[0], it[1], []] } // fam, short, []
+    } else {
+        filter_input = split_struc.map { [it[0], [], it[1]] } // fam, [], struc
+    }
 
     FILTER(
-        filter_input,
+        filter_input.combine(pedigree_channel, by: 0),
         gene_set,
         get_filter_opts(),
         cavalier_opts,
@@ -74,6 +75,10 @@ workflow CAVALIER {
         .filter { it[1] > 0 }
         .map    { it[0]     }
     
+    samples_short_zero = short_count
+        .filter { it[1] == 0 }
+        .map    { it[0]      }
+    
     short_count
         .filter { it[1] > params.max_short_per_deck }
         .map    { it[0] }
@@ -84,11 +89,11 @@ workflow CAVALIER {
         }
 
     IGV_REPORT(
-        FILTER.out.short_igv
-            .combine(samples_short, by:0)
-            .combine(pedigree_channel, by:0)
-            .combine(SPLIT_VEP.out.vcf.filter {it[0] == 'SHORT' }.map { it[[1,2,3]] }, by:0)
-            .combine(bam_channel, by:0)
+        FILTER.out.short_igv.map { [it[0], it[1].text.trim()] }
+            .join(samples_short)
+            .join(pedigree_channel)
+            .join(SPLIT_VEP.out.vcf.filter {it[0] == 'SHORT' }.map { it[[1,2,3]] })
+            .join(bam_channel)
     )
  
     IGV_TO_PNG(
@@ -103,6 +108,10 @@ workflow CAVALIER {
         .filter { it[1] > 0 }
         .map    { it[0]     } 
 
+    samples_struc_zero = struc_count
+        .filter { it[1] == 0 }
+        .map    { it[0]      } 
+
     struc_count
         .filter { it[1] > params.max_struc_per_deck }
         .map    { it[0] }
@@ -111,12 +120,12 @@ workflow CAVALIER {
         .map { 
             log.warn("${it.size()} samples with more than ${params.max_struc_per_deck} struc variants - slides will be truncated")
         }
-
+        
     SVPV(
         SPLIT_VEP.out.vcf.filter { it[0] == 'STRUC' }.map { it[[1,2]] } // fam, vcf
-            .combine(samples_struc, by:0)
-            .combine(FILTER.out.struc_csv, by:0) // fam, vcf, csv
-            .combine(bam_channel, by:0), // fam, vcf, csv, ids, bams, bais
+            .join(samples_struc)
+            .join(FILTER.out.struc_lines.map { [it[0], it[1].text.trim()] }) // fam, vcf, lines
+            .join(bam_channel), // fam, vcf, csv, ids, bams, bais
         path(params.ref_gene)
     )
 
@@ -125,23 +134,44 @@ workflow CAVALIER {
     )
 
     SAMPLOT(
-        FILTER.out.struc_samplot
-            .combine(samples_struc, by:0)
-            .combine(bam_channel, by:0)
+        FILTER.out.struc_samplot.map { [it[0], it[1].text.trim()] }
+            .join(samples_struc)
+            .join(bam_channel)
     )
 
     if (params.make_slides) {
-         /* ----- Create Slides ----- */
+        /* ----- Create Slides ----- */
+        fam_ch  = pedigree_channel.map { it [0] }
+        null_ch = fam_ch.map { [it, []]}
+        if (short_enabled()) {
+            short_var      = fam_ch.join(FILTER.out.short_rds)
+            short_flt_plot = fam_ch.join(FILTER.out.short_flt_plot)
+            igv            = fam_ch.join(IGV_TO_PNG.out).mix(fam_ch.join(samples_short_zero).map { [it, []] })
+        } else {
+            short_var      = null_ch
+            short_flt_plot = null_ch
+            igv            = null_ch
+        }
+        if (struc_enabled()) {
+            struc_var      = fam_ch.join(FILTER.out.struc_rds)
+            struc_flt_plot = fam_ch.join(FILTER.out.struc_flt_plot)
+            svpv           = fam_ch.join(SVPV_TO_PNG.out).mix(fam_ch.join(samples_struc_zero).map { [it, []] })
+            samplot        = fam_ch.join(SAMPLOT.out).mix(fam_ch.join(samples_struc_zero).map { [it, []] })
+        } else {
+            struc_var      = null_ch
+            struc_flt_plot = null_ch
+            svpv           = null_ch
+            samplot        = null_ch
+        }
         MAKE_SLIDES(   
-            pedigree_channel // fam, ped
-                .join(FILTER.out.short_rds.combine(samples_short, by:0), by: 0, remainder: true) // fam, ped, short_rds
-                .join(FILTER.out.short_flt_plot, by: 0, remainder: true)
-                .join(IGV_TO_PNG.out           , by: 0, remainder: true) // fam, ped, short_rds, short_igv
-                .join(FILTER.out.struc_rds.combine(samples_struc, by:0), by: 0, remainder: true) // fam, ped, short_rds, short_igv, struc_rds
-                .join(FILTER.out.struc_flt_plot, by: 0, remainder: true)
-                .join(SVPV_TO_PNG.out          , by: 0, remainder: true) // fam, ped, short_rds, short_igv, struc_rds, svpv
-                .join(SAMPLOT.out              , by: 0, remainder: true) // fam, ped, short_rds, short_igv, struc_rds, svpv, samplot
-                .map    { row -> row.collect { x -> x ?: [] }   },  // replace missing/null with [] to avoid errors
+            pedigree_channel           // fam, ped
+                .join(short_var)       // fam, ped, short_var
+                .join(short_flt_plot)  // fam, ped, short_var, short_flt
+                .join(igv)             // fam, ped, short_var, short_flt, igv
+                .join(struc_var)       // fam, ped, short_var, short_flt, igv, struc_var
+                .join(struc_flt_plot)  // fam, ped, short_var, short_flt, igv, struc_var, struc_flt
+                .join(svpv)            // fam, ped, short_var, short_flt, igv, struc_var, struc_flt, svpv
+                .join(samplot),        // fam, ped, short_var, short_flt, igv, struc_var, struc_flt, svpv, samplot
             lists,
             get_slide_info(),
             cavalier_opts,

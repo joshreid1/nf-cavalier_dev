@@ -7,9 +7,8 @@ process FILTER {
     tag "$fam"
     /*
         - Read TSV formatted variants for a given family
-        - Identify and report candidate variants with cavalier script 
-        - Custom filtering and manipulation of variants by modifying functions in ./misc/scripts/filtering_logic.R
-        - Currently on SNV/Indel implemented, but will extend to SV
+        - Identify candidate variants with R script 
+        - Make outputs for visualisation tools
     */  
 
     input:
@@ -20,21 +19,22 @@ process FILTER {
     path(cache_dir)
 
     output:
-    tuple val(fam), path("${fam}*.short.filtered_variants.rds") , emit: short_rds
-    tuple val(fam), path("${fam}*.short.filtered_variants.csv") , emit: short_csv
-    tuple val(fam), path("${fam}*.short.igv.bed.gz")            , emit: short_igv
-    tuple val(fam), path("${fam}*.short.count")                 , emit: short_count
-    tuple val(fam), path("${fam}*.short.reason_filtered.csv.gz"), emit: short_reason
-    tuple val(fam), path("${fam}*.short.filtering.png")         , emit: short_flt_png
-    tuple val(fam), path("${fam}*.short.filtering.rds")         , emit: short_flt_plot
+    tuple val(fam), path("${fam}*.short.filtered_variants.rds") , emit: short_rds     , optional: true
+    tuple val(fam), path("${fam}*.short.filtered_variants.csv") , emit: short_csv     , optional: true
+    tuple val(fam), path("${fam}*.short.igv.bed")               , emit: short_igv     , optional: true
+    tuple val(fam), path("${fam}*.short.count")                 , emit: short_count   , optional: true
+    tuple val(fam), path("${fam}*.short.reason_filtered.csv.gz"), emit: short_reason  , optional: true
+    tuple val(fam), path("${fam}*.short.filtering.png")         , emit: short_flt_png , optional: true
+    tuple val(fam), path("${fam}*.short.filtering.rds")         , emit: short_flt_plot, optional: true
 
-    tuple val(fam), path("${fam}*.struc.filtered_variants.rds") , emit: struc_rds
-    tuple val(fam), path("${fam}*.struc.filtered_variants.csv") , emit: struc_csv
-    tuple val(fam), path("${fam}*.struc.bamplot.tsv")           , emit: struc_samplot
-    tuple val(fam), path("${fam}*.struc.count")                 , emit: struc_count
-    tuple val(fam), path("${fam}*.struc.reason_filtered.csv.gz"), emit: struc_reason
-    tuple val(fam), path("${fam}*.struc.filtering.png")         , emit: struc_flt_png
-    tuple val(fam), path("${fam}*.struc.filtering.rds")         , emit: struc_flt_plot
+    tuple val(fam), path("${fam}*.struc.filtered_variants.rds") , emit: struc_rds     , optional: true
+    tuple val(fam), path("${fam}*.struc.filtered_variants.csv") , emit: struc_csv     , optional: true
+    tuple val(fam), path("${fam}*.struc.samplot.tsv")           , emit: struc_samplot , optional: true
+    tuple val(fam), path("${fam}*.struc.lines.txt")             , emit: struc_lines   , optional: true
+    tuple val(fam), path("${fam}*.struc.count")                 , emit: struc_count   , optional: true
+    tuple val(fam), path("${fam}*.struc.reason_filtered.csv.gz"), emit: struc_reason  , optional: true
+    tuple val(fam), path("${fam}*.struc.filtering.png")         , emit: struc_flt_png , optional: true
+    tuple val(fam), path("${fam}*.struc.filtering.rds")         , emit: struc_flt_plot, optional: true
     
     script:
 """

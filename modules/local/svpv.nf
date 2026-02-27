@@ -10,7 +10,7 @@ process SVPV {
     */
 
     input:
-    tuple val(fam), path(vcf), path(flt_svs), val(ids), path(bams), path(bais)
+    tuple val(fam), path(vcf), val(lines), val(ids), path(bams), path(bais)
     path(ref_gene)
 
     output:
@@ -18,7 +18,7 @@ process SVPV {
 
     script:
     """
-    LINES=\$(awk -F',' 'NR==1{for(i=1;i<=NF;i++) if(\$i=="LINE_ID") c=i; if(!c) exit 1} NR>1{print \$c}' $flt_svs)
+    LINES="${lines.split('\n').join(' ')}"
     
     zcat $vcf \\
         | awk -v lines="\$LINES" '

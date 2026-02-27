@@ -10,6 +10,8 @@ process CLEAN {
         - Split multiallelics to single records and normalise representation
         - Fill AC/AF/AN if enabled
         - Drop non-variants (AF ==0) or variants with alt == '*' (GATK emits these)
+
+        TODO: detect if fill-tags needs to be run and run it (saves time if missing)
     */
 
     input:
@@ -45,6 +47,8 @@ process CLEAN_STRUC {
         - Split multiallelics to single records and normalise representation
         - Fill AC/AF/AN if enabled
         - Drop non-variants (AF ==0) or variants with alt == '*' (GATK emits these)
+
+        TODO: detect if fill-tags needs to be run and run it (saves time if missing)
     */
 
     input:

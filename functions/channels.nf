@@ -25,8 +25,15 @@ def tabix_channel(filename) {
     index_channel(filename, 'tbi')
 }
 
-def vcf_channel(filename, extension = 'tbi') {
-   index_channel(filename, extension)
+def vcf_channel(filename) {
+    Channel.value(
+        [
+            file(filename, checkIfExists: true).toAbsolutePath(),
+            file("${filename}.tbi").exists() ?
+                file("${filename}.tbi", checkIfExists: true).toAbsolutePath() :
+                file("${filename}.csi", checkIfExists: true).toAbsolutePath() 
+        ]
+    )
 }
 
 def fasta_channel(filename) {

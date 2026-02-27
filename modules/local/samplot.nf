@@ -10,26 +10,27 @@ process SAMPLOT {
     */
 
     input:
-    tuple val(fam), path(sites), val(ids), path(bams), path(bais)
+    tuple val(fam), val(sites), val(ids), path(bams), path(bais)
 
     output:
     tuple val(fam), path("*.png")
 
     script:
-    """
-    export MPLCONFIGDIR=\$PWD/mpl_tmp
+"""
+export MPLCONFIGDIR=\$PWD/mpl_tmp
+cat > sites <<< '${sites}'
 
-    (
-        while IFS=\$'\\t' read -r NAME CHROM START END TYPE; do
-        echo "samplot plot \\
-            -n ${ids.join(' ')} \\
-            -b ${bams.join(' ')} \\
-            -o samplot_${fam}_\$NAME.png \\
-            -c \$CHROM \\
-            -s \$START \\
-            -e \$END \\
-            -t \$TYPE"
-        done < ${sites}
-    ) | xargs -n 1 -P ${task.cpus} -I {} sh -c '{}'
-    """
+(
+    while IFS=\$'\\t' read -r NAME CHROM START END TYPE; do
+    echo "samplot plot \\
+        -n ${ids.join(' ')} \\
+        -b ${bams.join(' ')} \\
+        -o samplot_${fam}_\$NAME.png \\
+        -c \$CHROM \\
+        -s \$START \\
+        -e \$END \\
+        -t \$TYPE"
+    done < sites
+) | xargs -n 1 -P ${task.cpus} -I {} sh -c '{}'
+"""
 }
