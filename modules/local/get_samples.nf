@@ -23,7 +23,9 @@ process GET_SAMPLES {
         $bams \\
         intersect_bams.tsv \\
         ${ped.size() == 0 ? 'UNSET' : ped} \\
-        intersect.ped 
+        intersect.ped
+        
+    touch warnings.txt
     """
 }
 

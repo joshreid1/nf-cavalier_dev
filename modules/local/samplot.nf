@@ -19,9 +19,14 @@ process SAMPLOT {
 """
 export MPLCONFIGDIR=\$PWD/mpl_tmp
 cat > sites <<< '${sites}'
-
 (
     while IFS=\$'\\t' read -r NAME CHROM START END TYPE; do
+
+    WINDOW_FLAG=""
+    if [[ "\$TYPE" == "INS" && "\$START" == "\$END" ]]; then
+        WINDOW_FLAG="-w 1000"
+    fi
+
     echo "samplot plot \\
         -n ${ids.join(' ')} \\
         -b ${bams.join(' ')} \\
@@ -29,7 +34,8 @@ cat > sites <<< '${sites}'
         -c \$CHROM \\
         -s \$START \\
         -e \$END \\
-        -t \$TYPE"
+        -t \$TYPE \\
+        \$WINDOW_FLAG"
     done < sites
 ) | xargs -n 1 -P ${task.cpus} -I {} sh -c '{}'
 """
