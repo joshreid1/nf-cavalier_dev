@@ -7,19 +7,7 @@ stopifnot(
   require(cavalier)
 )
 
-
-
 MAIN <- function(opts) {
-  
-  # opts <- list(
-  #   ped = '/vast/scratch/users/munro.j/nextflow/work/b0/b45cd2936ba5e45757e9662c3da0ea/Plu_PK86442.ped',
-  #   gene_set = '/vast/scratch/users/munro.j/nextflow/work/b0/b45cd2936ba5e45757e9662c3da0ea/gene_set.b318914302dfd583d53fa98fff9fbb2c.txt',
-  #   options =  '/vast/scratch/users/munro.j/nextflow/work/b0/b45cd2936ba5e45757e9662c3da0ea/filter_options.json',
-  #   short_var = '/vast/scratch/users/munro.j/nextflow/work/0c/bbb0b67d6f5ba6c949d88330b92810/test_snp.chr6_chr19.clean.vcfanno.vep.family_Plu_PK86442.tsv.gz',
-  #   struc_var = '/vast/scratch/users/munro.j/nextflow/work/fe/356dc3615694c49e79a7c9b536f7ad/test_sv.clean.svafotate.vep.family_Plu_PK86442.tsv.gz',
-  #   output = 'test',
-  #   cav_opts = '/vast/scratch/users/munro.j/nextflow/work/b0/b45cd2936ba5e45757e9662c3da0ea/cavalier_options.fe1c52828ebd8fe51360c7b2db3cf991.json'
-  # )
   
   message('Using CLI options:')
   PRINT_STR(
@@ -119,19 +107,13 @@ MAIN <- function(opts) {
       ) %>% 
       distinct() %>% 
       write_tsv(
-        str_c(opts$output, '.short.igv.bed.gz'),
+        str_c(opts$output, '.short.igv.bed'),
         col_names = F
       )
 
     cat(nrow(FC$SHORT), file = str_c(opts$output, '.short.count'))
     
   } else {
-    file.create(str_c(opts$output, '.empty.short.filtered_variants.rds'))
-    file.create(str_c(opts$output, '.empty.short.filtered_variants.csv'))
-    file.create(str_c(opts$output, '.empty.short.reason_filtered.csv.gz'))
-    file.create(str_c(opts$output, ".empty.short.igv.bed.gz"))
-    file.create(str_c(opts$output, '.empty.short.filtering.png'))
-    file.create(str_c(opts$output, '.empty.short.filtering.rds'))
     cat("0", file = str_c(opts$output, '.short.count'))
   }
   
@@ -166,29 +148,27 @@ MAIN <- function(opts) {
       output = str_c(opts$output, '.struc.filtering')
     )
 
-    FC$STRUC %>% 
+    FC$STRUC %>%
       transmute(
         name  = variant_id,
-        chrom = CHROM, 
+        chrom = CHROM,
         start = POS,
         end   = END,
         type  = SVTYPE,
-      ) %>% 
-      distinct() %>% 
+      ) %>%
+      distinct() %>%
       write_tsv(
-        str_c(opts$output, '.struc.bamplot.tsv'),
+        str_c(opts$output, ".struc.samplot.tsv"),
         col_names = F
-    )
+      )
+    
+    FC$STRUC %>%
+      pull(LINE_ID) %>%
+      write_lines(str_c(opts$output, ".struc.lines.txt"))
 
     cat(nrow(FC$STRUC), file = str_c(opts$output, '.struc.count'))
 
   } else {
-    file.create(str_c(opts$output, '.empty.struc.filtered_variants.rds'))
-    file.create(str_c(opts$output, '.empty.struc.filtered_variants.csv'))
-    file.create(str_c(opts$output, '.empty.struc.reason_filtered.csv.gz'))
-    file.create(str_c(opts$output, ".empty.struc.struc.bamplot.tsv"))
-    file.create(str_c(opts$output, '.empty.struc.filtering.png'))
-    file.create(str_c(opts$output, '.empty.struc.filtering.rds'))
     cat("0", file = str_c(opts$output, '.struc.count'))
   }
   
@@ -261,6 +241,8 @@ LOAD_SHORT <- function(FILEPATH = NULL, ...) {
     Existing_variation = col_character(),
     am_class = col_character(),
     am_pathogenicity = col_double(),
+    promoterAI_gene = col_character(),
+    promoterAI = col_character(),
     REVEL = col_double(),
     SpliceAI_pred_DP_AG = col_integer(),
     SpliceAI_pred_DP_AL = col_integer(),
@@ -278,43 +260,59 @@ LOAD_SHORT <- function(FILEPATH = NULL, ...) {
     Existing_uORFs = col_integer(),
     .default = col_character()
   )
-  
-  VARIANTS_OUT <-
+
+  empty <-
+    VARIANTS_OUT <-
     # read tsv with custom col_spec
     read_tsv(
       file = FILEPATH,
-      na = '.',
+      na = ".",
       col_types = col_spec,
       show_col_types = FALSE
-    ) %>% 
+    ) %>%
+    # force all columns to be present
+    bind_rows(
+      read_delim(file = I(""), col_types = col_spec, col_names = names(col_spec$cols))
+    ) %>%
     # try to guess column types not in col_spec, but better to add to col_spec
     readr::type_convert(
       guess_integer = TRUE,
       col_types = col_spec
-    ) %>% 
+    ) %>%
     # convert FMT fields to nested data frames
     FMT_TO_DF() %>%
     # add/modify columns
     mutate(
       CLNSIG = if_else(CLNSIG_GENE_MATCH(CLNGENE, SYMBOL, Gene), CLNSIG, NA_character_),
-      AN = AN - (GT %>% mutate_all(~ str_count(., '[01]')) %>% rowSums(na.rm = TRUE)),
-      AC = AC - (GT %>% mutate_all(~ str_count(., '[1]')) %>% rowSums(na.rm = TRUE)),
+      AN = AN - (GT %>% mutate_all(~ str_count(., "[01]")) %>% rowSums(na.rm = TRUE)),
+      AC = AC - (GT %>% mutate_all(~ str_count(., "[1]")) %>% rowSums(na.rm = TRUE)),
       AF = replace_na(AC / AN, 0),
       # useful for filtering
       pop_AF = pmax(replace_na(gnomad_AF, 0), replace_na(gnomad_FAF95, 0)),
-      pop_AC =  replace_na(gnomad_AC, 0),
+      pop_AC = replace_na(gnomad_AC, 0),
       pop_hom = replace_na(gnomad_nhomalt, 0),
-      SpliceAI_max = 
+      SpliceAI_max =
         replace_na(
           pmax(SpliceAI_pred_DS_AG, SpliceAI_pred_DS_AL, SpliceAI_pred_DS_DG, SpliceAI_pred_DS_DL),
           0
         ),
-      SIFT_score     = str_extract(SIFT    , '(?<=\\()[0-9\\.]+(?=\\)$)') %>% as.numeric(),
-      PolyPhen_score = str_extract(PolyPhen, '(?<=\\()[0-9\\.]+(?=\\)$)') %>% as.numeric(),
+      SIFT_score = str_extract(SIFT, "(?<=\\()[0-9\\.]+(?=\\)$)") %>% as.numeric(),
+      PolyPhen_score = str_extract(PolyPhen, "(?<=\\()[0-9\\.]+(?=\\)$)") %>% as.numeric(),
       # not meaningful for insertions
       phyloP100 = replace(phyloP100, VARIANT_CLASS == "insertion", NA),
-      variant_id = str_c(CHROM, POS, REF, ALT, sep = '-')
-    )
+      variant_id = str_c(CHROM, POS, REF, ALT, sep = "-")
+    ) %>%
+    (function(x) {
+      left_join(
+        select(x, -starts_with("promoterAI")),
+        select(x, variant_id, starts_with("promoterAI")) %>%
+          separate_rows(promoterAI_gene, promoterAI, sep = ",") %>%
+          distinct() %>%
+          rename(Gene = promoterAI_gene) %>%
+          mutate(promoterAI = as.numeric(promoterAI)),
+        by = join_by(variant_id, Gene)
+      )
+    })
   
   return(
     VARIANTS_OUT %>% TRACK_REASON(init=TRUE)
@@ -522,6 +520,8 @@ FILTER_SHORT_TYPE <- function(VARIANTS) {
   FILTER_SHORT_LOF      <- getOption('FILTER_SHORT_LOF'     , TRUE)
   FILTER_SHORT_MISSENSE <- getOption('FILTER_SHORT_MISSENSE', TRUE)
   FILTER_SHORT_SPLICING <- getOption('FILTER_SHORT_SPLICING', TRUE)
+  FILTER_SHORT_PROMOTER <- getOption('FILTER_SHORT_PROMOTER', TRUE)
+  FILTER_SHORT_OTHER    <- getOption('FILTER_SHORT_OTHER'   , TRUE)
   
   FILTER_SHORT_CLINVAR_KEEP_PAT <- getOption('FILTER_SHORT_CLINVAR_KEEP_PAT', '$.')
   FILTER_SHORT_CLINVAR_DISC_PAT <- getOption('FILTER_SHORT_CLINVAR_DISC_PAT', '$.')
@@ -568,13 +568,20 @@ FILTER_SHORT_TYPE <- function(VARIANTS) {
                 ) 
             )
         ) ~ 'SPLICING',
+        (
+          FILTER_SHORT_PROMOTER &
+            promoterAI <= getOption('FILTER_SHORT_MAX_PROMOTERAI', Inf)
+        ) ~ 'PROMOTER',
         ############# OTHER ############# 
         # Captures anything else
         (
-          IMPACT %in% FILTER_SHORT_VEP_IMPACTS |
-            Consequence %in% FILTER_SHORT_VEP_CONSEQUENCES |
-            str_detect(CLNSIG, FILTER_SHORT_CLINVAR_KEEP_PAT) |
-            CADD  > getOption('FILTER_SHORT_MIN_CADD_PP', -Inf)
+          FILTER_SHORT_OTHER &
+            (
+              IMPACT %in% FILTER_SHORT_VEP_IMPACTS |
+                Consequence %in% FILTER_SHORT_VEP_CONSEQUENCES |
+                str_detect(CLNSIG, FILTER_SHORT_CLINVAR_KEEP_PAT) |
+                CADD > getOption("FILTER_SHORT_MIN_CADD_PP", -Inf)
+            )
         ) ~ 'OTHER'
       )
     ) %>% 
@@ -836,10 +843,13 @@ LOAD_STRUC <- function(FILEPATH = NULL, ...) {
     # read tsv with custom col_spec
     read_tsv(
       file = FILEPATH,
-      na = '.',
+      na = ".",
       col_types = col_spec,
       show_col_types = FALSE
-    ) %>% 
+    ) %>%
+    bind_rows(
+      read_delim(file = I(""), col_types = col_spec, col_names = names(col_spec$cols))
+    ) %>%
     # try to guess column types not in col_spec, but better to add to col_spec
     readr::type_convert(
       guess_integer = TRUE,

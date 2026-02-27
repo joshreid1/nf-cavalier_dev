@@ -214,8 +214,8 @@ def short_enabled() {
     params.short_vcf ? true : params.short_vcf_annotated ? true : false
 }
 
-def sv_enabled() {
-    params.sv_vcf ? true : params.sv_vcf_annotated ? true : false
+def struc_enabled() {
+    params.struc_vcf ? true : params.struc_vcf_annotated ? true : false
 }
 
 
@@ -259,3 +259,4 @@ def get_inf(type) {
         return(get_struc_inf())
     }
 }
+

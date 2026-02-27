@@ -32,14 +32,17 @@ MAIN <- function(opts) {
   max_struc_per_deck <- as.integer(opts$max_struc_per_deck)
   
   ################# CHECK ARGS ######################
+  exists_or_none <- function(x) { map_lgl(x, ~ . == 'NONE' | file.exists(.)) }
   stopifnot(
-    opts$short_var == 'NONE' | file.exists(opts$short_var),
-    opts$struc_var == 'NONE' | file.exists(opts$struc_var),
+    exists_or_none(opts$short_var),
+    exists_or_none(opts$struc_var),
     file.exists(opts$ped),
     all(file.exists(gene_lists)),
-    all(igv_pngs  == 'NONE') | all(file.exists(igv_pngs)),
-    all(svpv_pngs == 'NONE') | all(file.exists(svpv_pngs)),
-    all(samplots  == 'NONE') | all(file.exists(samplots)),
+    exists_or_none(opts$short_flt_plot),
+    exists_or_none(opts$struc_flt_plot),
+    all(exists_or_none(igv_pngs)),
+    all(exists_or_none(svpv_pngs)),
+    all(exists_or_none(samplots)),
     all(c('SHORT', 'STRUC') %in% names(slide_info)),
     'DEFAULT' %in% names(slide_info$SHORT),
     'DEFAULT' %in% names(slide_info$STRUC)
@@ -163,7 +166,7 @@ MAIN <- function(opts) {
   
   file.copy(cavalier:::get_slide_template(), output, TRUE)
 
-  if (!str_detect(opts$short_flt_plot, '\\.empty\\.')) {
+  if (opts$short_flt_plot != "NONE") {
     ##### ADD TITLE SLIDE #####
     officer::read_pptx(output) %>%
       officer::add_slide(layout = "Title and Content") %>%
@@ -246,6 +249,10 @@ MAIN <- function(opts) {
         ),
         SpliceAI_url = str_c(
           "https://spliceailookup.broadinstitute.org/#hg=38&variant=",
+          URLencode(broad_id)
+        ),
+        promoterAI_url = str_c(
+          "https://promoterailookup.broadinstitute.org/#hg=38&variant=",
           URLencode(broad_id)
         ),
         Gene_url = str_c(
@@ -345,7 +352,7 @@ MAIN <- function(opts) {
     )
   }
 
-  if (!str_detect(opts$struc_flt_plot, '\\.empty\\.')) {
+  if (opts$struc_flt_plot != "NONE") {
      ##### ADD TITLE SLIDE #####
     officer::read_pptx(output) %>%
       officer::add_slide(layout = "Title and Content") %>%

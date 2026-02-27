@@ -27,13 +27,13 @@ process MAKE_SLIDES {
 cat > slide_info.json <<< '$slide_info'
 
 make_slides.R $ped ${lists.join(',')} slide_options.json \\
-    --short-var ${short_var.size() > 0 ? "$short_var"           : 'NONE' } \\
-    --short-flt-plot $short_flt_plot \\
-    --struc-var ${struc_var.size() > 0 ? "$struc_var"           : 'NONE' } \\
-    --struc-flt-plot $struc_flt_plot \\
-    --igv       ${igv.size()       > 0 ? "${igv.join(',')}"     : 'NONE' } \\
-    --svpv      ${svpv.size()      > 0 ? "${svpv.join(',')}"    : 'NONE' } \\
-    --samplot   ${samplot.size()   > 0 ? "${samplot.join(',')}" : 'NONE' } \\
+    --short-var      ${short_var      ?: 'NONE' } \\
+    --short-flt-plot ${short_flt_plot ?: 'NONE' } \\
+    --struc-var      ${struc_var      ?: 'NONE' } \\
+    --struc-flt-plot ${struc_flt_plot ?: 'NONE' } \\
+    --igv            ${igv     ? igv.join(',')     : 'NONE' } \\
+    --svpv           ${svpv    ? svpv.join(',')    : 'NONE' } \\
+    --samplot        ${samplot ? samplot.join(',') : 'NONE' } \\
     --slide-info slide_info.json \\
     --cav-opts $cav_opts \\
     --output $fam \\
