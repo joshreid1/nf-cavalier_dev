@@ -302,7 +302,7 @@ def main():
     write_args = []
     for i in range(n_shards):
         if i == 0:
-            if starts[1] < starts[bounds[0]]:
+            if starts[0] < starts[bounds[0]]:
                 prepend = header + remove_header(str(vcf_path), 0, starts[1])
             else:
                 prepend = header
