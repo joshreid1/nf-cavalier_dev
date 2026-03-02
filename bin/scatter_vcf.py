@@ -280,7 +280,6 @@ def main():
     csi_path = vcf_path.with_suffix(vcf_path.suffix + ".csi")
     if tbi_path.exists():
         starts = extract_tbi_block_starts(str(tbi_path))
-        logger.info(f"starts: {starts}")
     elif csi_path.exists():
         starts = extract_csi_block_starts(str(csi_path))
     else:
@@ -303,8 +302,11 @@ def main():
     write_args = []
     for i in range(n_shards):
         if i == 0:
-            prepend = header + remove_header(str(vcf_path), 0, starts[0])
-            start = starts[0]
+            if starts[1] < starts[bounds[0]]:
+                prepend = header + remove_header(str(vcf_path), 0, starts[1])
+            else:
+                prepend = header
+            start = starts[1]
         else:
             prepend = header + bounds_split[i-1][1]
             start = starts[bounds[i-1]+1]
@@ -314,6 +316,8 @@ def main():
         else:
             length = starts[bounds[i]] - start
             append = bounds_split[i][0]
+        if length < 0:
+            length = 0
         write_args.append(
             (
                 str(vcf_path),
