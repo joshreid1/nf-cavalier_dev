@@ -26,7 +26,7 @@ workflow {
             ANNOTATE.out.short_vcf,
             ANNOTATE.out.struc_vcf,
             SETUP.out.pedigree_channel,
-            SETUP.out.bam_channel,
+            SETUP.out.alignment_channel,
             SETUP.out.check
         )
     }

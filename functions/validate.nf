@@ -21,8 +21,8 @@ def validate_params() {
         throw new Exception("ERROR: Must specify at least one of 'params.short_vcf' or 'params.struc_vcf'")
     }
 
-    if (!params.bams) {
-        throw new Exception("ERROR: Must specify 'params.bams'")
+    if (!params.alignments) {
+        throw new Exception("ERROR: Must specify 'params.alignments'")
     }
 
     if (!params.lists) {

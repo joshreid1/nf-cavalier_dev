@@ -11,31 +11,34 @@ process SAMPLOT {
 
     input:
     tuple val(fam), val(sites), val(ids), path(bams), path(bais)
+    tuple path(ref), path(ref_fai)
 
     output:
     tuple val(fam), path("*.png")
 
     script:
+    def cram_flag = bams.any { it.name.endsWith('.cram') } ? "-r $ref" : ""
 """
 export MPLCONFIGDIR=\$PWD/mpl_tmp
 cat > sites <<< '${sites}'
 (
     while IFS=\$'\\t' read -r NAME CHROM START END TYPE; do
 
-    WINDOW_FLAG=""
+    window_flag=""
     if [[ "\$TYPE" == "INS" && "\$START" == "\$END" ]]; then
-        WINDOW_FLAG="-w 1000"
+        window_flag="-w 1000"
     fi
 
-    echo "samplot plot \\
-        -n ${ids.join(' ')} \\
-        -b ${bams.join(' ')} \\
-        -o samplot_${fam}_\$NAME.png \\
-        -c \$CHROM \\
-        -s \$START \\
-        -e \$END \\
-        -t \$TYPE \\
-        \$WINDOW_FLAG"
+        echo "samplot plot \\
+            -n ${ids.join(' ')} \\
+            -b ${bams.join(' ')} \\
+            -o samplot_${fam}_\$NAME.png \\
+            -c \$CHROM \\
+            -s \$START \\
+            -e \$END \\
+            -t \$TYPE \\
+            ${cram_flag} \\
+            \$window_flag"
     done < sites
 ) | xargs -n 1 -P ${task.cpus} -I {} sh -c '{}'
 """
