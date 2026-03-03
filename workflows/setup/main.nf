@@ -30,9 +30,9 @@ workflow SETUP {
         STORE(
             Channel.value(['vcfanno', path(params.vcfanno_binary)])
         )    
-        pedigree_channel = Channel.empty()
-        alignment_channel_out = Channel.empty()
-        check            = Channel.value(true)
+        pedigree_channel  = Channel.empty()
+        alignment_channel = Channel.empty()
+        check             = Channel.value(true)
 
     } else {
         INIT_CACHE(
@@ -62,17 +62,17 @@ workflow SETUP {
 
         pedigree_channel = pedigree_channel(GET_SAMPLES.out.ped)
 
-        alignment_channel_out = alignment_channel(GET_SAMPLES.out.alignments, GET_SAMPLES.out.ped)
+        alignment_channel = alignment_channel(GET_SAMPLES.out.alignments, GET_SAMPLES.out.ped)
 
         check = GET_SAMPLES.out.check
     }
 
     emit:
-    cavalier_opts    = STORE.out.filter { it.name ==~ /.+\.json$/  }.first()
-    lists            = STORE.out.filter { it.name ==~ /.+\.tsv$/   }.collect()
-    gene_set         = STORE.out.filter { it.name ==~ /.+\.txt$/   }.first()
-    vcfanno_binary   = STORE.out.filter { it.name ==~ /.*vcfanno.*/}.first()
-    pedigree_channel = pedigree_channel
-    alignment_channel = alignment_channel_out
-    check            = check
+    cavalier_opts     = STORE.out.filter { it.name ==~ /.+\.json$/  }.first()
+    lists             = STORE.out.filter { it.name ==~ /.+\.tsv$/   }.collect()
+    gene_set          = STORE.out.filter { it.name ==~ /.+\.txt$/   }.first()
+    vcfanno_binary    = STORE.out.filter { it.name ==~ /.*vcfanno.*/}.first()
+    pedigree_channel  = pedigree_channel
+    alignment_channel = alignment_channel
+    check             = check
 }

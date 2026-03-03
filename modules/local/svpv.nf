@@ -12,6 +12,7 @@ process SVPV {
     input:
     tuple val(fam), path(vcf), val(lines), val(ids), path(bams), path(bais)
     path(ref_gene)
+    tuple path(ref), path(ref_fai)
 
     output:
     tuple val(fam), path("$fam/**.pdf")
@@ -30,7 +31,7 @@ process SVPV {
             }' \\
         | gzip -c > filtered.vcf.gz
 
-    export REF_PATH=${params.ref_fasta} # required for cram input
+    export REF_PATH=$ref # required for cram input
 
     SVPV \\
         -o $fam \\

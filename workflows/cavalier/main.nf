@@ -10,6 +10,8 @@ include { get_fmt           } from '../../functions/helpers.nf'
 include { get_fam_aff_un    } from '../../functions/helpers.nf'
 include { short_enabled     } from '../../functions/helpers.nf'
 include { struc_enabled     } from '../../functions/helpers.nf'
+include { ref_fasta_channel } from '../../functions/channels'
+
 
 /* ----------- processes ----------------*/
 include { SPLIT_VEP   } from '../../modules/local/split_vep'
@@ -93,7 +95,8 @@ workflow CAVALIER {
             .join(samples_short)
             .join(pedigree_channel)
             .join(SPLIT_VEP.out.vcf.filter {it[0] == 'SHORT' }.map { it[[1,2,3]] })
-            .join(alignment_channel)
+            .join(alignment_channel),
+        ref_fasta_channel()
     )
  
     IGV_TO_PNG(
@@ -126,7 +129,8 @@ workflow CAVALIER {
             .join(samples_struc)
             .join(FILTER.out.struc_lines.map { [it[0], it[1].text.trim()] }) // fam, vcf, lines
             .join(alignment_channel), // fam, vcf, csv, ids, bams, bais
-        path(params.ref_gene)
+        path(params.ref_gene),
+        ref_fasta_channel()
     )
 
     SVPV_TO_PNG(
@@ -136,7 +140,8 @@ workflow CAVALIER {
     SAMPLOT(
         FILTER.out.struc_samplot.map { [it[0], it[1].text.trim()] }
             .join(samples_struc)
-            .join(alignment_channel)
+            .join(alignment_channel),
+        ref_fasta_channel()
     )
 
     if (params.make_slides) {

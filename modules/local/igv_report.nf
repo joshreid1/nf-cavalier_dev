@@ -12,6 +12,7 @@ process IGV_REPORT {
 
     input:
     tuple val(fam), val(sites), path(ped), path(vcf), path(tbi), val(ids), path(bams), path(bais) // bams can be BAM or CRAM, bais can be .bai or .crai
+    tuple path(ref), path(ref_fai)
 
     output:
     tuple val(fam), path("${fam}.igv_report.html")  , emit: combined
@@ -20,10 +21,10 @@ process IGV_REPORT {
     script:
     // paralellise cmds with xargs
     def cmds = [
-        "create_report sites.bed --genome hg38 --flanking 250 --fasta ${params.ref_fasta} --tracks ${fam}.vcf.gz ${bams.join(' ')} --output ${fam}.igv_report.html"
+        "create_report sites.bed --genome hg38 --flanking 250 --fasta $ref --tracks ${fam}.vcf.gz ${bams.join(' ')} --output ${fam}.igv_report.html"
     ] +
     [ids, bams].transpose().collect{ id, bam ->
-        "create_report sites.bed --genome hg38 --standalone --flanking 100 --fasta ${params.ref_fasta} --tracks $bam --output ${fam}.igv_report.${id}.html"
+        "create_report sites.bed --genome hg38 --standalone --flanking 100 --fasta $ref --tracks $bam --output ${fam}.igv_report.${id}.html"
     }
 """
 ln -s $vcf ${fam}.vcf.gz

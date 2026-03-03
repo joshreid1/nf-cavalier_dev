@@ -11,12 +11,13 @@ process SAMPLOT {
 
     input:
     tuple val(fam), val(sites), val(ids), path(bams), path(bais)
+    tuple path(ref), path(ref_fai)
 
     output:
     tuple val(fam), path("*.png")
 
     script:
-    def cram_flag = bams.any { it.name.endsWith('.cram') } ? "-r ${params.ref_fasta}" : ""
+    def cram_flag = bams.any { it.name.endsWith('.cram') } ? "-r $ref" : ""
 """
 export MPLCONFIGDIR=\$PWD/mpl_tmp
 cat > sites <<< '${sites}'
