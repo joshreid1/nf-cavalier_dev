@@ -11,8 +11,8 @@ process MAKE_SLIDES {
 
     input:
     tuple val(fam), path(ped),
-      path(short_var), path(short_flt_plot), path(igv),
-      path(struc_var), path(struc_flt_plot), path(svpv), path(samplot)
+    path(short_var), path(short_flt_plot), path(igv),
+    path(struc_var), path(struc_flt_plot), path(svpv), path(samplot)
     path(lists)
     val(slide_info)
     path(cav_opts)

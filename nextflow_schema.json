@@ -14,7 +14,7 @@
                 "id",
                 "snp_vcf",
                 "sv_vcf",
-                "bams",
+                "alignments",
                 "ped",
                 "lists",
                 "outdir"
@@ -40,11 +40,11 @@
                     "description": "Path to SV VCF",
                     "format": "file-path"
                 },
-                "bams": {
+                "alignments": {
                     "type": "string",
                     "default": "None",
                     "fa_icon": "fas fa-align-left",
-                    "description": "Path to BAMs TSV (sample_id, bam_path)",
+                    "description": "Path to alignments TSV file (sample_id, alignment_path). Supports BAM and CRAM files, or a mix of both.",
                     "format": "file-path"
                 },
                 "ped": {

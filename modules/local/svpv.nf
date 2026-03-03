@@ -30,6 +30,8 @@ process SVPV {
             }' \\
         | gzip -c > filtered.vcf.gz
 
+    export REF_PATH=${params.ref_fasta} # required for cram input
+
     SVPV \\
         -o $fam \\
         -samples ${ids.join(',')} \\

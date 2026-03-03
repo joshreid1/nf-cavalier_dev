@@ -12,7 +12,7 @@ include { get_external_lists } from '../../functions/helpers.nf'
 include { INIT_CACHE       } from '../../modules/local/init_cache'
 include { STORE            } from '../../modules/local/store.nf'
 include { GET_SAMPLES      } from '../../modules/local/get_samples.nf'
-include { bam_channel      } from '../../functions/channels.nf'
+include { alignment_channel } from '../../functions/channels.nf'
 include { pedigree_channel } from '../../functions/channels.nf'
 
 workflow SETUP {
@@ -31,7 +31,7 @@ workflow SETUP {
             Channel.value(['vcfanno', path(params.vcfanno_binary)])
         )    
         pedigree_channel = Channel.empty()
-        bam_channel      = Channel.empty()
+        alignment_channel_out = Channel.empty()
         check            = Channel.value(true)
 
     } else {
@@ -52,7 +52,7 @@ workflow SETUP {
         )    
 
         GET_SAMPLES(
-            path(params.bams),
+            path(params.alignments),
             params.ped ? path(params.ped) : [],
             params.short_vcf ? path(params.short_vcf) : (params.short_vcf_annotated ? path(params.short_vcf_annotated) : []),
             params.struc_vcf ? path(params.struc_vcf) : (params.struc_vcf_annotated ? path(params.struc_vcf_annotated) : [])
@@ -62,7 +62,7 @@ workflow SETUP {
 
         pedigree_channel = pedigree_channel(GET_SAMPLES.out.ped)
 
-        bam_channel = bam_channel(GET_SAMPLES.out.bams, GET_SAMPLES.out.ped)
+        alignment_channel_out = alignment_channel(GET_SAMPLES.out.alignments, GET_SAMPLES.out.ped)
 
         check = GET_SAMPLES.out.check
     }
@@ -73,6 +73,6 @@ workflow SETUP {
     gene_set         = STORE.out.filter { it.name ==~ /.+\.txt$/   }.first()
     vcfanno_binary   = STORE.out.filter { it.name ==~ /.*vcfanno.*/}.first()
     pedigree_channel = pedigree_channel
-    bam_channel      = bam_channel
+    alignment_channel = alignment_channel_out
     check            = check
 }

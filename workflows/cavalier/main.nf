@@ -33,7 +33,7 @@ workflow CAVALIER {
     short_vcf
     struc_vcf
     pedigree_channel
-    bam_channel
+    alignment_channel
     check
 
     main:
@@ -44,7 +44,7 @@ workflow CAVALIER {
         short_vcf.map { ['SHORT'] + it }
             .mix(struc_vcf.map { ['STRUC'] + it })
             .map { it + [get_inf(it[0]), get_fmt(it[0])] }
-            .combine(get_fam_aff_un(pedigree_channel, bam_channel)),
+            .combine(get_fam_aff_un(pedigree_channel, alignment_channel)),
         check
     )
 
@@ -93,7 +93,7 @@ workflow CAVALIER {
             .join(samples_short)
             .join(pedigree_channel)
             .join(SPLIT_VEP.out.vcf.filter {it[0] == 'SHORT' }.map { it[[1,2,3]] })
-            .join(bam_channel)
+            .join(alignment_channel)
     )
  
     IGV_TO_PNG(
@@ -125,7 +125,7 @@ workflow CAVALIER {
         SPLIT_VEP.out.vcf.filter { it[0] == 'STRUC' }.map { it[[1,2]] } // fam, vcf
             .join(samples_struc)
             .join(FILTER.out.struc_lines.map { [it[0], it[1].text.trim()] }) // fam, vcf, lines
-            .join(bam_channel), // fam, vcf, csv, ids, bams, bais
+            .join(alignment_channel), // fam, vcf, csv, ids, bams, bais
         path(params.ref_gene)
     )
 
@@ -136,7 +136,7 @@ workflow CAVALIER {
     SAMPLOT(
         FILTER.out.struc_samplot.map { [it[0], it[1].text.trim()] }
             .join(samples_struc)
-            .join(bam_channel)
+            .join(alignment_channel)
     )
 
     if (params.make_slides) {

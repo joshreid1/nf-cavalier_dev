@@ -8,7 +8,7 @@ Nextflow pipeline for singleton and family based candidate variant reporting bas
 * Candidate variants are reported along with IGV and Structural variant visualisations
 
 ## Installation
-* Clone this repositoty
+* Clone this repository
 
 ## Usage
 1. Create and navigate to run working directory
@@ -30,7 +30,7 @@ The following parameters may be set in the Nextflow configuration file:
 ### Required
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `bams` | - | TSV file with BAM paths (Col 1: sample ID, Col 2: BAM path) |
+| `alignments` | - | TSV file with alignment file paths (Col 1: sample ID, Col 2: BAM or CRAM path) |
 | `lists` | - | Gene lists, comma separated (TSV or ID) - [see below](#gene-lists) |
 | `ped` | - | Pedigree file (required for familial analysis, leave blank for singletons) |
 | `short_vcf` | - | Input VCF for short variants (SNVs/Indels) |
@@ -210,5 +210,3 @@ The following parameters may be set in the Nextflow configuration file:
 * [SVAFotate](https://github.com/fakedrtom/SVAFotate) is used to annotate gnomAD v4.1 SV frequencies
 * The database file is available [here](https://zenodo.org/records/11642574)
 * Set parameter `svafdb`
-
-

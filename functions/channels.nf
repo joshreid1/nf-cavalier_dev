@@ -1,5 +1,5 @@
 include { read_ped  } from './helpers'
-include { read_bams } from './helpers'
+include { read_alignments } from './helpers'
 include { make_path } from './helpers'
 
 // helper functions to create input channels for processes
@@ -70,20 +70,25 @@ def pedigree_channel(ped) {
     // fam, ped
 }
 
-def bam_channel(bams, ped) {
-    bams
+def alignment_channel(alignments, ped) {
+    alignments
         .splitCsv(sep: '\t')
         .map { 
+            def alignment_file = file(it[1], checkIfExists: true).toAbsolutePath()
+            // Check for .bai (BAM index) or .crai (CRAM index)
+            def index_file = file(it[1] + '.bai').exists() ? 
+                file(it[1] + '.bai', checkIfExists: true).toAbsolutePath() :
+                file(it[1] + '.crai', checkIfExists: true).toAbsolutePath()
             [
                 it[0],
-                file(it[1], checkIfExists: true).toAbsolutePath(),
-                file(it[1] + '.bai', checkIfExists: true).toAbsolutePath()
+                alignment_file,
+                index_file
             ] 
         }
         .combine(ped.flatMap { read_ped(it) }.map { [it.iid, it.fid] }, by: 0)
         .map { it[[3,0,1,2]] }
         .groupTuple(by: 0) 
-    // fam, [iid], [bam], [bai]
+    // fam, [iid], [alignment], [index]
 }
 
 def cache_dir_channel() {

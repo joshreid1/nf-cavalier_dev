@@ -85,8 +85,8 @@ def read_ped(input) {
     ped.findAll { fam_w_aff.contains(it.fid) }
 }
 
-def read_bams() {
-    read_tsv(path(params.bams), ['iid', 'bam'])
+def read_alignments() {
+    read_tsv(path(params.alignments), ['iid', 'alignment'])
 }
 
 def get_external_lists() {
