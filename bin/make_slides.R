@@ -442,6 +442,28 @@ MAIN <- function(opts) {
           SVTYPE == "INS" ~ str_c(CHROM, ':g.', POS, "_", POS + 1L, "ins"),
           TRUE ~ NA_character_
         ),
+        Region = if_else(
+          END > POS,
+          str_c(CHROM, ':', POS, '-', END),
+          str_c(CHROM, ':', POS)
+        ),
+        Region_url = {
+          colour <- case_when(
+            SVTYPE == "DEL" ~ "255,0,0",
+            SVTYPE == "DUP" ~ "0,255,0",
+            TRUE            ~ "0,0,255"
+          )
+          width <- pmax(250, END - POS)
+          track <- str_c(
+            'track name="', SVTYPE, '" visibility=2 color=', colour, '\n',
+            CHROM, ' ', POS, ' ', coalesce(END, POS+1)
+          )
+          str_c(
+            "https://genome.ucsc.edu/cgi-bin/hgTracks?db=hg38&",
+            "position=", CHROM, ":", POS-width, "-", END+width, "&",
+            "hgt.customText=", URLencode(track)
+          )
+        },
         # # add URLS to slides
         gnomAD_url = if_else(
           Gene == 'LARGE_SV',

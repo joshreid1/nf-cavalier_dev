@@ -17,7 +17,12 @@ process SCATTER {
 
     script:
     prefix = vcf.name.replace('.vcf.gz', '').replace('.vcf.bgz', '') + '.shard'
+    if (n_shards > 1)
     """
     scatter_vcf.py $vcf --n-shards $n_shards --output $prefix --threads $task.cpus
+    """
+    else
+    """
+    ln -s $vcf ${prefix}.1.vcf.gz
     """
 }
